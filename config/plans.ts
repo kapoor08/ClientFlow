@@ -1,0 +1,46 @@
+export const plans = [
+  {
+    name: "Starter",
+    price: "$29",
+    period: "/mo",
+    desc: "For small teams getting started",
+    features: [
+      "5 team members",
+      "10 projects",
+      "Basic analytics",
+      "Email support",
+    ],
+    cta: "Start Free Trial",
+  },
+  {
+    name: "Professional",
+    price: "$79",
+    period: "/mo",
+    desc: "For growing agencies",
+    features: [
+      "25 team members",
+      "Unlimited projects",
+      "Advanced analytics",
+      "Priority support",
+      "API access",
+      "Custom branding",
+    ],
+    cta: "Start Free Trial",
+    featured: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    period: "",
+    desc: "For large organizations",
+    features: [
+      "Unlimited members",
+      "Unlimited projects",
+      "Custom integrations",
+      "Dedicated support",
+      "SSO/SAML",
+      "SLA guarantee",
+    ],
+    cta: "Contact Sales",
+  },
+];

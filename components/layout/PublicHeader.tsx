@@ -1,0 +1,123 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { navLinks } from "@/config/navigation";
+
+const PublicHeader = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-50 transition-all duration-300 border-b border-border/50 bg-background/95 backdrop-blur-lg",
+      )}
+    >
+      <div className="container flex h-16 items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg font-display text-xs font-bold transition-colors bg-primary text-primary-foreground",
+            )}
+          >
+            CF
+          </div>
+          <span
+            className={cn(
+              "font-display text-[17px] font-semibold tracking-tight text-foreground transition-colors",
+            )}
+          >
+            ClientFlow
+          </span>
+        </Link>
+
+        <nav className="hidden items-center md:flex">
+          <div
+            className={cn(
+              "flex items-center gap-1 rounded-full px-1 py-1 border border-border/50 bg-secondary/80",
+            )}
+          >
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-[13px] font-medium transition-all text-muted-foreground hover:bg-background hover:text-foreground",
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/auth/sign-in"
+            className={cn(
+              "text-[13px] font-medium transition-colors text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Sign In
+          </Link>
+          <Button
+            size="sm"
+            asChild
+            className={cn("rounded-full px-5 text-[13px] font-semibold")}
+          >
+            <Link href="/auth/sign-up">Get Started</Link>
+          </Button>
+        </div>
+
+        <button
+          className={cn(
+            "rounded-lg p-2 transition-colors md:hidden text-muted-foreground hover:bg-secondary",
+          )}
+          onClick={() => setMobileOpen((prev) => !prev)}
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
+      <div
+        className={cn(
+          "overflow-hidden border-t border-border bg-background transition-[max-height,opacity] duration-300 md:hidden",
+          mobileOpen
+            ? "max-h-105 opacity-100"
+            : "pointer-events-none max-h-0 opacity-0",
+        )}
+      >
+        <div className="container flex flex-col gap-1 py-3">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/auth/sign-in" onClick={() => setMobileOpen(false)}>
+                Sign In
+              </Link>
+            </Button>
+            <Button size="sm" asChild className="rounded-full">
+              <Link href="/auth/sign-up" onClick={() => setMobileOpen(false)}>
+                Get Started
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default PublicHeader;
