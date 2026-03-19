@@ -10,6 +10,15 @@ import { db } from "./db";
 
 const ACTIVE_MEMBERSHIP_STATUS = "active";
 const MANAGE_SETTINGS_ROLE_KEYS = new Set(["owner", "admin"]);
+const ROLE_DISPLAY_NAMES = {
+  owner: "Owner",
+  admin: "Admin",
+  manager: "Manager",
+  member: "Member",
+  client: "Client",
+} as const;
+
+export type OrganizationRoleKey = keyof typeof ROLE_DISPLAY_NAMES;
 
 export type OrganizationSettingsContext = {
   organizationId: string;
@@ -21,6 +30,26 @@ export type OrganizationSettingsContext = {
   roleKey: string | null;
   canManageSettings: boolean;
 };
+
+export function getOrganizationRoleLabel(roleKey: string | null) {
+  if (!roleKey) {
+    return "Account";
+  }
+
+  return ROLE_DISPLAY_NAMES[roleKey as OrganizationRoleKey] ?? "Account";
+}
+
+export function getWorkspaceHomeHrefForRole(roleKey: string | null) {
+  switch (roleKey) {
+    case "owner":
+    case "admin":
+    case "manager":
+    case "member":
+    case "client":
+    default:
+      return "/dashboard";
+  }
+}
 
 type BootstrapWorkspaceInput = {
   id: string;

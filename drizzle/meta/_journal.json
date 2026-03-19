@@ -15,6 +15,13 @@
       "when": 1773161112508,
       "tag": "0001_white_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773944042621,
+      "tag": "0002_puzzling_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

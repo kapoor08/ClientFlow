@@ -2,13 +2,47 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { navLinks } from "@/config/navigation";
+import { authRoutes, getUserInitials, useSignOut } from "@/core/auth";
 
-const PublicHeader = () => {
+type PublicHeaderViewer = {
+  name: string;
+  email: string;
+  roleLabel: string;
+  dashboardHref: string;
+};
+
+type PublicHeaderProps = {
+  viewer?: PublicHeaderViewer | null;
+};
+
+const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+  const signOut = useSignOut();
+
+  async function handleSignOut() {
+    try {
+      await signOut.mutateAsync();
+      router.push(authRoutes.signIn);
+      router.refresh();
+    } catch {
+      router.push(authRoutes.signIn);
+      router.refresh();
+    }
+  }
 
   return (
     <header
@@ -54,23 +88,81 @@ const PublicHeader = () => {
           </div>
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <Link
-            href="/auth/sign-in"
-            className={cn(
-              "text-[13px] font-medium transition-colors text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Sign In
-          </Link>
-          <Button
-            size="sm"
-            asChild
-            className={cn("rounded-full px-5 text-[13px] font-semibold")}
-          >
-            <Link href="/auth/sign-up">Get Started</Link>
-          </Button>
-        </div>
+        {viewer ? (
+          <div className="hidden items-center gap-3 md:flex">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-3 rounded-full border border-border/60 bg-secondary/60 px-3 py-1.5 text-left transition-colors hover:bg-secondary/80 cursor-pointer"
+                  aria-label="Open account menu"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    {getUserInitials(viewer.name, viewer.email)}{" "}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-foreground">
+                      {viewer.name}{" "}
+                      <Badge
+                        variant="outline"
+                        className="h-4 px-1.5 text-[10px]"
+                      >
+                        {viewer.roleLabel}
+                      </Badge>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="max-w-40 truncate text-[11px] text-muted-foreground">
+                        {viewer.email}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown size={16} className="text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuItem
+                  asChild
+                  className="hover:bg-primary! hover:text-sidebar-background cursor-pointer"
+                >
+                  <Link href={viewer.dashboardHref}>
+                    <LayoutDashboard size={16} />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void handleSignOut();
+                  }}
+                  disabled={signOut.isPending}
+                  className="hover:bg-danger! hover:text-sidebar-background! text-error cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  {signOut.isPending ? "Signing out..." : "Sign out"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <div className="hidden items-center gap-3 md:flex">
+            <Link
+              href="/auth/sign-in"
+              className={cn(
+                "text-[13px] font-medium transition-colors text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Sign In
+            </Link>
+            <Button
+              size="sm"
+              asChild
+              className={cn("rounded-full px-5 text-[13px] font-semibold")}
+            >
+              <Link href="/auth/sign-up">Get Started</Link>
+            </Button>
+          </div>
+        )}
 
         <button
           className={cn(
@@ -103,16 +195,67 @@ const PublicHeader = () => {
             </Link>
           ))}
           <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/auth/sign-in" onClick={() => setMobileOpen(false)}>
-                Sign In
-              </Link>
-            </Button>
-            <Button size="sm" asChild className="rounded-full">
-              <Link href="/auth/sign-up" onClick={() => setMobileOpen(false)}>
-                Get Started
-              </Link>
-            </Button>
+            {viewer ? (
+              <>
+                <div className="rounded-2xl border border-border/70 bg-secondary/40 px-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                      {getUserInitials(viewer.name, viewer.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {viewer.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {viewer.email}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="ml-auto">
+                      {viewer.roleLabel}
+                    </Badge>
+                  </div>
+                </div>
+                <Button size="sm" asChild className="rounded-full">
+                  <Link
+                    href={viewer.dashboardHref}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <LayoutDashboard size={14} className="mr-1.5" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 cursor-pointer"
+                  onClick={() => void handleSignOut()}
+                  disabled={signOut.isPending}
+                >
+                  <LogOut size={16} />
+                  {signOut.isPending ? "Signing out..." : "Sign out"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link
+                    href="/auth/sign-in"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Sign In
+                  </Link>
+                </Button>
+                <Button size="sm" asChild className="rounded-full">
+                  <Link
+                    href="/auth/sign-up"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Get Started
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

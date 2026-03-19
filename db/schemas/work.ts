@@ -44,6 +44,7 @@ export const projects = pgTable("projects", {
   startDate: timestamp("start_date"),
   dueDate: timestamp("due_date"),
   completedAt: timestamp("completed_at"),
+  budgetType: text("budget_type"),
   budgetCents: integer("budget_cents"),
   createdByUserId: text("created_by_user_id").references(() => user.id),
   createdAt: createdAt(),

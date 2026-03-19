@@ -6,57 +6,61 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --cf-brand-900: 207 75% 17%;
-  --cf-brand-700: 207 73% 27%;
-  --cf-brand-500: 207 72% 38%;
-  --cf-brand-300: 207 55% 63%;
-  --cf-brand-100: 207 68% 91%;
+  --cf-brand-900: 207 75% 17%; /* Tailwind sky-950 */
+  --cf-brand-700: 207 73% 27%; /* Tailwind sky-800 */
+  --cf-brand-500: 207 72% 38%; /* Tailwind blue-700 */
+  --cf-brand-300: 207 55% 63%; /* Tailwind sky-300 */
+  --cf-brand-100: 207 68% 91%; /* Tailwind sky-100 */
 
-  --cf-accent-600: 179 85% 30%;
-  --cf-accent-400: 170 76% 41%;
-  --cf-accent-100: 168 78% 92%;
+  --cf-accent-600: 179 85% 30%; /* Tailwind teal-700 */
+  --cf-accent-400: 170 76% 41%; /* Tailwind teal-600 */
+  --cf-accent-100: 168 78% 92%; /* Tailwind teal-100 */
 
-  --cf-neutral-950: 220 26% 11%;
-  --cf-neutral-900: 217 19% 17%;
-  --cf-neutral-700: 216 14% 27%;
-  --cf-neutral-500: 218 8% 46%;
-  --cf-neutral-300: 216 12% 82%;
-  --cf-neutral-100: 220 14% 96%;
-  --cf-neutral-50: 220 20% 97%;
+  --cf-neutral-950: 220 26% 11%; /* Tailwind slate-950 */
+  --cf-neutral-900: 217 19% 17%; /* Tailwind slate-900 */
+  --cf-neutral-700: 216 14% 27%; /* Tailwind slate-700 */
+  --cf-neutral-500: 218 8% 46%; /* Tailwind slate-500 */
+  --cf-neutral-300: 216 12% 82%; /* Tailwind slate-300 */
+  --cf-neutral-100: 220 14% 96%; /* Tailwind slate-100 */
+  --cf-neutral-50: 220 20% 97%; /* Tailwind slate-50 */
 
-  --cf-success: 142 64% 24%;
-  --cf-warning: 32 86% 37%;
-  --cf-danger: 0 63% 42%;
-  --cf-info: 201 90% 32%;
-  --background: 220 20% 97%;
-  --foreground: 220 26% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 220 26% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 220 26% 11%;
-  --primary: 207 72% 38%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 220 14% 96%;
-  --secondary-foreground: 217 19% 17%;
-  --muted: 220 14% 96%;
-  --muted-foreground: 218 8% 46%;
-  --accent: 170 76% 41%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 63% 42%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 216 12% 89%;
-  --input: 216 12% 82%;
-  --ring: 207 72% 38%;
+  --cf-success: 142 64% 24%; /* Tailwind green-800 */
+  --cf-warning: 32 86% 37%; /* Tailwind amber-700 */
+  --cf-danger: 0 63% 42%; /* Tailwind red-700 */
+  --cf-info: 201 90% 32%; /* Tailwind sky-700 */
+  --cf-error: 0 63% 42%; /* Tailwind red-700 */
+  --cf-error-foreground: 0 0% 100%; /* Tailwind white */
+  --cf-error-surface: 0 86% 97%; /* Tailwind red-50 */
+  --cf-error-border: 0 72% 88%; /* Tailwind red-200 */
+  --background: 220 20% 97%; /* Tailwind slate-50 */
+  --foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --card: 0 0% 100%; /* Tailwind white */
+  --card-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --popover: 0 0% 100%; /* Tailwind white */
+  --popover-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --primary: 207 72% 38%; /* Tailwind blue-700 */
+  --primary-foreground: 0 0% 100%; /* Tailwind white */
+  --secondary: 220 14% 96%; /* Tailwind slate-100 */
+  --secondary-foreground: 217 19% 17%; /* Tailwind slate-900 */
+  --muted: 220 14% 96%; /* Tailwind slate-100 */
+  --muted-foreground: 218 8% 46%; /* Tailwind slate-500 */
+  --accent: 170 76% 41%; /* Tailwind teal-600 */
+  --accent-foreground: 0 0% 100%; /* Tailwind white */
+  --destructive: 0 63% 42%; /* Tailwind red-700 */
+  --destructive-foreground: 0 0% 100%; /* Tailwind white */
+  --border: 216 12% 89%; /* Tailwind slate-200 */
+  --input: 216 12% 82%; /* Tailwind slate-300 */
+  --ring: 207 72% 38%; /* Tailwind blue-700 */
   --radius: 10px;
 
-  --sidebar-background: 0 0% 100%;
-  --sidebar-foreground: 217 19% 17%;
-  --sidebar-primary: 207 72% 38%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 207 68% 91%;
-  --sidebar-accent-foreground: 207 75% 17%;
-  --sidebar-border: 216 12% 82%;
-  --sidebar-ring: 207 72% 38%;
+  --sidebar-background: 0 0% 100%; /* Tailwind white */
+  --sidebar-foreground: 217 19% 17%; /* Tailwind slate-900 */
+  --sidebar-primary: 207 72% 38%; /* Tailwind blue-700 */
+  --sidebar-primary-foreground: 0 0% 100%; /* Tailwind white */
+  --sidebar-accent: 207 68% 91%; /* Tailwind sky-100 */
+  --sidebar-accent-foreground: 207 75% 17%; /* Tailwind sky-950 */
+  --sidebar-border: 216 12% 82%; /* Tailwind slate-300 */
+  --sidebar-ring: 207 72% 38%; /* Tailwind blue-700 */
 
   --cf-space-1: 4px;
   --cf-space-2: 8px;
@@ -86,48 +90,52 @@
   --cf-dur-normal: 180ms;
   --cf-dur-slow: 240ms;
   --cf-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.985 0 0);
+  --chart-1: oklch(0.809 0.105 251.813); /* Tailwind blue-300 */
+  --chart-2: oklch(0.623 0.214 259.815); /* Tailwind blue-600 */
+  --chart-3: oklch(0.546 0.245 262.881); /* Tailwind blue-700 */
+  --chart-4: oklch(0.488 0.243 264.376); /* Tailwind blue-800 */
+  --chart-5: oklch(0.424 0.199 265.638); /* Tailwind blue-900 */
+  --sidebar: oklch(0.985 0 0); /* Tailwind white */
 }
 
 .dark {
-  --background: 220 26% 11%;
-  --foreground: 220 20% 97%;
-  --card: 217 19% 17%;
-  --card-foreground: 220 20% 97%;
-  --popover: 217 19% 17%;
-  --popover-foreground: 220 20% 97%;
-  --primary: 207 55% 63%;
-  --primary-foreground: 220 26% 11%;
-  --secondary: 216 14% 27%;
-  --secondary-foreground: 220 20% 97%;
-  --muted: 216 14% 27%;
-  --muted-foreground: 218 8% 46%;
-  --accent: 170 76% 41%;
-  --accent-foreground: 220 26% 11%;
-  --destructive: 0 63% 42%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 216 14% 27%;
-  --input: 216 14% 27%;
-  --ring: 207 55% 63%;
-  --sidebar-background: 217 19% 17%;
-  --sidebar-foreground: 220 20% 97%;
-  --sidebar-primary: 207 55% 63%;
-  --sidebar-primary-foreground: 220 26% 11%;
-  --sidebar-accent: 216 14% 27%;
-  --sidebar-accent-foreground: 220 20% 97%;
-  --sidebar-border: 216 14% 27%;
-  --sidebar-ring: 207 55% 63%;
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
+  --background: 220 26% 11%; /* Tailwind slate-950 */
+  --foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --card: 217 19% 17%; /* Tailwind slate-900 */
+  --card-foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --popover: 217 19% 17%; /* Tailwind slate-900 */
+  --popover-foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --primary: 207 55% 63%; /* Tailwind sky-300 */
+  --primary-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --secondary: 216 14% 27%; /* Tailwind slate-700 */
+  --secondary-foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --muted: 216 14% 27%; /* Tailwind slate-700 */
+  --muted-foreground: 218 8% 46%; /* Tailwind slate-500 */
+  --accent: 170 76% 41%; /* Tailwind teal-600 */
+  --accent-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --destructive: 0 63% 42%; /* Tailwind red-700 */
+  --destructive-foreground: 0 0% 100%; /* Tailwind white */
+  --cf-error: 0 63% 42%; /* Tailwind red-700 */
+  --cf-error-foreground: 0 0% 100%; /* Tailwind white */
+  --cf-error-surface: 0 32% 18%; /* Tailwind red-950 */
+  --cf-error-border: 0 45% 32%; /* Tailwind red-900 */
+  --border: 216 14% 27%; /* Tailwind slate-700 */
+  --input: 216 14% 27%; /* Tailwind slate-700 */
+  --ring: 207 55% 63%; /* Tailwind sky-300 */
+  --sidebar-background: 217 19% 17%; /* Tailwind slate-900 */
+  --sidebar-foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --sidebar-primary: 207 55% 63%; /* Tailwind sky-300 */
+  --sidebar-primary-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --sidebar-accent: 216 14% 27%; /* Tailwind slate-700 */
+  --sidebar-accent-foreground: 220 20% 97%; /* Tailwind slate-50 */
+  --sidebar-border: 216 14% 27%; /* Tailwind slate-700 */
+  --sidebar-ring: 207 55% 63%; /* Tailwind sky-300 */
+  --chart-1: oklch(0.809 0.105 251.813); /* Tailwind blue-300 */
+  --chart-2: oklch(0.623 0.214 259.815); /* Tailwind blue-600 */
+  --chart-3: oklch(0.546 0.245 262.881); /* Tailwind blue-700 */
+  --chart-4: oklch(0.488 0.243 264.376); /* Tailwind blue-800 */
+  --chart-5: oklch(0.424 0.199 265.638); /* Tailwind blue-900 */
+  --sidebar: oklch(0.205 0 0); /* Tailwind slate-900 */
 }
 
 @theme inline {
@@ -188,6 +196,10 @@
   --color-warning: hsl(var(--cf-warning));
   --color-danger: hsl(var(--cf-danger));
   --color-info: hsl(var(--cf-info));
+  --color-error: hsl(var(--cf-error));
+  --color-error-foreground: hsl(var(--cf-error-foreground));
+  --color-error-surface: hsl(var(--cf-error-surface));
+  --color-error-border: hsl(var(--cf-error-border));
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

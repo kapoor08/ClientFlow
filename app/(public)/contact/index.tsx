@@ -68,7 +68,7 @@ const ContactPage = () => {
               ) : (
                 <form action={formAction} className="mt-5 space-y-3">
                   {state.status === "error" ? (
-                    <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                    <div className="rounded-xl border border-error-border bg-error-surface px-4 py-3 text-sm text-error">
                       {state.message}
                     </div>
                   ) : null}

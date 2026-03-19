@@ -1,0 +1,398 @@
+import "server-only";
+
+import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { clients, projects } from "@/db/schema";
+import { db } from "@/lib/db";
+import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import {
+  DEFAULT_PAGE_SIZE,
+  buildPaginationMeta,
+  paginationOffset,
+  type PaginationMeta,
+} from "@/lib/pagination";
+import {
+  PROJECT_STATUS_OPTIONS,
+  PROJECT_PRIORITY_OPTIONS,
+  type ProjectFormValues,
+  type ProjectStatus,
+  type ProjectPriority,
+  type ProjectBudgetType,
+} from "@/lib/projects-shared";
+
+export type ProjectModuleAccess = {
+  organizationId: string;
+  organizationName: string;
+  roleKey: string | null;
+  canWrite: boolean;
+};
+
+export type ProjectListItem = {
+  id: string;
+  name: string;
+  clientId: string;
+  clientName: string;
+  status: ProjectStatus;
+  priority: ProjectPriority | null;
+  startDate: Date | null;
+  dueDate: Date | null;
+  taskCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ProjectDetail = {
+  id: string;
+  name: string;
+  clientId: string;
+  clientName: string;
+  description: string | null;
+  status: ProjectStatus;
+  priority: ProjectPriority | null;
+  startDate: Date | null;
+  dueDate: Date | null;
+  completedAt: Date | null;
+  budgetType: ProjectBudgetType | null;
+  budgetCents: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const SORTABLE_COLUMNS = {
+  name: projects.name,
+  status: projects.status,
+  priority: projects.priority,
+  dueDate: projects.dueDate,
+  createdAt: projects.createdAt,
+  updatedAt: projects.updatedAt,
+} as const;
+
+type SortKey = keyof typeof SORTABLE_COLUMNS;
+
+type ListProjectsOptions = {
+  query?: string;
+  page?: number;
+  pageSize?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  clientId?: string;
+};
+
+function createId() {
+  return crypto.randomUUID();
+}
+
+function resolveSort(sort: string | undefined, order: "asc" | "desc") {
+  const col =
+    SORTABLE_COLUMNS[
+      (sort as SortKey) in SORTABLE_COLUMNS ? (sort as SortKey) : "updatedAt"
+    ];
+  return order === "asc" ? asc(col) : desc(col);
+}
+
+function parseBudgetToCents(budget: string): number | null {
+  if (!budget.trim()) return null;
+  const dollars = parseFloat(budget);
+  if (isNaN(dollars) || dollars < 0) return null;
+  return Math.round(dollars * 100);
+}
+
+function formatBudgetFromCents(cents: number | null): string {
+  if (cents === null) return "";
+  return (cents / 100).toFixed(2);
+}
+
+export async function getProjectModuleAccessForUser(
+  userId: string,
+): Promise<ProjectModuleAccess | null> {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) return null;
+  return {
+    organizationId: context.organizationId,
+    organizationName: context.organizationName,
+    roleKey: context.roleKey,
+    canWrite: context.roleKey !== "client",
+  };
+}
+
+export async function listProjectsForUser(
+  userId: string,
+  options: ListProjectsOptions = {},
+): Promise<{
+  access: ProjectModuleAccess | null;
+  projects: ProjectListItem[];
+  pagination: PaginationMeta;
+}> {
+  const access = await getProjectModuleAccessForUser(userId);
+  const emptyPagination = buildPaginationMeta(0, 1, DEFAULT_PAGE_SIZE);
+
+  if (!access) {
+    return { access: null, projects: [], pagination: emptyPagination };
+  }
+
+  const {
+    query = "",
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    sort,
+    order = "desc",
+    clientId,
+  } = options;
+
+  const trimmedQuery = query.trim();
+
+  const whereClause = and(
+    eq(projects.organizationId, access.organizationId),
+    isNull(projects.deletedAt),
+    clientId ? eq(projects.clientId, clientId) : undefined,
+    trimmedQuery
+      ? or(
+          ilike(projects.name, `%${trimmedQuery}%`),
+          ilike(clients.name, `%${trimmedQuery}%`),
+        )
+      : undefined,
+  );
+
+  const [totalResult, rows] = await Promise.all([
+    db
+      .select({ total: count(projects.id) })
+      .from(projects)
+      .leftJoin(clients, eq(projects.clientId, clients.id))
+      .where(whereClause),
+    db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        clientId: projects.clientId,
+        clientName: clients.name,
+        status: projects.status,
+        priority: projects.priority,
+        startDate: projects.startDate,
+        dueDate: projects.dueDate,
+        createdAt: projects.createdAt,
+        updatedAt: projects.updatedAt,
+      })
+      .from(projects)
+      .leftJoin(clients, eq(projects.clientId, clients.id))
+      .where(whereClause)
+      .orderBy(resolveSort(sort, order), asc(projects.name))
+      .limit(pageSize)
+      .offset(paginationOffset(page, pageSize)),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+  const pagination = buildPaginationMeta(total, page, pageSize);
+
+  return {
+    access,
+    projects: rows.map((p) => ({
+      ...p,
+      clientName: p.clientName ?? "Unknown Client",
+      status: p.status as ProjectStatus,
+      priority: p.priority as ProjectPriority | null,
+      taskCount: 0, // tasks module is a future enhancement
+    })),
+    pagination,
+  };
+}
+
+export async function getProjectDetailForUser(
+  userId: string,
+  projectId: string,
+) {
+  const access = await getProjectModuleAccessForUser(userId);
+
+  if (!access) {
+    return { access: null, project: null };
+  }
+
+  const rows = await db
+    .select({
+      id: projects.id,
+      name: projects.name,
+      clientId: projects.clientId,
+      clientName: clients.name,
+      description: projects.description,
+      status: projects.status,
+      priority: projects.priority,
+      startDate: projects.startDate,
+      dueDate: projects.dueDate,
+      completedAt: projects.completedAt,
+      budgetType: projects.budgetType,
+      budgetCents: projects.budgetCents,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+    })
+    .from(projects)
+    .leftJoin(clients, eq(projects.clientId, clients.id))
+    .where(
+      and(
+        eq(projects.organizationId, access.organizationId),
+        eq(projects.id, projectId),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return { access, project: null };
+
+  return {
+    access,
+    project: {
+      ...row,
+      clientName: row.clientName ?? "Unknown Client",
+      status: row.status as ProjectStatus,
+      priority: row.priority as ProjectPriority | null,
+      budgetType: row.budgetType as ProjectBudgetType | null,
+    } satisfies ProjectDetail,
+  };
+}
+
+export async function getProjectForEditForUser(
+  userId: string,
+  projectId: string,
+) {
+  const detail = await getProjectDetailForUser(userId, projectId);
+
+  if (!detail.access || !detail.project) {
+    return { access: detail.access, project: null };
+  }
+
+  const p = detail.project;
+
+  return {
+    access: detail.access,
+    project: {
+      id: p.id,
+      values: {
+        name: p.name,
+        clientId: p.clientId,
+        description: p.description ?? "",
+        status: p.status,
+        priority: p.priority ?? "medium",
+        startDate: p.startDate,
+        dueDate: p.dueDate,
+        budgetType: p.budgetType ?? "",
+        budget: formatBudgetFromCents(p.budgetCents),
+      } satisfies ProjectFormValues,
+    },
+  };
+}
+
+export async function createProjectForUser(
+  userId: string,
+  input: ProjectFormValues,
+) {
+  const access = await getProjectModuleAccessForUser(userId);
+
+  if (!access) {
+    throw new Error("No active organization was found for this account.");
+  }
+  if (!access.canWrite) {
+    throw new Error("You do not have permission to create projects.");
+  }
+
+  if (!PROJECT_STATUS_OPTIONS.some((o) => o.value === input.status)) {
+    throw new Error("Select a valid project status.");
+  }
+
+  const projectId = createId();
+
+  await db.insert(projects).values({
+    id: projectId,
+    organizationId: access.organizationId,
+    clientId: input.clientId,
+    name: input.name.trim(),
+    description: input.description.trim() || null,
+    status: input.status,
+    priority: input.priority || null,
+    startDate: input.startDate,
+    dueDate: input.dueDate,
+    budgetType: input.budgetType || null,
+    budgetCents: parseBudgetToCents(input.budget ?? ""),
+    createdByUserId: userId,
+  });
+
+  return { projectId, access };
+}
+
+export async function updateProjectForUser(
+  userId: string,
+  projectId: string,
+  input: ProjectFormValues,
+) {
+  const access = await getProjectModuleAccessForUser(userId);
+
+  if (!access) {
+    throw new Error("No active organization was found for this account.");
+  }
+  if (!access.canWrite) {
+    throw new Error("You do not have permission to update projects.");
+  }
+
+  const existing = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.organizationId, access.organizationId),
+        eq(projects.id, projectId),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0]) {
+    throw new Error("Project not found.");
+  }
+
+  await db
+    .update(projects)
+    .set({
+      clientId: input.clientId,
+      name: input.name.trim(),
+      description: input.description.trim() || null,
+      status: input.status,
+      priority: input.priority || null,
+      startDate: input.startDate,
+      dueDate: input.dueDate,
+      budgetType: input.budgetType || null,
+      budgetCents: parseBudgetToCents(input.budget ?? ""),
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, projectId));
+
+  return { projectId, access };
+}
+
+export async function deleteProjectForUser(userId: string, projectId: string) {
+  const access = await getProjectModuleAccessForUser(userId);
+
+  if (!access) {
+    throw new Error("No active organization was found for this account.");
+  }
+  if (!access.canWrite) {
+    throw new Error("You do not have permission to delete projects.");
+  }
+
+  const existing = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.organizationId, access.organizationId),
+        eq(projects.id, projectId),
+        isNull(projects.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0]) {
+    throw new Error("Project not found.");
+  }
+
+  await db
+    .update(projects)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+}

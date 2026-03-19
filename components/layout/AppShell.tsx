@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
 import type { User } from "@/lib/auth";
 import { getUserInitials } from "@/core/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
@@ -18,9 +19,14 @@ const AppShell = ({ children, user }: AppShellProps) => {
       <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
-              <Search size={14} />
-              <span className="hidden sm:inline">Search... Ctrl+K</span>
+            <div className="flex w-52 items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Search size={14} />
+                <span className="hidden sm:inline">Search...</span>
+              </div>
+              <Kbd className="hidden bg-background border border-cf-neutral-500 px-2 py-2! sm:inline-flex">
+                Ctrl+K
+              </Kbd>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -34,7 +40,9 @@ const AppShell = ({ children, user }: AppShellProps) => {
               </div>
               <div className="hidden text-left sm:block">
                 <p className="leading-none">{user.name || "ClientFlow User"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{user.email}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {user.email}
+                </p>
               </div>
               <SignOutButton />
             </div>
