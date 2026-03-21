@@ -52,6 +52,24 @@ export const projects = pgTable("projects", {
   deletedAt: timestamp("deleted_at"),
 });
 
+export const projectFiles = pgTable("project_files", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  uploadedByUserId: text("uploaded_by_user_id").references(() => user.id),
+  storageProvider: text("storage_provider").notNull().default("cloudinary"),
+  storageKey: text("storage_key").notNull(),   // Cloudinary public_id
+  storageUrl: text("storage_url").notNull(),    // Cloudinary secure_url
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type"),
+  sizeBytes: integer("size_bytes"),
+  createdAt: createdAt(),
+});
+
 export const projectMembers = pgTable(
   "project_members",
   {

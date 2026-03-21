@@ -2,14 +2,27 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Building2,
   Calendar,
+  CheckCircle2,
+  Clock,
   DollarSign,
   Edit,
   FolderKanban,
+  ListTodo,
+  Paperclip,
+  Pencil,
+  Tag,
 } from "lucide-react";
+import { FileUploader } from "@/components/files/FileUploader";
 import { getProjectDetailForUser } from "@/lib/projects";
 import { getServerSession } from "@/lib/get-session";
-import type { ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
+import {
+  BUDGET_TYPE_OPTIONS,
+  type ProjectStatus,
+  type ProjectPriority,
+  type ProjectBudgetType,
+} from "@/lib/projects-shared";
 
 type ProjectDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -24,11 +37,27 @@ const statusStyles: Record<ProjectStatus, string> = {
   cancelled: "bg-neutral-200/70 text-neutral-500",
 };
 
+const statusIconBg: Record<ProjectStatus, string> = {
+  planning: "bg-neutral-100 text-neutral-500",
+  active: "bg-info/10 text-info",
+  in_progress: "bg-primary/10 text-primary",
+  on_hold: "bg-warning/10 text-warning",
+  completed: "bg-success/10 text-success",
+  cancelled: "bg-neutral-100 text-neutral-400",
+};
+
 const priorityStyles: Record<ProjectPriority, string> = {
   low: "bg-neutral-200/70 text-neutral-600",
   medium: "bg-info/10 text-info",
   high: "bg-warning/10 text-warning",
   urgent: "bg-danger/10 text-danger",
+};
+
+const priorityDot: Record<ProjectPriority, string> = {
+  low: "bg-neutral-400",
+  medium: "bg-info",
+  high: "bg-warning",
+  urgent: "bg-danger",
 };
 
 function formatDate(value: Date | null): string {
@@ -48,6 +77,36 @@ function formatCurrency(cents: number | null): string {
   }).format(cents / 100);
 }
 
+function getBudgetTypeLabel(type: ProjectBudgetType | null): string {
+  if (!type) return "—";
+  return BUDGET_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
+}
+
+type StatCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  valueClassName?: string;
+};
+
+function StatCard({ icon, label, value, valueClassName }: StatCardProps) {
+  return (
+    <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        <span className="text-[10px] font-semibold uppercase tracking-wider">
+          {label}
+        </span>
+      </div>
+      <div
+        className={`mt-2.5 text-sm font-semibold ${valueClassName ?? "text-foreground"}`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export default async function ProjectDetailPage({
   params,
 }: ProjectDetailPageProps) {
@@ -59,12 +118,8 @@ export default async function ProjectDetailPage({
     id,
   );
 
-  if (!access) {
-    redirect("/unauthorized");
-  }
-  if (!project) {
-    notFound();
-  }
+  if (!access) redirect("/unauthorized");
+  if (!project) notFound();
 
   const isOverdue =
     project.dueDate &&
@@ -73,9 +128,9 @@ export default async function ProjectDetailPage({
     project.dueDate < new Date();
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl space-y-5">
       {/* Back + actions */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <Link
           href="/projects"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -95,12 +150,14 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Header card */}
-      <div className="mb-4 rounded-card border border-border bg-card p-6 shadow-cf-1">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-100">
-            <FolderKanban size={22} className="text-primary" />
+      <div className="rounded-card border border-border bg-card shadow-cf-1">
+        <div className="flex items-start gap-4 p-6">
+          <div
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${statusIconBg[project.status]}`}
+          >
+            <FolderKanban size={22} />
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-2xl font-semibold text-foreground">
                 {project.name}
@@ -112,79 +169,125 @@ export default async function ProjectDetailPage({
               </span>
               {project.priority && (
                 <span
-                  className={`rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${priorityStyles[project.priority]}`}
+                  className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${priorityStyles[project.priority]}`}
                 >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${priorityDot[project.priority]}`}
+                  />
                   {project.priority}
                 </span>
               )}
             </div>
-            <Link
-              href={`/clients/${project.clientId}`}
-              className="mt-1 block text-sm text-muted-foreground hover:text-primary"
-            >
-              {project.clientName}
-            </Link>
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <Link
+                href={`/clients/${project.clientId}`}
+                className="flex items-center gap-1 hover:text-primary"
+              >
+                <Building2 size={12} />
+                {project.clientName}
+              </Link>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1">
+                <Clock size={12} />
+                Created {formatDate(project.createdAt)}
+              </span>
+            </div>
           </div>
         </div>
 
         {project.description && (
-          <p className="mt-4 border-t border-border pt-4 text-sm text-muted-foreground">
-            {project.description}
-          </p>
+          <div className="border-t border-border px-6 py-4">
+            <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+              <Pencil
+                size={13}
+                className="mt-0.5 shrink-0 text-muted-foreground/50"
+              />
+              {project.description}
+            </p>
+          </div>
         )}
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* Start date */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar size={14} />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Start Date
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard
+          icon={<Calendar size={13} />}
+          label="Start Date"
+          value={formatDate(project.startDate)}
+        />
+        <StatCard
+          icon={<Calendar size={13} />}
+          label="Due Date"
+          value={
+            <span className="flex items-center gap-1.5">
+              {formatDate(project.dueDate)}
+              {isOverdue && (
+                <span className="rounded-pill bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger">
+                  Overdue
+                </span>
+              )}
             </span>
-          </div>
-          <p className="mt-2 text-sm font-medium text-foreground">
-            {formatDate(project.startDate)}
-          </p>
-        </div>
+          }
+          valueClassName={isOverdue ? "text-danger" : undefined}
+        />
+        <StatCard
+          icon={<DollarSign size={13} />}
+          label="Budget"
+          value={formatCurrency(project.budgetCents)}
+        />
+        <StatCard
+          icon={<Tag size={13} />}
+          label="Billing Model"
+          value={getBudgetTypeLabel(project.budgetType)}
+        />
+      </div>
 
-        {/* Due date */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar size={14} />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Due Date
-            </span>
-          </div>
-          <p
-            className={`mt-2 text-sm font-medium ${
-              isOverdue ? "text-danger" : "text-foreground"
-            }`}
-          >
-            {formatDate(project.dueDate)}
-            {isOverdue && (
-              <span className="ml-2 text-[10px] font-normal">Overdue</span>
-            )}
-          </p>
+      {/* Completed date — only when relevant */}
+      {project.completedAt && (
+        <div className="flex items-center gap-2 rounded-card border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
+          <CheckCircle2 size={15} />
+          <span>
+            Completed on <strong>{formatDate(project.completedAt)}</strong>
+          </span>
         </div>
+      )}
 
-        {/* Budget */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <DollarSign size={14} />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Budget
-            </span>
+      {/* Files */}
+      <div className="rounded-card border border-border bg-card shadow-cf-1">
+        <div className="flex items-center gap-2 border-b border-border px-6 py-4">
+          <Paperclip size={15} className="text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Files</span>
+        </div>
+        <div className="p-6">
+          <FileUploader projectId={project.id} canUpload={access.canWrite} />
+        </div>
+      </div>
+
+      {/* Tasks placeholder */}
+      <div className="rounded-card border border-border bg-card shadow-cf-1">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ListTodo size={15} className="text-muted-foreground" />
+            Tasks
           </div>
-          <p className="mt-2 text-sm font-medium text-foreground">
-            {formatCurrency(project.budgetCents)}
+          <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            Coming soon
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+          <ListTodo size={28} className="text-muted-foreground/30" />
+          <p className="text-sm font-medium text-muted-foreground">
+            No tasks yet
+          </p>
+          <p className="max-w-xs text-xs text-muted-foreground/70">
+            Task management is coming soon. You&apos;ll be able to break this
+            project into trackable deliverables.
           </p>
         </div>
       </div>
 
-      {/* Meta */}
-      <p className="mt-4 text-right text-xs text-muted-foreground">
+      {/* Footer meta */}
+      <p className="text-right text-xs text-muted-foreground">
         Last updated {formatDate(project.updatedAt)}
       </p>
     </div>
