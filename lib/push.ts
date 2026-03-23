@@ -34,8 +34,8 @@ export async function sendPushToSubscription(
     JSON.stringify({
       title: payload.title,
       body: payload.body,
-      icon: payload.icon ?? "/icon-192x192.png",
-      badge: "/badge-72x72.png",
+      icon: payload.icon ?? "/favicon.png",
+      badge: "/favicon.png",
       data: { url: payload.url ?? "/" },
     }),
   );

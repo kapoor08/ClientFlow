@@ -1,9 +1,13 @@
 "use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { mockTasks } from "@/data/mockData";
-import type { Task } from "@/types/models";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useTasks } from "@/core/tasks/useCase";
+import { getInitials, formatDueShort, PRIORITY_BADGE, STATUS_BADGE } from "@/core/tasks/entity";
+import type { TaskListItem } from "@/core/tasks/entity";
+import { TaskDialog } from "./TaskDialog";
 import {
   Search,
   Plus,
@@ -23,82 +27,145 @@ const statusColumns = [
   { key: "done", label: "Done", color: "border-success" },
 ] as const;
 
-const priorityBadge: Record<string, string> = {
-  low: "bg-neutral-300/50 text-neutral-700",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  urgent: "bg-danger/10 text-danger",
-};
+// ─── Task Card ────────────────────────────────────────────────────────────────
 
-const statusBadge: Record<string, string> = {
-  todo: "bg-neutral-300/50 text-neutral-700",
-  in_progress: "bg-info/10 text-info",
-  review: "bg-warning/10 text-warning",
-  blocked: "bg-danger/10 text-danger",
-  done: "bg-success/10 text-success",
-};
+function TaskCard({
+  task,
+  onClick,
+}: {
+  task: TaskListItem;
+  onClick: () => void;
+}) {
+  const initials = getInitials(task.assigneeName);
 
-const TaskCard = ({ task }: { task: Task }) => (
-  <div className="group rounded-card border border-border bg-card p-3 shadow-cf-1 hover:shadow-cf-2 transition-shadow cursor-pointer">
-    <div className="flex items-start justify-between">
-      <p className="text-sm font-medium text-foreground leading-tight">
-        {task.title}
-      </p>
-      <GripVertical
-        size={14}
-        className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-      />
+  return (
+    <div
+      onClick={onClick}
+      className="group rounded-card border border-border bg-card p-3 shadow-cf-1 hover:shadow-cf-2 transition-shadow cursor-pointer"
+    >
+      <div className="flex items-start justify-between">
+        <p className="text-sm font-medium text-foreground leading-tight">
+          {task.title}
+        </p>
+        <GripVertical
+          size={14}
+          className="shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{task.projectName}</p>
+
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {task.assigneeUserId ? (
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-primary">
+              {initials}
+            </div>
+          ) : (
+            <div className="flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-border text-[10px] text-muted-foreground">
+              ?
+            </div>
+          )}
+          {task.priority && (
+            <span
+              className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium capitalize ${PRIORITY_BADGE[task.priority] ?? ""}`}
+            >
+              {task.priority}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          {task.commentCount > 0 && (
+            <span className="flex items-center gap-0.5">
+              <MessageSquare size={10} /> {task.commentCount}
+            </span>
+          )}
+          {task.attachmentCount > 0 && (
+            <span className="flex items-center gap-0.5">
+              <Paperclip size={10} /> {task.attachmentCount}
+            </span>
+          )}
+          {task.dueDate && (
+            <span className="flex items-center gap-0.5">
+              <Clock size={10} /> {formatDueShort(task.dueDate)}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
-    <p className="mt-1 text-xs text-muted-foreground">{task.projectName}</p>
-    <div className="mt-2.5 flex flex-wrap gap-1">
-      {task.tags.map((tag) => (
-        <span
-          key={tag}
-          className="rounded-pill bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-        >
-          {tag}
-        </span>
+  );
+}
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+
+function BoardSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4" style={{ height: "calc(100vh - 14.75rem)" }}>
+      {statusColumns.map((col) => (
+        <div key={col.key} className="min-w-65 flex-1">
+          <div className={`mb-3 flex items-center gap-2 border-l-2 pl-2 ${col.color}`}>
+            <Skeleton className="h-4 w-20" />
+          </div>
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-card" />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
-    <div className="mt-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-primary">
-          {task.assignee.initials}
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
+      <div className="border-b border-border bg-secondary/50 px-4 py-3">
+        <Skeleton className="h-4 w-40" />
+      </div>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-border px-4 py-3 last:border-0">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-5 w-16 rounded-full" />
         </div>
-        <span
-          className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium capitalize ${priorityBadge[task.priority]}`}
-        >
-          {task.priority}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-        {task.commentCount > 0 && (
-          <span className="flex items-center gap-0.5">
-            <MessageSquare size={10} /> {task.commentCount}
-          </span>
-        )}
-        {task.attachmentCount > 0 && (
-          <span className="flex items-center gap-0.5">
-            <Paperclip size={10} /> {task.attachmentCount}
-          </span>
-        )}
-        <span className="flex items-center gap-0.5">
-          <Clock size={10} /> {task.dueDate.slice(5)}
-        </span>
-      </div>
+      ))}
     </div>
-  </div>
-);
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 const TasksPage = () => {
   const [view, setView] = useState<"board" | "list">("board");
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskListItem | null>(null);
 
-  const filtered = mockTasks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.projectName.toLowerCase().includes(search.toLowerCase()),
-  );
+  const { data, isLoading } = useTasks({ pageSize: 200 });
+  const allTasks = data?.tasks ?? [];
+
+  const filtered = search
+    ? allTasks.filter(
+        (t) =>
+          t.title.toLowerCase().includes(search.toLowerCase()) ||
+          (t.projectName ?? "").toLowerCase().includes(search.toLowerCase()),
+      )
+    : allTasks;
+
+  function openCreate() {
+    setSelectedTask(null);
+    setDialogOpen(true);
+  }
+
+  function openEdit(task: TaskListItem) {
+    setSelectedTask(task);
+    setDialogOpen(true);
+  }
+
+  function handleClose() {
+    setDialogOpen(false);
+    setSelectedTask(null);
+  }
 
   return (
     <div>
@@ -108,10 +175,10 @@ const TasksPage = () => {
             Tasks
           </h1>
           <p className="text-sm text-muted-foreground">
-            {mockTasks.length} tasks across all projects
+            {isLoading ? "Loading…" : `${allTasks.length} tasks across all projects`}
           </p>
         </div>
-        <Button>
+        <Button onClick={openCreate} className="cursor-pointer">
           <Plus size={16} className="mr-1.5" /> New Task
         </Button>
       </div>
@@ -146,14 +213,17 @@ const TasksPage = () => {
         </div>
       </div>
 
-      {view === "board" ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+      {/* Content */}
+      {isLoading ? (
+        view === "board" ? <BoardSkeleton /> : <ListSkeleton />
+      ) : view === "board" ? (
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ height: "calc(100vh - 14.75rem)" }}>
           {statusColumns.map((col) => {
             const tasks = filtered.filter((t) => t.status === col.key);
             return (
-              <div key={col.key} className="min-w-65 flex-1">
+              <div key={col.key} className="min-w-65 flex-1 flex flex-col">
                 <div
-                  className={`mb-3 flex items-center gap-2 border-l-2 pl-2 ${col.color}`}
+                  className={`mb-3 shrink-0 flex items-center gap-2 border-l-2 pl-2 ${col.color}`}
                 >
                   <h3 className="text-sm font-semibold text-foreground">
                     {col.label}
@@ -162,9 +232,9 @@ const TasksPage = () => {
                     {tasks.length}
                   </span>
                 </div>
-                <div className="space-y-2">
+                <div className="overflow-y-auto space-y-2 pr-0.5">
                   {tasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard key={task.id} task={task} onClick={() => openEdit(task)} />
                   ))}
                   {tasks.length === 0 && (
                     <div className="rounded-card border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
@@ -202,9 +272,17 @@ const TasksPage = () => {
               </tr>
             </thead>
             <tbody>
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    No tasks found.
+                  </td>
+                </tr>
+              )}
               {filtered.map((task) => (
                 <tr
                   key={task.id}
+                  onClick={() => openEdit(task)}
                   className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3">
@@ -218,32 +296,44 @@ const TasksPage = () => {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${statusBadge[task.status]}`}
+                      className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[task.status] ?? ""}`}
                     >
                       {task.status.replace("_", " ")}
                     </span>
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">
-                    <span
-                      className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${priorityBadge[task.priority]}`}
-                    >
-                      {task.priority}
-                    </span>
+                    {task.priority ? (
+                      <span
+                        className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${PRIORITY_BADGE[task.priority] ?? ""}`}
+                      >
+                        {task.priority}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="hidden px-4 py-3 sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-primary">
-                        {task.assignee.initials}
+                    {task.assigneeUserId ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-primary">
+                          {getInitials(task.assigneeName)}
+                        </div>
+                        <span className="text-muted-foreground">
+                          {task.assigneeName ?? task.assigneeUserId}
+                        </span>
                       </div>
-                      <span className="text-muted-foreground">
-                        {task.assignee.name}
-                      </span>
-                    </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Unassigned</span>
+                    )}
                   </td>
                   <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} /> {task.dueDate}
-                    </span>
+                    {task.dueDate ? (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} /> {formatDueShort(task.dueDate)}
+                      </span>
+                    ) : (
+                      <span>—</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -251,6 +341,13 @@ const TasksPage = () => {
           </table>
         </div>
       )}
+
+      <TaskDialog
+        open={dialogOpen}
+        onClose={handleClose}
+        mode={selectedTask ? "edit" : "create"}
+        task={selectedTask}
+      />
     </div>
   );
 };

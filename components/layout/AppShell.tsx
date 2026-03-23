@@ -16,7 +16,7 @@ const AppShell = ({ children, user }: AppShellProps) => {
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3">
             <div className="flex w-52 items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
