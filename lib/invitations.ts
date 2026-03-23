@@ -1,5 +1,6 @@
 import "server-only";
 
+import { writeAuditLog } from "@/lib/audit";
 import { createHash } from "crypto";
 import { and, desc, eq, count } from "drizzle-orm";
 import {
@@ -12,6 +13,7 @@ import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { onUserInvited, onInviteRevoked } from "@/lib/email-triggers";
+import { dispatchNotification } from "@/lib/notifications";
 import {
   getAssignableRoleKeys,
   INVITE_EXPIRY_DAYS,
@@ -261,6 +263,15 @@ export async function sendInvitationForUser(
 
   const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${raw}`;
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "invitation.sent",
+    entityType: "invitation",
+    entityId: invitationId,
+    metadata: { email: input.email.toLowerCase().trim(), role: role.name },
+  }).catch(console.error);
+
   // Fire-and-forget email
   onUserInvited({
     invitee: { id: invitationId, name: input.email.split("@")[0] ?? "there", email: input.email },
@@ -472,6 +483,18 @@ export async function acceptInvitationForUser(
     .update(organizationInvitations)
     .set({ status: "accepted", acceptedAt: new Date(), updatedAt: new Date() })
     .where(eq(organizationInvitations.id, invitation.id));
+
+  // Fire-and-forget: notify the inviter that their invite was accepted
+  if (invitation.invitedByUserId) {
+    dispatchNotification({
+      organizationId: invitation.organizationId,
+      recipientUserIds: [invitation.invitedByUserId],
+      eventKey: "invite_accepted",
+      title: "Invitation accepted",
+      body: "Someone you invited has joined your organization.",
+      url: "/invitations",
+    }).catch(console.error);
+  }
 
   return { organizationId: invitation.organizationId };
 }

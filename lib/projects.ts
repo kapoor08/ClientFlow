@@ -1,9 +1,11 @@
 import "server-only";
 
+import { writeAuditLog } from "@/lib/audit";
 import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { dispatchNotification, getOrgMemberUserIds } from "@/lib/notifications";
 import {
   DEFAULT_PAGE_SIZE,
   buildPaginationMeta,
@@ -313,6 +315,28 @@ export async function createProjectForUser(
     createdByUserId: userId,
   });
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "project.created",
+    entityType: "project",
+    entityId: projectId,
+    metadata: { name: input.name.trim() },
+  }).catch(console.error);
+
+  // Fire-and-forget: notify all org members about the new project
+  getOrgMemberUserIds(access.organizationId)
+    .then((memberIds) =>
+      dispatchNotification({
+        organizationId: access.organizationId,
+        recipientUserIds: memberIds,
+        eventKey: "project_created",
+        title: `New project created: "${input.name.trim()}"`,
+        url: `/projects/${projectId}`,
+      }),
+    )
+    .catch(console.error);
+
   return { projectId, access };
 }
 
@@ -362,6 +386,41 @@ export async function updateProjectForUser(
     })
     .where(eq(projects.id, projectId));
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "project.updated",
+    entityType: "project",
+    entityId: projectId,
+    metadata: { name: input.name.trim() },
+  }).catch(console.error);
+
+  // Determine the most specific event key based on what changed
+  const eventKey =
+    input.status === "completed"
+      ? "project_completed"
+      : ("project_updated" as const);
+
+  // Fire-and-forget: notify all org members about the update
+  getOrgMemberUserIds(access.organizationId)
+    .then((memberIds) =>
+      dispatchNotification({
+        organizationId: access.organizationId,
+        recipientUserIds: memberIds,
+        eventKey,
+        title:
+          eventKey === "project_completed"
+            ? `Project completed: "${input.name.trim()}"`
+            : `Project updated: "${input.name.trim()}"`,
+        body:
+          input.budgetType
+            ? `Billing model: ${input.budgetType}`
+            : undefined,
+        url: `/projects/${projectId}`,
+      }),
+    )
+    .catch(console.error);
+
   return { projectId, access };
 }
 
@@ -376,7 +435,7 @@ export async function deleteProjectForUser(userId: string, projectId: string) {
   }
 
   const existing = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(
       and(
@@ -395,4 +454,13 @@ export async function deleteProjectForUser(userId: string, projectId: string) {
     .update(projects)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(eq(projects.id, projectId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "project.deleted",
+    entityType: "project",
+    entityId: projectId,
+    metadata: { name: existing[0].name },
+  }).catch(console.error);
 }

@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
     const { userId } = await requireAuth();
 
     const body = await request.json();
+    if (body.startDate) body.startDate = new Date(body.startDate);
+    if (body.dueDate) body.dueDate = new Date(body.dueDate);
     const parsed = projectFormSchema.safeParse(body);
 
     if (!parsed.success) {

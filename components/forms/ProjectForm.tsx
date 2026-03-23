@@ -43,6 +43,20 @@ const priorityOptions = PROJECT_PRIORITY_OPTIONS.map((o) => ({
   label: o.label,
 }));
 
+// Next.js serializes Date objects to ISO strings when passing server→client.
+// This restores them to proper Date instances so Zod validation passes.
+function normalizeInitialValues(values: ProjectFormValues): ProjectFormValues {
+  return {
+    ...values,
+    startDate: values.startDate
+      ? new Date(values.startDate as unknown as string)
+      : null,
+    dueDate: values.dueDate
+      ? new Date(values.dueDate as unknown as string)
+      : null,
+  };
+}
+
 export function ProjectForm({
   mode,
   projectId,
@@ -65,7 +79,9 @@ export function ProjectForm({
   } = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     mode: "onBlur",
-    defaultValues: initialValues ?? getDefaultProjectFormValues(),
+    defaultValues: initialValues
+      ? normalizeInitialValues(initialValues)
+      : getDefaultProjectFormValues(),
   });
 
   const selectedBudgetType = useWatch({ control, name: "budgetType" });

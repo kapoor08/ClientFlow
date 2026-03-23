@@ -1,5 +1,6 @@
 import "server-only";
 
+import { writeAuditLog } from "@/lib/audit";
 import { and, asc, count, desc, eq, ilike } from "drizzle-orm";
 import { clients, projectFiles, projects } from "@/db/schema";
 import {
@@ -11,6 +12,7 @@ import {
 import { db } from "@/lib/db";
 import { cloudinary } from "@/lib/cloudinary";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { dispatchNotification, getOrgMemberUserIds } from "@/lib/notifications";
 
 export type FilesModuleAccess = {
   organizationId: string;
@@ -161,9 +163,9 @@ export async function saveFileForUser(
   if (!access) throw new Error("No active organization found.");
   if (!access.canWrite) throw new Error("You do not have permission to upload files.");
 
-  // Verify project belongs to org
+  // Verify project belongs to org and get project name for notification
   const [project] = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(
       and(
@@ -190,6 +192,29 @@ export async function saveFileForUser(
     sizeBytes: input.sizeBytes,
   });
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "file.uploaded",
+    entityType: "file",
+    entityId: fileId,
+    metadata: { name: input.fileName },
+  }).catch(console.error);
+
+  // Fire-and-forget: notify all org members (including uploader) about the upload
+  getOrgMemberUserIds(access.organizationId)
+    .then((memberIds) =>
+      dispatchNotification({
+        organizationId: access.organizationId,
+        recipientUserIds: memberIds,
+        eventKey: "shared_file_uploaded",
+        title: `New file uploaded to "${project.name}"`,
+        body: input.fileName,
+        url: `/projects/${input.projectId}`,
+      }),
+    )
+    .catch(console.error);
+
   return { fileId };
 }
 
@@ -202,7 +227,7 @@ export async function deleteFileForUser(
   if (!access.canWrite) throw new Error("You do not have permission to delete files.");
 
   const [file] = await db
-    .select({ id: projectFiles.id, storageKey: projectFiles.storageKey, mimeType: projectFiles.mimeType })
+    .select({ id: projectFiles.id, storageKey: projectFiles.storageKey, mimeType: projectFiles.mimeType, fileName: projectFiles.fileName })
     .from(projectFiles)
     .where(
       and(
@@ -223,6 +248,15 @@ export async function deleteFileForUser(
 
   await cloudinary.uploader.destroy(file.storageKey, { resource_type: resourceType });
   await db.delete(projectFiles).where(eq(projectFiles.id, fileId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "file.deleted",
+    entityType: "file",
+    entityId: fileId,
+    metadata: { name: file.fileName },
+  }).catch(console.error);
 }
 
 export async function getSignedUploadParams(

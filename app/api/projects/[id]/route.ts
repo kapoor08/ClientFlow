@@ -37,6 +37,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const { id } = await params;
 
     const body = await request.json();
+    if (body.startDate) body.startDate = new Date(body.startDate);
+    if (body.dueDate) body.dueDate = new Date(body.dueDate);
     const parsed = projectFormSchema.safeParse(body);
 
     if (!parsed.success) {

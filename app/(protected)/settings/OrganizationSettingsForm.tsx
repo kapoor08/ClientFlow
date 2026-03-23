@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { FormSection } from "@/components/form/FormSection";
+import { FormGrid } from "@/components/form/FormGrid";
 import type { OrganizationSettingsContext } from "@/lib/organization-settings";
 import {
   type SettingsActionState,
@@ -19,10 +21,7 @@ type OrganizationSettingsFormProps = {
 const OrganizationSettingsForm = ({
   initialValues,
 }: OrganizationSettingsFormProps) => {
-  const initialState: SettingsActionState = {
-    status: "idle",
-    message: "",
-  };
+  const initialState: SettingsActionState = { status: "idle", message: "" };
   const [state, formAction, isPending] = useActionState(
     updateOrganizationSettingsAction,
     initialState,
@@ -32,8 +31,8 @@ const OrganizationSettingsForm = ({
   );
 
   return (
-    <form action={formAction} className="max-w-3xl space-y-8">
-      {state.status !== "idle" ? (
+    <form action={formAction} className="max-w-3xl space-y-6">
+      {state.status !== "idle" && (
         <div
           className={`rounded-card border px-4 py-3 text-sm ${
             state.status === "success"
@@ -43,17 +42,15 @@ const OrganizationSettingsForm = ({
         >
           {state.message}
         </div>
-      ) : null}
+      )}
 
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
-        <div className="mb-4 flex items-center gap-2">
-          <Building2 size={18} className="text-muted-foreground" />
-          <h2 className="font-display text-base font-semibold text-foreground">
-            General
-          </h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
+      {/* General */}
+      <FormSection
+        title="General"
+        description="Your organization's public-facing name and URL slug."
+      >
+        <FormGrid cols={2}>
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="name">Organization Name</Label>
             <Input
               id="name"
@@ -63,7 +60,7 @@ const OrganizationSettingsForm = ({
               required
             />
           </div>
-          <div className="space-y-2 sm:col-span-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="slug">Slug</Label>
             <Input
               id="slug"
@@ -76,17 +73,15 @@ const OrganizationSettingsForm = ({
               Used for workspace URLs and internal organization references.
             </p>
           </div>
-        </div>
-      </div>
+        </FormGrid>
+      </FormSection>
 
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
-        <div className="mb-4 flex items-center gap-2">
-          <Globe size={18} className="text-muted-foreground" />
-          <h2 className="font-display text-base font-semibold text-foreground">
-            Localization
-          </h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* Localization */}
+      <FormSection
+        title="Localization"
+        description="Set the default timezone and currency for your organization."
+      >
+        <FormGrid cols={2}>
           <div className="space-y-2">
             <Label htmlFor="timezone">Timezone</Label>
             <Input
@@ -107,16 +102,14 @@ const OrganizationSettingsForm = ({
               placeholder="USD"
             />
           </div>
-        </div>
-      </div>
+        </FormGrid>
+      </FormSection>
 
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
-        <div className="mb-4 flex items-center gap-2">
-          <ShieldCheck size={18} className="text-muted-foreground" />
-          <h2 className="font-display text-base font-semibold text-foreground">
-            Authentication Policy
-          </h2>
-        </div>
+      {/* Authentication Policy */}
+      <FormSection
+        title="Authentication Policy"
+        description="Control sign-in requirements for all members."
+      >
         <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">
@@ -127,7 +120,7 @@ const OrganizationSettingsForm = ({
               confirm their email address.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
               {requireEmailVerification ? "Required" : "Optional"}
             </span>
@@ -144,9 +137,9 @@ const OrganizationSettingsForm = ({
           name="requireEmailVerification"
           value={requireEmailVerification ? "true" : "false"}
         />
-      </div>
+      </FormSection>
 
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending} className="cursor-pointer">
         <Save size={14} className="mr-1.5" />
         {isPending ? "Saving..." : "Save Changes"}
       </Button>

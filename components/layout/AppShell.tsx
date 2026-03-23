@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
-import { Bell, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import type { User } from "@/lib/auth";
 import { getUserInitials } from "@/core/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import AppSidebar from "./AppSidebar";
 
 type AppShellProps = {
@@ -30,10 +30,7 @@ const AppShell = ({ children, user }: AppShellProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell size={18} />
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent" />
-            </Button>
+            <NotificationBell />
             <div className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium text-foreground">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                 {getUserInitials(user.name, user.email)}

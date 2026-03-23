@@ -1,5 +1,6 @@
 import "server-only";
 
+import { writeAuditLog } from "@/lib/audit";
 import {
   and,
   asc,
@@ -362,6 +363,15 @@ export async function createClientForUser(
     createdByUserId: userId,
   });
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "client.created",
+    entityType: "client",
+    entityId: clientId,
+    metadata: { name: values.name },
+  }).catch(console.error);
+
   return { clientId, access };
 }
 
@@ -420,6 +430,15 @@ export async function updateClientForUser(
     })
     .where(eq(clients.id, clientId));
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "client.updated",
+    entityType: "client",
+    entityId: clientId,
+    metadata: { name: values.name },
+  }).catch(console.error);
+
   return { clientId, access };
 }
 
@@ -435,7 +454,7 @@ export async function deleteClientForUser(userId: string, clientId: string) {
   }
 
   const existing = await db
-    .select({ id: clients.id })
+    .select({ id: clients.id, name: clients.name })
     .from(clients)
     .where(
       and(
@@ -454,4 +473,13 @@ export async function deleteClientForUser(userId: string, clientId: string) {
     .update(clients)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
     .where(eq(clients.id, clientId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "client.deleted",
+    entityType: "client",
+    entityId: clientId,
+    metadata: { name: existing[0].name },
+  }).catch(console.error);
 }
