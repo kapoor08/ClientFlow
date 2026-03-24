@@ -12,6 +12,7 @@ import {
   type PaginationMeta,
 } from "@/lib/pagination";
 import { writeAuditLog } from "@/lib/audit";
+import { enforceTaskCreationLimit } from "@/lib/plan-enforcement";
 import type { TaskFormValues } from "@/lib/tasks-shared";
 
 export type TaskListItem = {
@@ -130,6 +131,8 @@ export async function createTaskForUser(
 ): Promise<{ taskId: string }> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) throw new Error("No active organization found.");
+
+  await enforceTaskCreationLimit(context.organizationId);
 
   const taskId = crypto.randomUUID();
 

@@ -20,11 +20,11 @@ const ServerError = () => {
           and is working on a fix.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Button size="lg" onClick={() => window.location.reload()}>
+          <Button size="lg" onClick={() => window.location.reload()} className="cursor-pointer">
             <RotateCcw size={16} className="mr-2" />
             Try Again
           </Button>
-          <Button asChild variant="outline" size="lg">
+          <Button asChild variant="outline" size="lg" className="cursor-pointer">
             <Link href="/">
               <Home size={16} className="mr-2" />
               Back to Home

@@ -26,6 +26,8 @@ import {
   type ClientFormValues,
   type ClientStatus,
 } from "@/lib/clients-shared";
+import { enforceClientCap } from "@/lib/plan-enforcement";
+import { dispatchNotification, getOrgMemberUserIds } from "@/lib/notifications";
 
 export type ClientModuleAccess = {
   organizationId: string;
@@ -338,6 +340,8 @@ export async function createClientForUser(
     throw new Error("You do not have permission to create clients.");
   }
 
+  await enforceClientCap(access.organizationId);
+
   const values = normalizeClientInput(input);
 
   if (!values.name) {
@@ -371,6 +375,16 @@ export async function createClientForUser(
     entityId: clientId,
     metadata: { name: values.name },
   }).catch(console.error);
+
+  // Notify all org members about the new client
+  const memberIdsForCreate = await getOrgMemberUserIds(access.organizationId);
+  await dispatchNotification({
+    organizationId: access.organizationId,
+    recipientUserIds: memberIdsForCreate,
+    eventKey: "client_created",
+    title: `New client added: "${values.name}"`,
+    url: `/clients/${clientId}`,
+  });
 
   return { clientId, access };
 }
@@ -438,6 +452,16 @@ export async function updateClientForUser(
     entityId: clientId,
     metadata: { name: values.name },
   }).catch(console.error);
+
+  // Notify org members about status changes
+  const memberIdsForUpdate = await getOrgMemberUserIds(access.organizationId);
+  await dispatchNotification({
+    organizationId: access.organizationId,
+    recipientUserIds: memberIdsForUpdate,
+    eventKey: "client_status_changed",
+    title: `Client updated: "${values.name}"`,
+    url: `/clients/${clientId}`,
+  });
 
   return { clientId, access };
 }

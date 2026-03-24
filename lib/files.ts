@@ -13,6 +13,10 @@ import { db } from "@/lib/db";
 import { cloudinary } from "@/lib/cloudinary";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { dispatchNotification, getOrgMemberUserIds } from "@/lib/notifications";
+import {
+  enforceFilesPerProjectCap,
+  enforceFileUploadLimit,
+} from "@/lib/plan-enforcement";
 
 export type FilesModuleAccess = {
   organizationId: string;
@@ -177,6 +181,9 @@ export async function saveFileForUser(
 
   if (!project) throw new Error("Project not found.");
 
+  await enforceFilesPerProjectCap(access.organizationId, input.projectId);
+  await enforceFileUploadLimit(access.organizationId);
+
   const fileId = crypto.randomUUID();
 
   await db.insert(projectFiles).values({
@@ -201,19 +208,16 @@ export async function saveFileForUser(
     metadata: { name: input.fileName },
   }).catch(console.error);
 
-  // Fire-and-forget: notify all org members (including uploader) about the upload
-  getOrgMemberUserIds(access.organizationId)
-    .then((memberIds) =>
-      dispatchNotification({
-        organizationId: access.organizationId,
-        recipientUserIds: memberIds,
-        eventKey: "shared_file_uploaded",
-        title: `New file uploaded to "${project.name}"`,
-        body: input.fileName,
-        url: `/projects/${input.projectId}`,
-      }),
-    )
-    .catch(console.error);
+  // Notify all org members about the upload (awaited so notification is in DB before response)
+  const memberIdsForFile = await getOrgMemberUserIds(access.organizationId);
+  await dispatchNotification({
+    organizationId: access.organizationId,
+    recipientUserIds: memberIdsForFile,
+    eventKey: "shared_file_uploaded",
+    title: `New file uploaded to "${project.name}"`,
+    body: input.fileName,
+    url: `/projects/${input.projectId}`,
+  });
 
   return { fileId };
 }

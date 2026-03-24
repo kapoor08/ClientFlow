@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,12 +10,12 @@ import {
   DollarSign,
   Edit,
   FolderKanban,
-  ListTodo,
   Paperclip,
   Pencil,
   Tag,
 } from "lucide-react";
 import { FileUploader } from "@/components/files/FileUploader";
+import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
 import { getProjectDetailForUser } from "@/lib/projects";
 import { getServerSession } from "@/lib/get-session";
 import {
@@ -105,6 +106,15 @@ function StatCard({ icon, label, value, valueClassName }: StatCardProps) {
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: ProjectDetailPageProps): Promise<Metadata> {
+  const session = await getServerSession();
+  const { id } = await params;
+  const { project } = await getProjectDetailForUser(session!.user.id, id);
+  return { title: project?.name ?? "Project" };
 }
 
 export default async function ProjectDetailPage({
@@ -263,28 +273,8 @@ export default async function ProjectDetailPage({
         </div>
       </div>
 
-      {/* Tasks placeholder */}
-      <div className="rounded-card border border-border bg-card shadow-cf-1">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <ListTodo size={15} className="text-muted-foreground" />
-            Tasks
-          </div>
-          <span className="rounded-pill bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            Coming soon
-          </span>
-        </div>
-        <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-          <ListTodo size={28} className="text-muted-foreground/30" />
-          <p className="text-sm font-medium text-muted-foreground">
-            No tasks yet
-          </p>
-          <p className="max-w-xs text-xs text-muted-foreground/70">
-            Task management is coming soon. You&apos;ll be able to break this
-            project into trackable deliverables.
-          </p>
-        </div>
-      </div>
+      {/* Tasks */}
+      <ProjectTasksSection projectId={project.id} canWrite={access.canWrite} />
 
       {/* Footer meta */}
       <p className="text-right text-xs text-muted-foreground">

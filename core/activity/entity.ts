@@ -39,17 +39,28 @@ const ACTION_LABELS: Record<string, string> = {
   "project.created": "created project",
   "project.updated": "updated project",
   "project.deleted": "deleted project",
-  "file.uploaded": "uploaded",
+  "file.uploaded": "uploaded file",
   "file.deleted": "deleted file",
-  "invitation.sent": "invited",
+  "invitation.sent": "sent invitation to",
   "member.role_changed": "changed role for",
   "member.suspended": "suspended",
   "member.reactivated": "reactivated",
   "member.removed": "removed",
+  "task.created": "created task",
+  "task.updated": "updated task",
+  "task.deleted": "deleted task",
+  "task.completed": "completed task",
+  "task.reopened": "reopened task",
 };
 
 export function getActionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
+  if (ACTION_LABELS[action]) return ACTION_LABELS[action];
+  // Graceful fallback: "task.created" → "created task", "foo.bar_baz" → "bar baz"
+  const parts = action.split(".");
+  if (parts.length >= 2) {
+    return parts.slice(1).join(" ").replace(/_/g, " ");
+  }
+  return action.replace(/[._]/g, " ");
 }
 
 export function getEntityName(entry: ActivityEntry): string | null {

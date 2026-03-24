@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "./get-session";
+import { PlanLimitError } from "./plan-enforcement";
 
 export type AuthenticatedContext = {
   userId: string;
@@ -36,6 +37,13 @@ export async function requireAuth(): Promise<AuthenticatedContext> {
 export function apiErrorResponse(error: unknown): NextResponse {
   if (error instanceof ApiError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+
+  if (error instanceof PlanLimitError) {
+    return NextResponse.json(
+      { error: error.message, upgrade: true },
+      { status: 402 },
+    );
   }
 
   console.error("[API Error]", error);

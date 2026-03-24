@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Building2, Calendar, FolderKanban } from "lucide-react";
-import { DataTable, type ColumnDef } from "@/components/data-table";
+import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
+import { useDeleteProject } from "@/core/projects/useCase";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ProjectListItem } from "@/lib/projects";
 import type { ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
@@ -74,87 +76,103 @@ function PriorityBadge({ priority }: { priority: ProjectPriority | null }) {
 
 // ─── Table columns ────────────────────────────────────────────────────────────
 
-const columns: ColumnDef<ProjectListItem>[] = [
-  {
-    key: "name",
-    header: "Project",
-    sortable: true,
-    cell: (project) => (
-      <Link
-        href={`/projects/${project.id}`}
-        className="flex flex-col"
-      >
-        <span className="font-medium text-foreground hover:text-primary">
-          {project.name}
-        </span>
-        <span className="text-xs text-muted-foreground md:hidden">
+function buildColumns(
+  canWrite: boolean,
+  deletingId: string | null,
+  onDelete: (projectId: string) => void,
+): ColumnDef<ProjectListItem>[] {
+  return [
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (project) => (
+        <RowActions
+          viewHref={`/projects/${project.id}`}
+          editHref={canWrite ? `/projects/${project.id}/edit` : undefined}
+          onDelete={canWrite ? () => onDelete(project.id) : undefined}
+          isDeleting={deletingId === project.id}
+          deleteLabel={project.name}
+        />
+      ),
+    },
+    {
+      key: "name",
+      header: "Project",
+      sortable: true,
+      cell: (project) => (
+        <Link href={`/projects/${project.id}`} className="flex flex-col">
+          <span className="font-medium text-foreground hover:text-primary">
+            {project.name}
+          </span>
+          <span className="text-xs text-muted-foreground md:hidden">
+            {project.clientName}
+          </span>
+        </Link>
+      ),
+    },
+    {
+      key: "clientName",
+      header: "Client",
+      sortable: false,
+      hideOnTablet: true,
+      cell: (project) => (
+        <Link
+          href={`/clients/${project.clientId}`}
+          className="text-sm text-muted-foreground hover:text-primary"
+          onClick={(e) => e.stopPropagation()}
+        >
           {project.clientName}
+        </Link>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      cell: (project) => <StatusBadge status={project.status} />,
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      sortable: true,
+      hideOnMobile: true,
+      cell: (project) => <PriorityBadge priority={project.priority} />,
+    },
+    {
+      key: "startDate",
+      header: "Start Date",
+      sortable: false,
+      hideOnTablet: true,
+      cell: (project) => (
+        <span className="text-xs text-muted-foreground">
+          {formatDate(project.startDate)}
         </span>
-      </Link>
-    ),
-  },
-  {
-    key: "clientName",
-    header: "Client",
-    sortable: false,
-    hideOnTablet: true,
-    cell: (project) => (
-      <Link
-        href={`/clients/${project.clientId}`}
-        className="text-sm text-muted-foreground hover:text-primary"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {project.clientName}
-      </Link>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    sortable: true,
-    cell: (project) => <StatusBadge status={project.status} />,
-  },
-  {
-    key: "priority",
-    header: "Priority",
-    sortable: true,
-    hideOnMobile: true,
-    cell: (project) => <PriorityBadge priority={project.priority} />,
-  },
-  {
-    key: "startDate",
-    header: "Start Date",
-    sortable: false,
-    hideOnTablet: true,
-    cell: (project) => (
-      <span className="text-xs text-muted-foreground">
-        {formatDate(project.startDate)}
-      </span>
-    ),
-  },
-  {
-    key: "dueDate",
-    header: "Due Date",
-    sortable: true,
-    hideOnTablet: true,
-    cell: (project) => (
-      <span className="text-xs text-muted-foreground">
-        {formatDate(project.dueDate)}
-      </span>
-    ),
-  },
-  {
-    key: "updatedAt",
-    header: "Updated",
-    sortable: true,
-    hideOnTablet: true,
-    cell: (project) => (
-      <span className="text-xs text-muted-foreground">
-        {formatDate(project.updatedAt)}
-      </span>
-    ),
-  },
-];
+      ),
+    },
+    {
+      key: "dueDate",
+      header: "Due Date",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (project) => (
+        <span className="text-xs text-muted-foreground">
+          {formatDate(project.dueDate)}
+        </span>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Updated",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (project) => (
+        <span className="text-xs text-muted-foreground">
+          {formatDate(project.updatedAt)}
+        </span>
+      ),
+    },
+  ];
+}
 
 // ─── Grid card ────────────────────────────────────────────────────────────────
 
@@ -252,6 +270,20 @@ export function ProjectsTable({
   pagination,
   canWrite,
 }: ProjectsTableProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteProject = useDeleteProject();
+
+  const handleDelete = async (projectId: string) => {
+    setDeletingId(projectId);
+    try {
+      await deleteProject.mutateAsync({ projectId });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const columns = buildColumns(canWrite, deletingId, handleDelete);
+
   return (
     <DataTable
       data={projects}

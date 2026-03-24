@@ -11,6 +11,8 @@ export function useBilling(): UseQueryResult<BillingContext> {
   return useQuery({
     queryKey: billingKeys.context(),
     queryFn: fetchBillingContext,
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 }

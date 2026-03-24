@@ -6,6 +6,7 @@ import { clients, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { dispatchNotification, getOrgMemberUserIds } from "@/lib/notifications";
+import { enforceProjectCap } from "@/lib/plan-enforcement";
 import {
   DEFAULT_PAGE_SIZE,
   buildPaginationMeta,
@@ -294,6 +295,8 @@ export async function createProjectForUser(
     throw new Error("You do not have permission to create projects.");
   }
 
+  await enforceProjectCap(access.organizationId);
+
   if (!PROJECT_STATUS_OPTIONS.some((o) => o.value === input.status)) {
     throw new Error("Select a valid project status.");
   }
@@ -324,18 +327,15 @@ export async function createProjectForUser(
     metadata: { name: input.name.trim() },
   }).catch(console.error);
 
-  // Fire-and-forget: notify all org members about the new project
-  getOrgMemberUserIds(access.organizationId)
-    .then((memberIds) =>
-      dispatchNotification({
-        organizationId: access.organizationId,
-        recipientUserIds: memberIds,
-        eventKey: "project_created",
-        title: `New project created: "${input.name.trim()}"`,
-        url: `/projects/${projectId}`,
-      }),
-    )
-    .catch(console.error);
+  // Notify all org members about the new project (awaited so notification is in DB before response)
+  const memberIdsForCreate = await getOrgMemberUserIds(access.organizationId);
+  await dispatchNotification({
+    organizationId: access.organizationId,
+    recipientUserIds: memberIdsForCreate,
+    eventKey: "project_created",
+    title: `New project created: "${input.name.trim()}"`,
+    url: `/projects/${projectId}`,
+  });
 
   return { projectId, access };
 }
@@ -401,25 +401,19 @@ export async function updateProjectForUser(
       ? "project_completed"
       : ("project_updated" as const);
 
-  // Fire-and-forget: notify all org members about the update
-  getOrgMemberUserIds(access.organizationId)
-    .then((memberIds) =>
-      dispatchNotification({
-        organizationId: access.organizationId,
-        recipientUserIds: memberIds,
-        eventKey,
-        title:
-          eventKey === "project_completed"
-            ? `Project completed: "${input.name.trim()}"`
-            : `Project updated: "${input.name.trim()}"`,
-        body:
-          input.budgetType
-            ? `Billing model: ${input.budgetType}`
-            : undefined,
-        url: `/projects/${projectId}`,
-      }),
-    )
-    .catch(console.error);
+  // Notify all org members about the update (awaited so notification is in DB before response)
+  const memberIdsForUpdate = await getOrgMemberUserIds(access.organizationId);
+  await dispatchNotification({
+    organizationId: access.organizationId,
+    recipientUserIds: memberIdsForUpdate,
+    eventKey,
+    title:
+      eventKey === "project_completed"
+        ? `Project completed: "${input.name.trim()}"`
+        : `Project updated: "${input.name.trim()}"`,
+    body: input.budgetType ? `Billing model: ${input.budgetType}` : undefined,
+    url: `/projects/${projectId}`,
+  });
 
   return { projectId, access };
 }

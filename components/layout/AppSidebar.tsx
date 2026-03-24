@@ -3,16 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navGroups } from "@/config/navigation";
+import { canAccessHref } from "@/config/plan-limits";
 
-const AppSidebar = () => {
+const AppSidebar = ({ planCode }: { planCode: string }) => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Filter groups to only include items accessible on this plan
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessHref(planCode, item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  // Items locked on this plan (shown greyed out with lock icon)
+  const lockedItems = navGroups
+    .flatMap((g) => g.items)
+    .filter((item) => !canAccessHref(planCode, item.href));
 
   return (
     <aside
@@ -37,7 +48,8 @@ const AppSidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-3">
-        {navGroups.map((group) => (
+        {/* Accessible modules */}
+        {visibleGroups.map((group) => (
           <div key={group.label} className="mb-4">
             {!collapsed && (
               <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -65,6 +77,43 @@ const AppSidebar = () => {
             })}
           </div>
         ))}
+
+        {/* Locked modules */}
+        {lockedItems.length > 0 && !collapsed && (
+          <div className="mb-4">
+            <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+              Upgrade to unlock
+            </span>
+            {lockedItems.map((item) => (
+              <Link
+                key={item.href}
+                href="/plans"
+                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
+                title={`${item.label} — upgrade to unlock`}
+              >
+                <item.icon size={18} className="shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                <Lock size={12} className="shrink-0" />
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Collapsed locked icons */}
+        {lockedItems.length > 0 && collapsed && (
+          <div className="mb-4">
+            {lockedItems.map((item) => (
+              <Link
+                key={item.href}
+                href="/plans"
+                className="flex items-center justify-center rounded-lg px-2.5 py-2 text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
+                title={`${item.label} — upgrade to unlock`}
+              >
+                <item.icon size={18} className="shrink-0" />
+              </Link>
+            ))}
+          </div>
+        )}
       </nav>
 
       <button

@@ -6,6 +6,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { HttpError } from "@/core/infrastructure";
+import { notificationKeys } from "@/core/notifications/useCase";
 import {
   listFiles,
   listAllFiles,
@@ -67,6 +68,7 @@ export function useUploadFile(projectId: string): UseMutationResult<
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: fileKeys.byProject(projectId) });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }

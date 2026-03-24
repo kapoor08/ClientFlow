@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import AppShell from "@/components/layout/AppShell";
 import { authRoutes } from "@/core/auth";
 import { getServerSession } from "@/lib/get-session";
+import { getSubscriptionContextForUser } from "@/lib/subscription-context";
 
 export default async function ProtectedLayout({
   children,
@@ -24,5 +25,20 @@ export default async function ProtectedLayout({
     );
   }
 
-  return <AppShell user={session.user}>{children}</AppShell>;
+  // Subscription gate
+  const sub = await getSubscriptionContextForUser(session.user.id);
+
+  if (!sub || !sub.hasAccess) {
+    redirect("/plans");
+  }
+
+  return (
+    <AppShell
+      user={session.user}
+      planCode={sub.planCode}
+      daysLeftInTrial={sub.isTrialing ? (sub.daysLeftInTrial ?? 0) : null}
+    >
+      {children}
+    </AppShell>
+  );
 }

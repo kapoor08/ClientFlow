@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import {
   Mail,
   Clock,
-  RefreshCw,
-  XCircle,
-  Loader2,
   CheckCircle2,
   TimerOff,
   Ban,
 } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { RowActions } from "@/components/data-table";
 import type { InvitationListItem } from "@/core/invitations/entity";
 import {
   useInvitations,
@@ -81,78 +78,54 @@ function InvitationRow({ invitation }: { invitation: InvitationListItem }) {
     roleBadgeClass[invitation.roleKey] ?? roleBadgeClass.member;
 
   return (
-    <tr className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Mail size={13} className="shrink-0 text-muted-foreground" />
-          <span className="font-medium text-foreground text-sm">
-            {invitation.email}
+    <>
+      <tr className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+        {/* Actions — first column */}
+        <td className="px-4 py-3">
+          <RowActions
+            onResend={canResend ? () => resend.mutate({ invitationId: invitation.id }) : undefined}
+            isResending={resend.isPending}
+            onRevoke={canRevoke ? () => revoke.mutate({ invitationId: invitation.id }) : undefined}
+            isRevoking={revoke.isPending}
+            revokeLabel={invitation.email}
+          />
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Mail size={13} className="shrink-0 text-muted-foreground" />
+            <span className="font-medium text-foreground text-sm">
+              {invitation.email}
+            </span>
+          </div>
+          {invitation.invitedByName && (
+            <p className="mt-0.5 pl-5 text-xs text-muted-foreground">
+              by {invitation.invitedByName}
+            </p>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <span
+            className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${roleClass}`}
+          >
+            {invitation.roleName}
           </span>
-        </div>
-        {invitation.invitedByName && (
-          <p className="mt-0.5 pl-5 text-xs text-muted-foreground">
-            by {invitation.invitedByName}
-          </p>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${roleClass}`}
-        >
-          {invitation.roleName}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <span
-          className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium ${statusCfg.className}`}
-        >
-          <StatusIcon size={10} />
-          {statusCfg.label}
-        </span>
-      </td>
-      <td className="hidden px-4 py-3 text-xs text-muted-foreground sm:table-cell">
-        {sentAt}
-      </td>
-      <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
-        {expiresLabel}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center justify-end gap-1">
-          {canResend && (
-            <button
-              onClick={() =>
-                resend.mutate({ invitationId: invitation.id })
-              }
-              disabled={resend.isPending}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40 cursor-pointer"
-              title="Resend invitation"
-            >
-              {resend.isPending ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <RefreshCw size={13} />
-              )}
-            </button>
-          )}
-          {canRevoke && (
-            <button
-              onClick={() =>
-                revoke.mutate({ invitationId: invitation.id })
-              }
-              disabled={revoke.isPending}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40 cursor-pointer"
-              title="Revoke invitation"
-            >
-              {revoke.isPending ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <XCircle size={13} />
-              )}
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td className="px-4 py-3">
+          <span
+            className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium ${statusCfg.className}`}
+          >
+            <StatusIcon size={10} />
+            {statusCfg.label}
+          </span>
+        </td>
+        <td className="hidden px-4 py-3 text-xs text-muted-foreground sm:table-cell">
+          {sentAt}
+        </td>
+        <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
+          {expiresLabel}
+        </td>
+      </tr>
+    </>
   );
 }
 
@@ -183,22 +156,24 @@ export function InvitationsTable({ initialInvitations }: InvitationsTableProps) 
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-secondary/50">
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+              Actions
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
               Email
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
               Role
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
               Status
             </th>
-            <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground sm:table-cell">
+            <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground sm:table-cell">
               Sent
             </th>
-            <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground md:table-cell">
+            <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
               Expires
             </th>
-            <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody>

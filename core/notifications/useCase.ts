@@ -32,7 +32,8 @@ export function useNotifications(): UseQueryResult<NotificationListResponse, Htt
   return useQuery({
     queryKey: notificationKeys.list(),
     queryFn: fetchNotifications,
-    refetchInterval: 30_000, // poll every 30s
+    refetchInterval: 10_000, // poll every 10s
+    refetchIntervalInBackground: false, // pause polling when tab is not focused
   });
 }
 

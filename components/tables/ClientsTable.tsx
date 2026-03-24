@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { FolderKanban, Mail, Phone, User } from "lucide-react";
-import { DataTable, type ColumnDef } from "@/components/data-table";
+import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
 import { getUserInitials } from "@/core/auth";
+import { useDeleteClient } from "@/core/clients/useCase";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ClientListItem } from "@/lib/clients";
 
@@ -45,82 +47,101 @@ function ClientAvatar({
 
 // ─── Table columns ────────────────────────────────────────────────────────────
 
-const columns: ColumnDef<ClientListItem>[] = [
-  {
-    key: "name",
-    header: "Client",
-    sortable: true,
-    cell: (client) => (
-      <Link href={`/clients/${client.id}`} className="flex items-center gap-3">
-        <ClientAvatar name={client.name} email={client.contactEmail} />
+function buildColumns(
+  canWrite: boolean,
+  deletingId: string | null,
+  onDelete: (clientId: string) => void,
+): ColumnDef<ClientListItem>[] {
+  return [
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (client) => (
+        <RowActions
+          viewHref={`/clients/${client.id}`}
+          editHref={canWrite ? `/clients/${client.id}/edit` : undefined}
+          onDelete={canWrite ? () => onDelete(client.id) : undefined}
+          isDeleting={deletingId === client.id}
+          deleteLabel={client.name}
+        />
+      ),
+    },
+    {
+      key: "name",
+      header: "Client",
+      sortable: true,
+      cell: (client) => (
+        <Link href={`/clients/${client.id}`} className="flex items-center gap-3">
+          <ClientAvatar name={client.name} email={client.contactEmail} />
+          <div>
+            <span className="font-medium text-foreground hover:text-primary">
+              {client.name}
+            </span>
+            <span className="block text-xs text-muted-foreground md:hidden">
+              {client.company || "No company"}
+            </span>
+          </div>
+        </Link>
+      ),
+    },
+    {
+      key: "company",
+      header: "Company",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (client) => (
+        <span className="text-muted-foreground">{client.company || "—"}</span>
+      ),
+    },
+    {
+      key: "contact",
+      header: "Contact",
+      hideOnMobile: true,
+      cell: (client) => (
         <div>
-          <span className="font-medium text-foreground hover:text-primary">
-            {client.name}
-          </span>
-          <span className="block text-xs text-muted-foreground md:hidden">
-            {client.company || "No company"}
-          </span>
+          <p className="text-sm">{client.contactName || "No primary contact"}</p>
+          <p className="text-xs text-muted-foreground">
+            {client.contactEmail || client.contactPhone || "—"}
+          </p>
         </div>
-      </Link>
-    ),
-  },
-  {
-    key: "company",
-    header: "Company",
-    sortable: true,
-    hideOnTablet: true,
-    cell: (client) => (
-      <span className="text-muted-foreground">{client.company || "—"}</span>
-    ),
-  },
-  {
-    key: "contact",
-    header: "Contact",
-    hideOnMobile: true,
-    cell: (client) => (
-      <div>
-        <p className="text-sm">{client.contactName || "No primary contact"}</p>
-        <p className="text-xs text-muted-foreground">
-          {client.contactEmail || client.contactPhone || "—"}
-        </p>
-      </div>
-    ),
-  },
-  {
-    key: "status",
-    header: "Status",
-    sortable: true,
-    cell: (client) => (
-      <span
-        className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${statusBadge[client.status]}`}
-      >
-        {client.status}
-      </span>
-    ),
-  },
-  {
-    key: "projectCount",
-    header: "Projects",
-    hideOnMobile: true,
-    cell: (client) => (
-      <div className="flex items-center gap-1.5 text-muted-foreground">
-        <FolderKanban size={13} />
-        <span>{client.projectCount}</span>
-      </div>
-    ),
-  },
-  {
-    key: "updatedAt",
-    header: "Updated",
-    sortable: true,
-    hideOnTablet: true,
-    cell: (client) => (
-      <span className="text-xs text-muted-foreground">
-        {formatDate(client.updatedAt)}
-      </span>
-    ),
-  },
-];
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      cell: (client) => (
+        <span
+          className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${statusBadge[client.status]}`}
+        >
+          {client.status}
+        </span>
+      ),
+    },
+    {
+      key: "projectCount",
+      header: "Projects",
+      hideOnMobile: true,
+      cell: (client) => (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <FolderKanban size={13} />
+          <span>{client.projectCount}</span>
+        </div>
+      ),
+    },
+    {
+      key: "updatedAt",
+      header: "Updated",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (client) => (
+        <span className="text-xs text-muted-foreground">
+          {formatDate(client.updatedAt)}
+        </span>
+      ),
+    },
+  ];
+}
 
 // ─── Grid card ────────────────────────────────────────────────────────────────
 
@@ -214,6 +235,20 @@ export function ClientsTable({
   pagination,
   canWrite,
 }: ClientsTableProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteClient = useDeleteClient();
+
+  const handleDelete = async (clientId: string) => {
+    setDeletingId(clientId);
+    try {
+      await deleteClient.mutateAsync({ clientId });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const columns = buildColumns(canWrite, deletingId, handleDelete);
+
   return (
     <DataTable
       data={clients}

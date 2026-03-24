@@ -135,12 +135,16 @@ export function TaskDialog({
       dueDate: values.dueDate ? values.dueDate.toISOString() : null,
     };
 
-    if (mode === "create") {
-      await createTask.mutateAsync(payload);
-    } else if (task) {
-      await updateTask.mutateAsync({ taskId: task.id, data: payload });
+    try {
+      if (mode === "create") {
+        await createTask.mutateAsync(payload);
+      } else if (task) {
+        await updateTask.mutateAsync({ taskId: task.id, data: payload });
+      }
+      onClose();
+    } catch {
+      // error is surfaced via createTask.error / updateTask.error below
     }
-    onClose();
   }
 
   async function handleDelete() {
@@ -165,6 +169,11 @@ export function TaskDialog({
 
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
+          {(createTask.error || updateTask.error) && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {(createTask.error ?? updateTask.error)?.message}
+            </div>
+          )}
           {/* Project */}
           <div className="space-y-1.5">
             <Label>Project *</Label>

@@ -235,19 +235,19 @@ const TeamPage = () => {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                 Member
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                 Role
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground sm:table-cell">
                 Status
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
                 Projects
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground lg:table-cell">
                 Joined
               </th>
               <th className="px-4 py-3" />

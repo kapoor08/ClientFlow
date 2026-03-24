@@ -11,6 +11,7 @@ import type {
   CreateProjectData,
   UpdateProjectData,
 } from "./entity";
+import { notificationKeys } from "@/core/notifications/useCase";
 
 export const projectKeys = {
   all: ["projects"] as const,
@@ -30,6 +31,7 @@ export function useCreateProject(): UseMutationResult<
     mutationFn: createProject,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: projectKeys.lists() });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }
@@ -45,6 +47,7 @@ export function useUpdateProject(): UseMutationResult<
     onSuccess: (_res, { projectId }) => {
       qc.invalidateQueries({ queryKey: projectKeys.lists() });
       qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }
@@ -60,6 +63,7 @@ export function useDeleteProject(): UseMutationResult<
     onSuccess: (_res, { projectId }) => {
       qc.invalidateQueries({ queryKey: projectKeys.lists() });
       qc.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }

@@ -13,6 +13,7 @@ import type {
   UpdateTaskData,
 } from "./entity";
 import type { HttpError } from "@/core/infrastructure";
+import { notificationKeys } from "@/core/notifications/useCase";
 
 export const taskKeys = {
   all: ["tasks"] as const,
@@ -37,7 +38,10 @@ export function useCreateTask(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createTask,
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
+    },
   });
 }
 
@@ -49,7 +53,10 @@ export function useUpdateTask(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, data }) => updateTask(taskId, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
+      qc.invalidateQueries({ queryKey: notificationKeys.list() });
+    },
   });
 }
 

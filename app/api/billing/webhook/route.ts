@@ -17,6 +17,33 @@ function createId() {
   return crypto.randomUUID();
 }
 
+/**
+ * In Stripe API 2024-09-30+, current_period_start/end were moved from the
+ * top-level Subscription object to each SubscriptionItem. This helper reads
+ * from the item level first and falls back to the (now-removed) top-level
+ * field so the code works across API versions.
+ */
+function getSubscriptionPeriod(stripeSub: Stripe.Subscription): {
+  periodStart: number | undefined;
+  periodEnd: number | undefined;
+  trialEnd: number | null;
+} {
+  const item = stripeSub.items?.data?.[0] as
+    | (Stripe.SubscriptionItem & { current_period_start?: number; current_period_end?: number })
+    | undefined;
+  const sub = stripeSub as unknown as Record<string, unknown>;
+
+  const periodStart =
+    item?.current_period_start ??
+    (typeof sub.current_period_start === "number" ? sub.current_period_start : undefined);
+  const periodEnd =
+    item?.current_period_end ??
+    (typeof sub.current_period_end === "number" ? sub.current_period_end : undefined);
+  const trialEnd = stripeSub.trial_end ?? null;
+
+  return { periodStart, periodEnd, trialEnd };
+}
+
 // ─── Event handlers ───────────────────────────────────────────────────────────
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
@@ -46,6 +73,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Retrieve full subscription details from Stripe
   const stripeSub = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
   const subscriptionId = createId();
 
   await db.insert(subscriptions).values({
@@ -55,10 +83,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     status: stripeSub.status,
     billingCycle: stripeSub.items.data[0]?.plan.interval ?? "month",
     startedAt: new Date(stripeSub.start_date * 1000),
-    currentPeriodStart: new Date(stripeSub.items.data[0]?.current_period_start ?? stripeSub.start_date * 1000),
-    currentPeriodEnd: new Date(stripeSub.items.data[0]?.current_period_end ?? (stripeSub.start_date + 30 * 86400) * 1000),
+    currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
-    trialEndsAt: stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null,
+    trialEndsAt: trialEnd ? new Date(trialEnd * 1000) : null,
     stripeCustomerId,
     stripeSubscriptionId,
   });
@@ -79,16 +107,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
 async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
   const stripeSubscriptionId = stripeSub.id;
+  const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
 
   await db
     .update(subscriptions)
     .set({
       status: stripeSub.status,
-      currentPeriodStart: new Date(stripeSub.items.data[0]?.current_period_start * 1000),
-      currentPeriodEnd: new Date(stripeSub.items.data[0]?.current_period_end * 1000),
+      currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
+      currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
       cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
       canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
-      trialEndsAt: stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null,
+      trialEndsAt: trialEnd ? new Date(trialEnd * 1000) : null,
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));

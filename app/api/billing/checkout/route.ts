@@ -28,15 +28,14 @@ export async function POST(req: Request) {
     mode: "subscription",
     payment_method_types: ["card"],
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/billing?success=1`,
-    cancel_url: `${appUrl}/billing?canceled=1`,
+    success_url: `${appUrl}/billing/success`,
+    cancel_url: `${appUrl}/billing/failed`,
     customer_email: session.user.email,
     metadata: {
       organizationId: context.organizationId,
       planCode,
     },
     subscription_data: {
-      trial_period_days: 14,
       metadata: {
         organizationId: context.organizationId,
         planCode,

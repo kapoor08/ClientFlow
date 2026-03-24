@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { HttpError } from "@/core/infrastructure";
+import { notificationKeys } from "@/core/notifications/useCase";
 import type {
   ClientMutationResponse,
   CreateClientData,
@@ -38,6 +39,7 @@ export function useCreateClient(): UseMutationResult<
     mutationFn: (data) => createClient(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }
@@ -57,6 +59,7 @@ export function useUpdateClient(): UseMutationResult<
       queryClient.invalidateQueries({
         queryKey: clientKeys.detail(variables.clientId),
       });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }
@@ -73,6 +76,7 @@ export function useDeleteClient(): UseMutationResult<
     mutationFn: ({ clientId }) => deleteClient(clientId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
 }

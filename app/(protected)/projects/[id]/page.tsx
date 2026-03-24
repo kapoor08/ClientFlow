@@ -1,3 +1,2 @@
-import ProjectDetailsPage from ".";
-
-export default ProjectDetailsPage;
+export { generateMetadata } from ".";
+export { default } from ".";

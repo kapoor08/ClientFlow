@@ -125,16 +125,16 @@ const Dashboard = () => {
           <h1 className="font-display text-2xl font-semibold text-foreground">
             Dashboard
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
             {isLoading ? (
               <Skeleton className="mt-1 inline-block h-4 w-52" />
             ) : (
               <>Welcome back, {firstName}. Here&apos;s what&apos;s happening.</>
             )}
-          </p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="default" size="sm" asChild>
             <Link href="/projects/new">New Project</Link>
           </Button>
         </div>
@@ -189,7 +189,7 @@ const Dashboard = () => {
           <h2 className="font-display text-lg font-semibold text-foreground">
             Tasks Due Soon
           </h2>
-          <Button variant="ghost" size="sm" asChild>
+          <Button variant="default" size="sm" asChild>
             <Link href="/tasks" className="flex items-center gap-1">
               View All <ArrowUpRight size={14} />
             </Link>
@@ -200,16 +200,16 @@ const Dashboard = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                   Task
                 </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground sm:table-cell">
+                <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground sm:table-cell">
                   Project
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                   Status
                 </th>
-                <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
                   Due
                 </th>
               </tr>

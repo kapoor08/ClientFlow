@@ -5,18 +5,22 @@ import type { User } from "@/lib/auth";
 import { getUserInitials } from "@/core/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { TrialBanner } from "@/components/layout/TrialBanner";
 import AppSidebar from "./AppSidebar";
 
 type AppShellProps = {
   children: ReactNode;
   user: User;
+  planCode: string;
+  daysLeftInTrial: number | null;
 };
 
-const AppShell = ({ children, user }: AppShellProps) => {
+const AppShell = ({ children, user, planCode, daysLeftInTrial }: AppShellProps) => {
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar />
+      <AppSidebar planCode={planCode} />
       <div className="flex flex-1 flex-col min-w-0">
+        {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3">
             <div className="flex w-52 items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">

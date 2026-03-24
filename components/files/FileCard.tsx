@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import {
+  Archive,
+  Download,
+  Eye,
   File,
   FileImage,
   FileSpreadsheet,
   FileText,
   FileVideo,
   Trash2,
-  Download,
-  Archive,
 } from "lucide-react";
 import type { ProjectFile } from "@/core/files/entity";
+import { FilePreviewModal } from "./FilePreviewModal";
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return File;
@@ -82,53 +85,69 @@ export function FileCard({
   onDelete,
   isDeleting,
 }: FileCardProps) {
+  const [previewing, setPreviewing] = useState(false);
   const Icon = getFileIcon(file.mimeType);
   const iconColor = getFileIconColor(file.mimeType);
 
   return (
-    <div className="group flex items-start gap-3 rounded-card border border-border bg-card p-4 shadow-cf-1 transition-all hover:border-primary/20 hover:shadow-cf-2">
-      {/* Icon */}
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-        <Icon size={18} className={iconColor} />
-      </div>
+    <>
+      <div className="group flex items-start gap-3 rounded-card border border-border bg-card p-4 shadow-cf-1 transition-all hover:border-primary/20 hover:shadow-cf-2">
+        {/* Icon */}
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Icon size={18} className={iconColor} />
+        </div>
 
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <p
-          className="truncate text-sm font-medium text-foreground"
-          title={file.fileName}
-        >
-          {file.fileName}
-        </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {[formatBytes(file.sizeBytes), formatDate(file.createdAt)]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
-
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1">
-        <a
-          href={file.storageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground cursor-pointer"
-          title="Download"
-        >
-          <Download size={13} />
-        </a>
-        {canDelete && (
-          <button
-            onClick={() => onDelete(file.id)}
-            disabled={isDeleting}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40 cursor-pointer"
-            title="Delete"
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <p
+            className="truncate text-sm font-medium text-foreground"
+            title={file.fileName}
           >
-            <Trash2 size={13} />
+            {file.fileName}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {[formatBytes(file.sizeBytes), formatDate(file.createdAt)]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            onClick={() => setPreviewing(true)}
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            title="Preview"
+          >
+            <Eye size={13} />
           </button>
-        )}
+          <a
+            href={file.storageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={file.fileName}
+            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            title="Download"
+          >
+            <Download size={13} />
+          </a>
+          {canDelete && (
+            <button
+              onClick={() => onDelete(file.id)}
+              disabled={isDeleting}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40"
+              title="Delete"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+
+      <FilePreviewModal
+        file={previewing ? file : null}
+        onClose={() => setPreviewing(false)}
+      />
+    </>
   );
 }

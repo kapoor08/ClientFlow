@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Download, ExternalLink, Sparkles, Users, FolderOpen, Briefcase, Check, Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { CreditCard, Sparkles, Users, FolderOpen, Briefcase, Check, Loader2 } from "lucide-react";
+import { RowActions } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -200,9 +202,9 @@ function SubscriptionCard({
               {subscription.planName}
             </h2>
             <span
-              className={`rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${getStatusStyle(subscription.status)}`}
+              className={`rounded-pill px-2 py-0.5 text-xs font-medium ${getStatusStyle(subscription.status)}`}
             >
-              {subscription.status}
+              {subscription.status === "trialing" ? "Trial" : subscription.status === "active" ? "Active" : subscription.status}
             </span>
             {subscription.cancelAtPeriodEnd && (
               <span className="rounded-pill bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
@@ -213,7 +215,7 @@ function SubscriptionCard({
           <p className="mt-1 text-sm text-muted-foreground">
             {price}/{cycle}
             {subscription.currentPeriodEnd && (
-              <> · Renews {formatDate(subscription.currentPeriodEnd)}</>
+              <> · {subscription.status === "trialing" ? "Trial ends" : "Renews"} {formatDate(subscription.currentPeriodEnd)}</>
             )}
           </p>
         </div>
@@ -308,20 +310,7 @@ function InvoiceRow({ invoice }: { invoice: BillingInvoiceItem }) {
         {date}
       </td>
       <td className="px-4 py-3 text-right">
-        {invoice.invoiceUrl ? (
-          <a
-            href={invoice.invoiceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg p-1 text-muted-foreground hover:bg-secondary"
-          >
-            <ExternalLink size={14} />
-          </a>
-        ) : (
-          <span className="inline-flex rounded-lg p-1 text-muted-foreground/30">
-            <Download size={14} />
-          </span>
-        )}
+        <RowActions openHref={invoice.invoiceUrl ?? undefined} />
       </td>
     </tr>
   );
@@ -359,11 +348,9 @@ const BillingPage = () => {
   }
 
   // Show success/cancel banners from Stripe redirect query params
-  const searchParams = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : null;
-  const showSuccess = searchParams?.get("success") === "1";
-  const showCanceled = searchParams?.get("canceled") === "1";
+  const searchParams = useSearchParams();
+  const showSuccess = searchParams.get("success") === "1";
+  const showCanceled = searchParams.get("canceled") === "1";
 
   return (
     <div>
@@ -449,16 +436,16 @@ const BillingPage = () => {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-secondary/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                 Invoice
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                 Amount
               </th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
                 Status
               </th>
-              <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+              <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
                 Date
               </th>
               <th className="px-4 py-3" />
