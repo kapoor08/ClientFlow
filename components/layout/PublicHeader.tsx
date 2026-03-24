@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,21 +52,23 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
       )}
     >
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-lg font-display text-xs font-bold transition-colors bg-primary text-primary-foreground",
-            )}
-          >
-            CF
-          </div>
-          <span
-            className={cn(
-              "font-display text-[17px] font-semibold tracking-tight text-foreground transition-colors",
-            )}
-          >
-            ClientFlow
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo-dark.png"
+            alt="ClientFlow"
+            width={130}
+            height={28}
+            className="mt-2.5 ml-5 h-auto w-auto dark:hidden"
+            priority
+          />
+          <Image
+            src="/logo-light.png"
+            alt="ClientFlow"
+            width={130}
+            height={28}
+            className="hidden h-7 w-auto dark:block"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center md:flex">

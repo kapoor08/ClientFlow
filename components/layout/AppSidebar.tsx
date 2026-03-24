@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navGroups } from "@/config/navigation";
 import { canAccessHref } from "@/config/plan-limits";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const AppSidebar = ({ planCode }: { planCode: string }) => {
   const pathname = usePathname();
@@ -32,93 +39,125 @@ const AppSidebar = ({ planCode }: { planCode: string }) => {
         collapsed ? "w-16" : "w-60",
       )}
     >
-      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
-        <Link href="/" className="flex items-center gap-2 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary">
-            <span className="font-display text-sm font-bold text-sidebar-primary-foreground">
-              CF
-            </span>
-          </div>
-          {!collapsed && (
-            <span className="font-display text-base font-semibold text-sidebar-foreground">
-              ClientFlow
-            </span>
+      <div className="flex h-16 items-center justify-center border-b border-sidebar-border px-2">
+        <Link href="/" className="flex items-center overflow-hidden">
+          {collapsed ? (
+            <Image
+              src="/favicon.png"
+              alt="ClientFlow"
+              width={32}
+              height={32}
+              className="h-9 w-9 shrink-0"
+            />
+          ) : (
+            <>
+              <Image
+                src="/logo-dark.png"
+                alt="ClientFlow"
+                width={130}
+                height={28}
+                className="mt-2.5 ml-5 h-auto w-auto dark:hidden"
+                priority
+              />
+              <Image
+                src="/logo-light.png"
+                alt="ClientFlow"
+                width={130}
+                height={28}
+                className="hidden h-auto w-auto dark:block"
+                priority
+              />
+            </>
           )}
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3">
-        {/* Accessible modules */}
-        {visibleGroups.map((group) => (
-          <div key={group.label} className="mb-4">
-            {!collapsed && (
-              <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {group.label}
+      <TooltipProvider delayDuration={200}>
+        <nav className="flex-1 overflow-y-auto p-3">
+          {/* Accessible modules */}
+          {visibleGroups.map((group) => (
+            <div key={group.label} className="mb-4">
+              {!collapsed && (
+                <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.label}
+                </span>
+              )}
+              {group.items.map((item) => {
+                const active = pathname?.startsWith(item.href);
+                const link = (
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
+                      collapsed && "justify-center",
+                      active
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    )}
+                  >
+                    <item.icon size={18} className="shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+
+                return collapsed ? (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>{link}</TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <div key={item.href}>{link}</div>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* Locked modules — expanded */}
+          {lockedItems.length > 0 && !collapsed && (
+            <div className="mb-4">
+              <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                Upgrade to unlock
               </span>
-            )}
-            {group.items.map((item) => {
-              const active = pathname?.startsWith(item.href);
-              return (
+              {lockedItems.map((item) => (
                 <Link
                   key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                  )}
-                  title={collapsed ? item.label : undefined}
+                  href="/plans"
+                  className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
                 >
                   <item.icon size={18} className="shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <span className="flex-1">{item.label}</span>
+                  <Lock size={12} className="shrink-0" />
                 </Link>
-              );
-            })}
-          </div>
-        ))}
+              ))}
+            </div>
+          )}
 
-        {/* Locked modules */}
-        {lockedItems.length > 0 && !collapsed && (
-          <div className="mb-4">
-            <span className="mb-1 block px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
-              Upgrade to unlock
-            </span>
-            {lockedItems.map((item) => (
-              <Link
-                key={item.href}
-                href="/plans"
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
-                title={`${item.label} — upgrade to unlock`}
-              >
-                <item.icon size={18} className="shrink-0" />
-                <span className="flex-1">{item.label}</span>
-                <Lock size={12} className="shrink-0" />
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Collapsed locked icons */}
-        {lockedItems.length > 0 && collapsed && (
-          <div className="mb-4">
-            {lockedItems.map((item) => (
-              <Link
-                key={item.href}
-                href="/plans"
-                className="flex items-center justify-center rounded-lg px-2.5 py-2 text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
-                title={`${item.label} — upgrade to unlock`}
-              >
-                <item.icon size={18} className="shrink-0" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </nav>
+          {/* Locked modules — collapsed */}
+          {lockedItems.length > 0 && collapsed && (
+            <div className="mb-4">
+              {lockedItems.map((item) => (
+                <Tooltip key={item.href}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href="/plans"
+                      className="flex items-center justify-center rounded-lg px-2.5 py-2 text-sidebar-foreground/30 hover:bg-sidebar-accent/20 transition-colors"
+                    >
+                      <item.icon size={18} className="shrink-0" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {item.label} — upgrade to unlock
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+        </nav>
+      </TooltipProvider>
 
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex h-10 items-center justify-center border-t border-sidebar-border text-muted-foreground hover:bg-sidebar-accent/50"
+        className="flex h-10 items-center justify-center border-t border-sidebar-border text-muted-foreground hover:bg-sidebar-accent/50 cursor-pointer"
       >
         {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>

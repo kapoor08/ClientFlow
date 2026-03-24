@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: "ClientFlow - All-in-One Client Management for Agencies",
   description:
     "ClientFlow is the ultimate platform for agencies to manage clients, projects, and billing in one place. Streamline your workflow and grow your business with ease.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
