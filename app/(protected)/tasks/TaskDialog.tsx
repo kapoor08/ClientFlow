@@ -85,7 +85,8 @@ export function TaskDialog({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(taskFormSchema) as any,
     defaultValues: {
       projectId: defaultProjectId ?? "",
       title: "",
@@ -162,7 +163,8 @@ export function TaskDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
           {/* Project */}
           <div className="space-y-1.5">
             <Label>Project *</Label>

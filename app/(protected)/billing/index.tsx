@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Download, ExternalLink, Sparkles, Users, FolderOpen, Briefcase, Check } from "lucide-react";
+import { CreditCard, Download, ExternalLink, Sparkles, Users, FolderOpen, Briefcase, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -32,6 +32,27 @@ function PlansDialog({
   onClose: () => void;
   currentPlanCode?: string;
 }) {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  async function handleSelectPlan(planCode: string) {
+    if (planCode === "enterprise") {
+      window.location.href = "mailto:sales@clientflow.io";
+      return;
+    }
+    setLoadingPlan(planCode);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planCode }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } finally {
+      setLoadingPlan(null);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[780px]">
@@ -45,7 +66,8 @@ function PlansDialog({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {plans.map((plan) => {
             const isCurrent =
-              currentPlanCode?.toLowerCase() === plan.name.toLowerCase();
+              currentPlanCode?.toLowerCase() === plan.code.toLowerCase();
+            const isLoading = loadingPlan === plan.code;
 
             return (
               <div
@@ -107,9 +129,12 @@ function PlansDialog({
                 <Button
                   variant={plan.featured ? "default" : "outline"}
                   className="w-full cursor-pointer"
-                  disabled={isCurrent}
+                  disabled={isCurrent || isLoading || loadingPlan !== null}
+                  onClick={() => handleSelectPlan(plan.code)}
                 >
-                  {isCurrent ? "Current Plan" : plan.cta}
+                  {isLoading ? (
+                    <><Loader2 size={14} className="mr-1.5 animate-spin" /> Redirecting…</>
+                  ) : isCurrent ? "Current Plan" : plan.cta}
                 </Button>
               </div>
             );
@@ -125,9 +150,13 @@ function PlansDialog({
 function SubscriptionCard({
   subscription,
   onViewPlans,
+  onManageBilling,
+  portalLoading,
 }: {
   subscription: BillingContext["subscription"];
   onViewPlans: () => void;
+  onManageBilling?: () => void;
+  portalLoading?: boolean;
 }) {
   if (!subscription) {
     return (
@@ -192,8 +221,8 @@ function SubscriptionCard({
           <Button variant="outline" size="sm" className="cursor-pointer" onClick={onViewPlans}>
             Change Plan
           </Button>
-          <Button variant="outline" size="sm" className="cursor-pointer">
-            Manage Billing
+          <Button variant="outline" size="sm" className="cursor-pointer" onClick={onManageBilling} disabled={portalLoading}>
+            {portalLoading ? <><Loader2 size={14} className="mr-1.5 animate-spin" />Opening…</> : "Manage Billing"}
           </Button>
         </div>
       </div>
@@ -316,6 +345,25 @@ function SkeletonCard() {
 const BillingPage = () => {
   const { data, isLoading } = useBilling();
   const [plansOpen, setPlansOpen] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  async function handleManageBilling() {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const json = await res.json();
+      if (json.url) window.location.href = json.url;
+    } finally {
+      setPortalLoading(false);
+    }
+  }
+
+  // Show success/cancel banners from Stripe redirect query params
+  const searchParams = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const showSuccess = searchParams?.get("success") === "1";
+  const showCanceled = searchParams?.get("canceled") === "1";
 
   return (
     <div>
@@ -324,6 +372,17 @@ const BillingPage = () => {
         onClose={() => setPlansOpen(false)}
         currentPlanCode={data?.subscription?.planCode}
       />
+
+      {showSuccess && (
+        <div className="mb-4 rounded-card border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+          Subscription activated! Your plan is now live.
+        </div>
+      )}
+      {showCanceled && (
+        <div className="mb-4 rounded-card border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+          Checkout was canceled. No charge was made.
+        </div>
+      )}
 
       <div className="mb-6">
         <h1 className="font-display text-2xl font-semibold text-foreground">
@@ -341,6 +400,8 @@ const BillingPage = () => {
         <SubscriptionCard
           subscription={data?.subscription ?? null}
           onViewPlans={() => setPlansOpen(true)}
+          onManageBilling={handleManageBilling}
+          portalLoading={portalLoading}
         />
       )}
 

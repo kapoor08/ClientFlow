@@ -1,5 +1,6 @@
 export const plans = [
   {
+    code: "starter",
     name: "Starter",
     price: "$29",
     period: "/mo",
@@ -13,6 +14,7 @@ export const plans = [
     cta: "Start Free Trial",
   },
   {
+    code: "professional",
     name: "Professional",
     price: "$79",
     period: "/mo",
@@ -29,6 +31,7 @@ export const plans = [
     featured: true,
   },
   {
+    code: "enterprise",
     name: "Enterprise",
     price: "Custom",
     period: "",
