@@ -52,15 +52,15 @@ const AppSidebar = ({ planCode }: { planCode: string }) => {
           ) : (
             <>
               <Image
-                src="/logo-dark.png"
+                src="/logo.png"
                 alt="ClientFlow"
                 width={130}
                 height={28}
-                className="mt-2.5 ml-5 h-auto w-auto dark:hidden"
+                className="h-auto w-auto dark:hidden"
                 priority
               />
               <Image
-                src="/logo-light.png"
+                src="/logo.png"
                 alt="ClientFlow"
                 width={130}
                 height={28}

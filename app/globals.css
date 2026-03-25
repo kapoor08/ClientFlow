@@ -505,3 +505,48 @@
     animation: logo-spin infinite 20s linear;
   }
 }
+
+/* ─── Tiptap editor styles ──────────────────────────────────────────────────── */
+
+.tiptap-content .ProseMirror {
+  outline: none;
+  min-height: 80px;
+}
+
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-content .ProseMirror ul,
+.tiptap-content .ProseMirror ol {
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.tiptap-content .ProseMirror ul {
+  list-style-type: disc;
+}
+
+.tiptap-content .ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.tiptap-content .ProseMirror p {
+  margin: 0.125rem 0;
+}
+
+.tiptap-content .ProseMirror strong {
+  font-weight: 600;
+}
+
+.tiptap-content .ProseMirror .mention {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-radius: 4px;
+  padding: 0 2px;
+  font-weight: 500;
+}

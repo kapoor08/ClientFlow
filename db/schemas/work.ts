@@ -1,4 +1,5 @@
 import {
+  AnyPgColumn,
   boolean,
   integer,
   jsonb,
@@ -94,6 +95,21 @@ export const projectMembers = pgTable(
   ],
 );
 
+// taskBoardColumns is defined before tasks so the FK reference from tasks -> taskBoardColumns resolves correctly
+export const taskBoardColumns = pgTable("task_board_columns", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  color: text("color").notNull().default("#3b82f6"),
+  columnType: text("column_type"), // 'todo' | 'in_progress' | 'testing_qa' | 'completed' | null
+  description: text("description"),
+  position: integer("position").notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 export const tasks = pgTable("tasks", {
   id: text("id").primaryKey(),
   organizationId: text("organization_id")
@@ -102,6 +118,13 @@ export const tasks = pgTable("tasks", {
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
+  columnId: text("column_id").references(() => taskBoardColumns.id, {
+    onDelete: "set null",
+  }),
+  parentTaskId: text("parent_task_id").references(
+    (): AnyPgColumn => tasks.id,
+    { onDelete: "set null" },
+  ),
   title: text("title").notNull(),
   description: text("description"),
   status: text("status").notNull(),
@@ -148,6 +171,7 @@ export const taskAttachments = pgTable("task_attachments", {
   uploadedByUserId: text("uploaded_by_user_id").references(() => user.id),
   storageProvider: text("storage_provider").notNull(),
   storageKey: text("storage_key").notNull(),
+  storageUrl: text("storage_url"),
   fileName: text("file_name").notNull(),
   mimeType: text("mime_type"),
   sizeBytes: integer("size_bytes"),
@@ -168,3 +192,23 @@ export const taskAuditLogs = pgTable("task_audit_logs", {
   newValues: jsonb("new_values"),
   createdAt: createdAt(),
 });
+
+export const taskAssignees = pgTable(
+  "task_assignees",
+  {
+    id: text("id").primaryKey(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    assignedAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("task_assignees_task_user_unique").on(
+      table.taskId,
+      table.userId,
+    ),
+  ],
+);

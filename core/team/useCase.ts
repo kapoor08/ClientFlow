@@ -15,11 +15,14 @@ export const teamKeys = {
   list: () => [...teamKeys.all, "list"] as const,
 };
 
-export function useTeamMembers(): UseQueryResult<TeamListResponse> {
+export function useTeamMembers(
+  initialData?: TeamListResponse,
+): UseQueryResult<TeamListResponse> {
   return useQuery({
     queryKey: teamKeys.list(),
     queryFn: listTeamMembers,
     staleTime: 60 * 1000,
+    initialData,
   });
 }
 

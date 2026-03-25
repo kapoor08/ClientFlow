@@ -54,15 +54,15 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo-dark.png"
+            src="/logo.png"
             alt="ClientFlow"
             width={130}
             height={28}
-            className="mt-2.5 ml-5 h-auto w-auto dark:hidden"
+            className="h-auto w-auto dark:hidden"
             priority
           />
           <Image
-            src="/logo-light.png"
+            src="/logo.png"
             alt="ClientFlow"
             width={130}
             height={28}

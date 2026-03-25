@@ -14,6 +14,7 @@ export type TaskListItem = {
   commentCount: number;
   attachmentCount: number;
   createdAt: string;
+  columnId: string | null;
 };
 
 export type TaskListResponse = {
@@ -39,6 +40,7 @@ export type CreateTaskData = {
   assigneeUserId?: string | null;
   dueDate?: string | null;
   estimateMinutes?: number | null;
+  columnId?: string | null;
 };
 
 export type UpdateTaskData = CreateTaskData & { status: string };

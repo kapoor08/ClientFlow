@@ -40,6 +40,7 @@ export const taskFormSchema = z.object({
   assigneeUserId: z.string().nullable().default(null),
   dueDate: z.date().nullable().default(null),
   estimateMinutes: z.number().int().positive().nullable().default(null),
+  columnId: z.string().nullable().default(null),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

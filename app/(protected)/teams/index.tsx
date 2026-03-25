@@ -30,7 +30,7 @@ import {
   useReactivateMember,
   useRemoveMember,
 } from "@/core/team/useCase";
-import type { TeamMemberItem, AssignableRole, TeamAccess } from "@/core/team/entity";
+import type { TeamMemberItem, AssignableRole, TeamAccess, TeamListResponse } from "@/core/team/entity";
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
@@ -200,8 +200,8 @@ function SkeletonRow() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const TeamPage = () => {
-  const { data, isLoading } = useTeamMembers();
+const TeamPage = ({ initialData }: { initialData?: TeamListResponse }) => {
+  const { data, isLoading } = useTeamMembers(initialData);
 
   const members = data?.members ?? [];
   const access = data?.access;

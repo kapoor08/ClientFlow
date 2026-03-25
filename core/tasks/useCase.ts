@@ -5,7 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
-import { listTasks, createTask, updateTask, deleteTask } from "./repository";
+import { listTasks, createTask, updateTask, deleteTask, moveTask } from "./repository";
 import type {
   TaskFilters,
   TaskListResponse,
@@ -22,11 +22,13 @@ export const taskKeys = {
 
 export function useTasks(
   filters: TaskFilters = {},
+  initialData?: TaskListResponse,
 ): UseQueryResult<TaskListResponse> {
   return useQuery({
     queryKey: taskKeys.list(filters),
     queryFn: () => listTasks(filters),
     staleTime: 30 * 1000,
+    initialData,
   });
 }
 
@@ -68,6 +70,18 @@ export function useDeleteTask(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId }) => deleteTask(taskId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+  });
+}
+
+export function useMoveTask(): UseMutationResult<
+  void,
+  HttpError,
+  { taskId: string; columnId: string | null }
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, columnId }) => moveTask(taskId, columnId),
     onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
   });
 }

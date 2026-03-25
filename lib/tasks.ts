@@ -1,7 +1,8 @@
 import "server-only";
 
 import { and, asc, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
-import { tasks, projects } from "@/db/schema";
+import { alias } from "drizzle-orm/pg-core";
+import { tasks, projects, taskAuditLogs, taskBoardColumns } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/pagination";
 import { writeAuditLog } from "@/lib/audit";
 import { enforceTaskCreationLimit } from "@/lib/plan-enforcement";
+import { dispatchNotification } from "@/lib/notifications";
 import type { TaskFormValues } from "@/lib/tasks-shared";
 
 export type TaskListItem = {
@@ -29,6 +31,7 @@ export type TaskListItem = {
   commentCount: number;
   attachmentCount: number;
   createdAt: Date;
+  columnId: string | null;
 };
 
 type ListTasksOptions = {
@@ -105,6 +108,7 @@ export async function listTasksForUser(
         attachmentCount:
           sql<number>`(SELECT COUNT(*) FROM task_attachments WHERE task_id = ${tasks.id})`,
         createdAt: tasks.createdAt,
+        columnId: tasks.columnId,
       })
       .from(tasks)
       .leftJoin(projects, eq(tasks.projectId, projects.id))
@@ -135,12 +139,13 @@ export async function createTaskForUser(
   await enforceTaskCreationLimit(context.organizationId);
 
   const taskId = crypto.randomUUID();
+  const title = input.title.trim();
 
   await db.insert(tasks).values({
     id: taskId,
     organizationId: context.organizationId,
     projectId: input.projectId,
-    title: input.title.trim(),
+    title,
     description: input.description?.trim() || null,
     status: input.status,
     priority: input.priority,
@@ -148,16 +153,40 @@ export async function createTaskForUser(
     dueDate: input.dueDate,
     estimateMinutes: input.estimateMinutes,
     reporterUserId: userId,
+    columnId: input.columnId ?? null,
   });
 
+  // ─── Audit log (global) ────────────────────────────────────────────────────
   writeAuditLog({
     organizationId: context.organizationId,
     actorUserId: userId,
     action: "task.created",
     entityType: "task",
     entityId: taskId,
-    metadata: { name: input.title.trim() },
+    metadata: { name: title },
   }).catch(console.error);
+
+  // ─── Task activity log ─────────────────────────────────────────────────────
+  db.insert(taskAuditLogs).values({
+    id: crypto.randomUUID(),
+    organizationId: context.organizationId,
+    taskId,
+    actorUserId: userId,
+    action: "task.created",
+    newValues: { title },
+  }).catch(console.error);
+
+  // ─── Notify assignee ───────────────────────────────────────────────────────
+  if (input.assigneeUserId && input.assigneeUserId !== userId) {
+    dispatchNotification({
+      organizationId: context.organizationId,
+      recipientUserIds: [input.assigneeUserId],
+      eventKey: "task_assigned",
+      title: "Task assigned to you",
+      body: title,
+      url: "/tasks",
+    }).catch(console.error);
+  }
 
   return { taskId };
 }
@@ -170,9 +199,25 @@ export async function updateTaskForUser(
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) throw new Error("No active organization found.");
 
+  // ─── Fetch existing values for diff ───────────────────────────────────────
+  const assigneeUser = alias(user, "old_assignee");
+
   const [existing] = await db
-    .select({ id: tasks.id })
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      status: tasks.status,
+      priority: tasks.priority,
+      assigneeUserId: tasks.assigneeUserId,
+      assigneeName: assigneeUser.name,
+      dueDate: tasks.dueDate,
+      columnId: tasks.columnId,
+      columnName: taskBoardColumns.name,
+      estimateMinutes: tasks.estimateMinutes,
+    })
     .from(tasks)
+    .leftJoin(assigneeUser, eq(tasks.assigneeUserId, assigneeUser.id))
+    .leftJoin(taskBoardColumns, eq(tasks.columnId, taskBoardColumns.id))
     .where(
       and(
         eq(tasks.id, taskId),
@@ -184,6 +229,7 @@ export async function updateTaskForUser(
 
   if (!existing) throw new Error("Task not found.");
 
+  // ─── Perform update ────────────────────────────────────────────────────────
   await db
     .update(tasks)
     .set({
@@ -195,19 +241,153 @@ export async function updateTaskForUser(
       assigneeUserId: input.assigneeUserId,
       dueDate: input.dueDate,
       estimateMinutes: input.estimateMinutes,
-      completedAt:
-        input.status === "done" ? new Date() : null,
+      completedAt: input.status === "done" ? new Date() : null,
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, taskId));
 
+  // ─── Build diff ────────────────────────────────────────────────────────────
+
+  function entry(action: string, oldVal: unknown, newVal: unknown) {
+    return {
+      id: crypto.randomUUID(),
+      organizationId: context!.organizationId,
+      taskId,
+      actorUserId: userId,
+      action,
+      oldValues: oldVal as Record<string, unknown>,
+      newValues: newVal as Record<string, unknown>,
+    };
+  }
+
+  const entries: {
+    id: string;
+    organizationId: string;
+    taskId: string;
+    actorUserId: string;
+    action: string;
+    oldValues: Record<string, unknown> | null;
+    newValues: Record<string, unknown> | null;
+  }[] = [];
+
+  // Title
+  if (existing.title !== input.title.trim()) {
+    entries.push(entry("title.changed", { label: existing.title }, { label: input.title.trim() }));
+  }
+
+  // Priority
+  if (existing.priority !== input.priority) {
+    entries.push(entry(
+      "priority.changed",
+      { label: existing.priority ?? "None" },
+      { label: input.priority ?? "None" },
+    ));
+  }
+
+  // Status
+  if (existing.status !== input.status) {
+    entries.push(entry(
+      "status.changed",
+      { label: formatStatusLabel(existing.status) },
+      { label: formatStatusLabel(input.status) },
+    ));
+  }
+
+  // Assignee
+  const assigneeChanged = existing.assigneeUserId !== input.assigneeUserId;
+  let newAssigneeName: string | null = null;
+  if (assigneeChanged) {
+    if (input.assigneeUserId) {
+      const [newUser] = await db
+        .select({ name: user.name })
+        .from(user)
+        .where(eq(user.id, input.assigneeUserId))
+        .limit(1);
+      newAssigneeName = newUser?.name ?? null;
+    }
+    entries.push(entry(
+      "assignee.changed",
+      { userId: existing.assigneeUserId, name: existing.assigneeName },
+      { userId: input.assigneeUserId, name: newAssigneeName },
+    ));
+  }
+
+  // Column
+  if (existing.columnId !== (input.columnId ?? null)) {
+    let newColumnName: string | null = null;
+    if (input.columnId) {
+      const [col] = await db
+        .select({ name: taskBoardColumns.name })
+        .from(taskBoardColumns)
+        .where(eq(taskBoardColumns.id, input.columnId))
+        .limit(1);
+      newColumnName = col?.name ?? null;
+    }
+    entries.push(entry(
+      "column.moved",
+      { columnId: existing.columnId, name: existing.columnName },
+      { columnId: input.columnId ?? null, name: newColumnName },
+    ));
+  }
+
+  // Due date
+  const oldDue = existing.dueDate?.toISOString().slice(0, 10) ?? null;
+  const newDue = input.dueDate instanceof Date
+    ? input.dueDate.toISOString().slice(0, 10)
+    : (input.dueDate ? new Date(input.dueDate as unknown as string).toISOString().slice(0, 10) : null);
+  if (oldDue !== newDue) {
+    entries.push(entry(
+      "dueDate.changed",
+      { label: oldDue ? formatDateShort(oldDue) : "None" },
+      { label: newDue ? formatDateShort(newDue) : "None" },
+    ));
+  }
+
+  // ─── Write activity log entries ────────────────────────────────────────────
+  if (entries.length > 0) {
+    db.insert(taskAuditLogs).values(entries).catch(console.error);
+  }
+
+  // ─── Notifications ─────────────────────────────────────────────────────────
+  const taskTitle = input.title.trim();
+
+  // Notify new assignee
+  if (assigneeChanged && input.assigneeUserId && input.assigneeUserId !== userId) {
+    dispatchNotification({
+      organizationId: context.organizationId,
+      recipientUserIds: [input.assigneeUserId],
+      eventKey: "task_assigned",
+      title: "Task assigned to you",
+      body: taskTitle,
+      url: "/tasks",
+    }).catch(console.error);
+  }
+
+  // Notify assignee of status change
+  const assigneeToNotify = input.assigneeUserId ?? existing.assigneeUserId;
+  if (
+    existing.status !== input.status &&
+    assigneeToNotify &&
+    assigneeToNotify !== userId
+  ) {
+    dispatchNotification({
+      organizationId: context.organizationId,
+      recipientUserIds: [assigneeToNotify],
+      eventKey: "task_status_changed",
+      title: `Task status changed: ${formatStatusLabel(input.status)}`,
+      body: taskTitle,
+      url: "/tasks",
+    }).catch(console.error);
+  }
+
+  // ─── Global audit log ──────────────────────────────────────────────────────
   writeAuditLog({
     organizationId: context.organizationId,
     actorUserId: userId,
     action: "task.updated",
     entityType: "task",
     entityId: taskId,
-    metadata: { name: input.title.trim() },
+    metadata: { name: taskTitle },
   }).catch(console.error);
 
   return { taskId };
@@ -247,4 +427,82 @@ export async function deleteTaskForUser(
     entityId: taskId,
     metadata: { name: existing.title },
   }).catch(console.error);
+}
+
+export async function moveTaskColumnForUser(
+  userId: string,
+  taskId: string,
+  columnId: string | null,
+): Promise<void> {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) throw new Error("No active organization found.");
+
+  const [existing] = await db
+    .select({
+      id: tasks.id,
+      columnId: tasks.columnId,
+      columnName: taskBoardColumns.name,
+    })
+    .from(tasks)
+    .leftJoin(taskBoardColumns, eq(tasks.columnId, taskBoardColumns.id))
+    .where(
+      and(
+        eq(tasks.id, taskId),
+        eq(tasks.organizationId, context.organizationId),
+        isNull(tasks.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) throw new Error("Task not found.");
+
+  await db
+    .update(tasks)
+    .set({ columnId, updatedAt: new Date() })
+    .where(eq(tasks.id, taskId));
+
+  // Log the column move in task audit log
+  if (existing.columnId !== columnId) {
+    let newColumnName: string | null = null;
+    if (columnId) {
+      const [col] = await db
+        .select({ name: taskBoardColumns.name })
+        .from(taskBoardColumns)
+        .where(eq(taskBoardColumns.id, columnId))
+        .limit(1);
+      newColumnName = col?.name ?? null;
+    }
+
+    db.insert(taskAuditLogs)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId: context.organizationId,
+        taskId,
+        actorUserId: userId,
+        action: "column.moved",
+        oldValues: { columnId: existing.columnId, name: existing.columnName },
+        newValues: { columnId, name: newColumnName },
+      })
+      .catch(console.error);
+  }
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    todo: "To Do",
+    in_progress: "In Progress",
+    review: "Review",
+    blocked: "Blocked",
+    done: "Done",
+  };
+  return labels[status] ?? status;
+}
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }

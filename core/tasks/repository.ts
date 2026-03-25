@@ -40,3 +40,7 @@ export async function updateTask(
 export async function deleteTask(taskId: string): Promise<void> {
   return http<void>(`/api/tasks/${taskId}`, { method: "DELETE" });
 }
+
+export async function moveTask(taskId: string, columnId: string | null): Promise<void> {
+  return http<void>(`/api/tasks/${taskId}/move`, { method: "PATCH", body: { columnId } });
+}
