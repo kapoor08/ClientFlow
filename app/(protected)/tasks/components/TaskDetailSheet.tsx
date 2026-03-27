@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -24,26 +24,39 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 import { TiptapEditor } from "@/components/TiptapEditor";
 import {
   useTaskDetail,
   useTaskComments,
   useTaskActivity,
   useCreateComment,
+  useUpdateComment,
+  useDeleteComment,
   useSubtasks,
-  useCreateSubtask,
   useToggleSubtask,
   useDeleteSubtask,
   useTaskAttachments,
   useUploadAttachment,
   useDeleteAttachment,
+  taskDetailKeys,
 } from "@/core/task-detail/useCase";
-import { useUpdateTask } from "@/core/tasks/useCase";
+import { useUpdateTask, useDeleteTask } from "@/core/tasks/useCase";
 import { useBoardColumns } from "@/core/task-columns/useCase";
+import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { http } from "@/core/infrastructure";
 import { formatActivityMessage } from "@/core/task-detail/entity";
 import { getInitials, PRIORITY_BADGE } from "@/core/tasks/entity";
+import { TASK_TAG_OPTIONS } from "@/lib/tasks-shared";
+import { CreateTaskDialog } from "./CreateTaskDialog";
 import {
   X,
   CalendarDays,
@@ -61,11 +74,17 @@ import {
   Trash2,
   FileText,
   Upload,
+  Tag,
+  MoreHorizontal,
+  Pencil,
+  Check,
+  Download,
+  ZoomIn,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type MemberOption = { userId: string; name: string; email: string };
+type MemberOption = { userId: string; name: string; email: string; roleName?: string };
 
 const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent", color: "#ef4444" },
@@ -157,6 +176,145 @@ function InlineTitle({
   );
 }
 
+// ─── Comment body with mention hover cards ────────────────────────────────────
+
+function esc(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function CommentBody({
+  html,
+  members,
+  className,
+}: {
+  html: string;
+  members: MemberOption[];
+  className?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let card: HTMLDivElement | null = null;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function removeCard() {
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+      if (card) { card.remove(); card = null; }
+    }
+
+    function scheduleClose() {
+      if (!closeTimer) closeTimer = setTimeout(removeCard, 150);
+    }
+
+    function cancelClose() {
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+    }
+
+    function showCard(member: MemberOption | null, label: string, rect: DOMRect) {
+      removeCard();
+
+      const name = member?.name ?? label;
+      const email = member?.email ?? "";
+      const role = member?.roleName ?? "";
+      const initial = name.charAt(0).toUpperCase();
+
+      card = document.createElement("div");
+      card.setAttribute("data-mention-profile", "");
+      card.style.cssText = [
+        "position:fixed",
+        `z-index:99999`,
+        "width:224px",
+        "border-radius:12px",
+        `border:1px solid hsl(var(--border))`,
+        `background:hsl(var(--card))`,
+        "box-shadow:0 4px 20px rgba(0,0,0,.13)",
+        "overflow:hidden",
+        `top:${rect.top - 8}px`,
+        `left:${rect.left}px`,
+        "transform:translateY(-100%)",
+      ].join(";");
+
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;padding:14px">
+          <div style="width:40px;height:40px;border-radius:50%;background:hsl(var(--primary)/0.1);color:hsl(var(--primary));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0">${esc(initial)}</div>
+          <div style="min-width:0">
+            <p style="margin:0;font-size:14px;font-weight:600;color:hsl(var(--foreground));overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</p>
+            ${email ? `<p style="margin:2px 0 0;font-size:11px;color:hsl(var(--muted-foreground));overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(email)}</p>` : ""}
+            ${role ? `<span style="display:inline-block;margin-top:5px;border-radius:999px;background:hsl(var(--secondary));padding:2px 8px;font-size:10px;font-weight:500;color:hsl(var(--secondary-foreground))">${esc(role)}</span>` : ""}
+          </div>
+        </div>`;
+
+      card.addEventListener("mouseenter", cancelClose);
+      card.addEventListener("mouseleave", scheduleClose);
+      document.body.appendChild(card);
+    }
+
+    const mentions = container.querySelectorAll<HTMLElement>(".mention");
+    const cleanups: Array<() => void> = [];
+
+    mentions.forEach((el) => {
+      const id = el.getAttribute("data-id");
+      const rawLabel = el.getAttribute("data-label") ?? el.textContent?.replace(/^@/, "") ?? "";
+      const member = members.find((m) => m.userId === id) ?? null;
+
+      const enter = () => { cancelClose(); showCard(member, rawLabel, el.getBoundingClientRect()); };
+      const leave = () => scheduleClose();
+
+      el.addEventListener("mouseenter", enter);
+      el.addEventListener("mouseleave", leave);
+      cleanups.push(() => { el.removeEventListener("mouseenter", enter); el.removeEventListener("mouseleave", leave); });
+    });
+
+    return () => {
+      cleanups.forEach((fn) => fn());
+      removeCard();
+    };
+  }, [html, members]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+// ─── Image lightbox ───────────────────────────────────────────────────────────
+
+function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+      >
+        <X size={16} />
+      </button>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
 // ─── Property row ──────────────────────────────────────────────────────────────
 
 function PropRow({
@@ -179,22 +337,160 @@ function PropRow({
   );
 }
 
+// ─── Estimate helpers ─────────────────────────────────────────────────────────
+// 1 week = 5 days, 1 day = 8 hours, 1 hour = 60 minutes
+
+/**
+ * Parse a human estimate string like "2w 3d 4h 30m" → total minutes.
+ * Accepts any combination of w/d/h/m tokens in any order.
+ * Returns null if the string is empty or unparseable.
+ */
+function parseEstimate(input: string): number | null {
+  const s = input.trim().toLowerCase();
+  if (!s) return null;
+  const re = /(\d+(?:\.\d+)?)\s*([wdhm])/g;
+  let total = 0;
+  let matched = false;
+  for (const m of s.matchAll(re)) {
+    const n = parseFloat(m[1]);
+    switch (m[2]) {
+      case "w":
+        total += n * 5 * 8 * 60;
+        break;
+      case "d":
+        total += n * 8 * 60;
+        break;
+      case "h":
+        total += n * 60;
+        break;
+      case "m":
+        total += n;
+        break;
+    }
+    matched = true;
+  }
+  return matched ? Math.round(total) : null;
+}
+
+/**
+ * Format total minutes back to a compact string like "1w 2d 3h 40m".
+ * Omits zero parts.
+ */
+function formatEstimate(mins: number | null): string {
+  if (!mins || mins <= 0) return "";
+  let rem = mins;
+  const W = 5 * 8 * 60;
+  const D = 8 * 60;
+  const H = 60;
+  const w = Math.floor(rem / W);
+  rem %= W;
+  const d = Math.floor(rem / D);
+  rem %= D;
+  const h = Math.floor(rem / H);
+  rem %= H;
+  const m = rem;
+  return [w && `${w}w`, d && `${d}d`, h && `${h}h`, m && `${m}m`]
+    .filter(Boolean)
+    .join(" ");
+}
+
+const TAG_COLORS: Record<string, string> = {
+  bug: "bg-danger/10 text-danger border-danger/20",
+  enhancement: "bg-info/10 text-info border-info/20",
+  feature: "bg-success/10 text-success border-success/20",
+  improvement: "bg-warning/10 text-warning border-warning/20",
+  question: "bg-purple-100 text-purple-700 border-purple-200",
+  documentation: "bg-neutral-100 text-neutral-600 border-neutral-200",
+  design: "bg-pink-100 text-pink-700 border-pink-200",
+  blocked: "bg-danger/20 text-danger border-danger/30",
+};
+
+// ─── Estimate field — free-text input ─────────────────────────────────────────
+
+function EstimateField({
+  initialMinutes,
+  onSave,
+}: {
+  initialMinutes: number | null;
+  onSave: (mins: number | null) => void;
+}) {
+  const [draft, setDraft] = useState(() => formatEstimate(initialMinutes));
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setDraft(formatEstimate(initialMinutes));
+    setError(false);
+  }, [initialMinutes]);
+
+  function handleBlur() {
+    if (!draft.trim()) {
+      setError(false);
+      onSave(null);
+      return;
+    }
+    const mins = parseEstimate(draft);
+    if (mins === null) {
+      setError(true);
+      return;
+    }
+    setError(false);
+    setDraft(formatEstimate(mins) ?? draft);
+    onSave(mins);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+        <Clock size={10} /> Estimate
+      </span>
+      <div className="flex flex-col gap-0.5">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setError(false);
+          }}
+          onBlur={handleBlur}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          placeholder="e.g. 2h 30m"
+          className={cn(
+            "h-9 w-28 border bg-background px-2 text-xs rounded-md focus:outline-none focus:ring-1 focus:ring-ring",
+            error ? "border-danger focus:ring-danger" : "border-input",
+          )}
+        />
+        {error && (
+          <span className="text-[10px] text-danger">Use: 2w 3d 4h 30m</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 type TaskDetailSheetProps = {
   taskId: string | null;
   onClose: () => void;
+  currentUserId?: string;
 };
 
-export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
+export function TaskDetailSheet({
+  taskId,
+  onClose,
+  currentUserId,
+}: TaskDetailSheetProps) {
+  const qc = useQueryClient();
   const [commentHtml, setCommentHtml] = useState("");
   const [commentKey, setCommentKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<"comments" | "logs" | "files">("comments");
   const [assigneeOpen, setAssigneeOpen] = useState(false);
-  const [priorityOpen, setPriorityOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
-  const [newSubtask, setNewSubtask] = useState("");
-  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskDialogOpen, setSubtaskDialogOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<{ src: string; alt: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const commentAttachRef = useRef<HTMLInputElement>(null);
 
   const { data: taskData, isLoading: taskLoading } = useTaskDetail(taskId);
   const { data: commentsData } = useTaskComments(taskId);
@@ -204,8 +500,12 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
   const { data: attachmentsData } = useTaskAttachments(taskId);
 
   const updateTask = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
   const createComment = useCreateComment(taskId ?? "");
-  const createSubtask = useCreateSubtask(taskId ?? "");
+  const updateComment = useUpdateComment(taskId ?? "");
+  const deleteComment = useDeleteComment(taskId ?? "");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentBody, setEditingCommentBody] = useState("");
   const toggleSubtask = useToggleSubtask(taskId ?? "");
   const deleteSubtaskMutation = useDeleteSubtask(taskId ?? "");
   const uploadAttachment = useUploadAttachment(taskId ?? "");
@@ -241,11 +541,7 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
 
   // ─── Save helpers ──────────────────────────────────────────────────────────
 
-  function saveField(
-    field: string,
-    value: string | null | undefined,
-    extra?: Record<string, unknown>,
-  ) {
+  function saveField(updates: Record<string, unknown>) {
     if (!task) return;
     updateTask.mutate(
       {
@@ -260,8 +556,8 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
           dueDate: task.dueDate ?? null,
           estimateMinutes: task.estimateMinutes ?? null,
           columnId: task.columnId ?? null,
-          [field]: value ?? null,
-          ...extra,
+          tags: task.tags ?? [],
+          ...updates,
         },
       },
       {
@@ -270,7 +566,17 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
     );
   }
 
-  const isCommentEmpty = !commentHtml || commentHtml === "<p></p>" || commentHtml.trim() === "";
+  function toggleTag(tag: string) {
+    if (!task) return;
+    const current = task.tags ?? [];
+    const updated = current.includes(tag)
+      ? current.filter((t) => t !== tag)
+      : [...current, tag];
+    saveField({ tags: updated });
+  }
+
+  const isCommentEmpty =
+    !commentHtml || commentHtml === "<p></p>" || commentHtml.trim() === "";
 
   function handleSubmitComment(e?: React.FormEvent) {
     e?.preventDefault();
@@ -293,17 +599,23 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
     ? getInitials(task.assigneeName)
     : null;
 
-  // Merge comments + activity for the right sidebar feed
+  // Merge comments + activity + file uploads for the right sidebar feed
   const feed = [
     ...comments.map((c) => ({
       id: c.id,
       type: "comment" as const,
       actorName: c.authorName,
+      authorId: c.authorUserId,
       createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
       body: c.body,
       action: null as string | null,
       oldValues: null as Record<string, unknown> | null,
       newValues: null as Record<string, unknown> | null,
+      fileName: null as string | null,
+      mimeType: null as string | null,
+      storageUrl: null as string | null,
+      sizeBytes: null as number | null,
     })),
     ...activity
       .filter((a) => a.action !== "comment.added")
@@ -316,7 +628,29 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
         action: a.action,
         oldValues: a.oldValues,
         newValues: a.newValues,
+        authorId: null as string | null,
+        updatedAt: null as string | null,
+        fileName: null as string | null,
+        mimeType: null as string | null,
+        storageUrl: null as string | null,
+        sizeBytes: null as number | null,
       })),
+    ...attachments.map((a) => ({
+      id: `file-${a.id}`,
+      type: "file" as const,
+      actorName: a.uploaderName,
+      authorId: null as string | null,
+      createdAt: a.createdAt,
+      updatedAt: null as string | null,
+      body: null as string | null,
+      action: null as string | null,
+      oldValues: null as Record<string, unknown> | null,
+      newValues: null as Record<string, unknown> | null,
+      fileName: a.fileName,
+      mimeType: a.mimeType,
+      storageUrl: a.storageUrl,
+      sizeBytes: a.sizeBytes,
+    })),
   ].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
@@ -324,104 +658,141 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
   return (
     <Dialog open={!!taskId} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        className="flex h-[90vh] w-[90vw] max-w-275! flex-col p-0 gap-0 overflow-hidden"
+        className="w-[90vw] max-w-275! p-0 gap-0 overflow-visible"
         showCloseButton={false}
+        onInteractOutside={(e) => {
+          // e.target is the DialogContent node itself (Radix dispatches the custom event on it).
+          // The actual outside element is in e.detail.originalEvent.target.
+          const outsideTarget =
+            (e as CustomEvent<{ originalEvent: Event }>).detail?.originalEvent
+              ?.target as Element | null;
+          if (outsideTarget?.closest?.("[data-mention-dropdown]")) {
+            e.preventDefault();
+          }
+        }}
       >
-        <DialogTitle className="sr-only">{task?.title ?? "Task detail"}</DialogTitle>
+        <DialogTitle className="sr-only">
+          {task?.title ?? "Task detail"}
+        </DialogTitle>
 
-        {/* ── Modal header bar ── */}
-        <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-2.5">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
-            <Folder size={11} className="shrink-0" />
-            <span className="truncate">{task?.projectName ?? "—"}</span>
-            {task?.columnName && (
-              <>
-                <span className="text-border">/</span>
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: task.columnColor ?? "#3b82f6" }}
-                >
-                  {task.columnName}
-                </span>
-              </>
+        {/* Full-height flex layout — own div so we're not fighting DialogContent's base `grid` class */}
+        <div className="flex h-[90vh] flex-col overflow-hidden rounded-xl">
+          {/* ── Modal header bar ── */}
+          <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-2.5">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+              <Folder size={11} className="shrink-0" />
+              <span className="truncate">{task?.projectName ?? "—"}</span>
+              {task?.columnName && (
+                <>
+                  <span className="text-border">/</span>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                    style={{ backgroundColor: task.columnColor ?? "#3b82f6" }}
+                  >
+                    {task.columnName}
+                  </span>
+                </>
+              )}
+              {task?.refNumber && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="font-mono text-[10px] text-muted-foreground/70">
+                    {task.refNumber}
+                  </span>
+                </>
+              )}
+            </div>
+            {task && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                    aria-label="Task options"
+                  >
+                    <MoreHorizontal size={15} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDelete(true)}
+                    className="gap-2 text-xs text-danger! focus:text-danger! hover:text-danger focus:bg-danger/10 cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                    Delete task
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
+            <button
+              onClick={onClose}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <X size={15} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label="Close"
-          >
-            <X size={15} />
-          </button>
-        </div>
 
-        {taskLoading || !task ? (
-          <div className="flex-1 p-6 space-y-4">
-            <Skeleton className="h-7 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : (
-          <div className="flex flex-1 overflow-hidden">
-            {/* ─── Left pane ──────────────────────────────────────────────── */}
-            <div className="flex flex-1 flex-col overflow-y-auto border-r border-border p-6">
-              {/* Title */}
-              <DialogHeader className="mb-5">
-                <InlineTitle
-                  value={task.title}
-                  onSave={(v) => saveField("title", v)}
-                />
-              </DialogHeader>
+          {taskLoading || !task ? (
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <Skeleton className="h-7 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 overflow-hidden">
+              {/* ─── Left pane ──────────────────────────────────────────────── */}
+              <div className="flex-1 min-h-0 overflow-y-auto border-r border-border p-6">
+                {/* Title */}
+                <DialogHeader className="mb-5">
+                  <InlineTitle
+                    value={task.title}
+                    onSave={(v) => saveField({ title: v })}
+                  />
+                </DialogHeader>
 
-              {/* Properties — 2-column grid */}
-              <div className="mb-5 rounded-card border border-border overflow-hidden text-sm">
-
-                {/* Status — full width */}
-                <div className="flex items-center gap-4 border-b border-border px-4 py-2.5 bg-secondary/10">
-                  <div className="flex w-20 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                    <AlertCircle size={11} /> Status
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {STATUS_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => saveField("status", opt.value)}
-                        className={cn(
-                          "rounded-pill px-2.5 py-0.5 text-[11px] font-medium transition-all",
-                          task.status === opt.value
-                            ? "text-white shadow-sm"
-                            : "bg-secondary text-muted-foreground hover:bg-secondary/80",
-                        )}
-                        style={task.status === opt.value ? { backgroundColor: opt.color } : {}}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2-column grid */}
-                <div className="grid grid-cols-2">
-
-                  {/* Column */}
-                  <div className="flex flex-col gap-1 border-b border-r border-border px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <AlertCircle size={10} /> Column
-                    </span>
+                {/* Properties — 2-column grid */}
+                <div className="mb-5 rounded-card border border-border overflow-hidden text-sm">
+                  {/* Status — full width */}
+                  <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                    <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <AlertCircle size={11} /> Status
+                    </div>
                     <Select
-                      value={task.columnId ?? ""}
-                      onValueChange={(v) => saveField("columnId", v || null)}
+                      value={task.status}
+                      onValueChange={(v) => saveField({ status: v })}
                     >
-                      <SelectTrigger className="h-7 border-0 bg-transparent px-0 text-xs shadow-none focus:ring-0 -ml-0.5">
-                        <SelectValue placeholder="No column" />
+                      <SelectTrigger className="h-8 w-44 border cursor-pointer bg-transparent px-2 text-xs shadow-none focus:ring-0">
+                        <SelectValue>
+                          {(() => {
+                            const opt = STATUS_OPTIONS.find(
+                              (o) => o.value === task.status,
+                            );
+                            return opt ? (
+                              <span className="flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 rounded-full shrink-0"
+                                  style={{ backgroundColor: opt.color }}
+                                />
+                                {opt.label}
+                              </span>
+                            ) : null;
+                          })()}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {columns.map((c) => (
-                          <SelectItem key={c.id} value={c.id} className="text-xs">
+                        {STATUS_OPTIONS.map((opt) => (
+                          <SelectItem
+                            key={opt.value}
+                            value={opt.value}
+                            className="text-xs"
+                          >
                             <span className="flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full inline-block" style={{ backgroundColor: c.color }} />
-                              {c.name}
+                              <span
+                                className="h-2 w-2 rounded-full shrink-0"
+                                style={{ backgroundColor: opt.color }}
+                              />
+                              {opt.label}
                             </span>
                           </SelectItem>
                         ))}
@@ -429,485 +800,682 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
                     </Select>
                   </div>
 
-                  {/* Priority */}
-                  <div className="flex flex-col gap-1 border-b border-border px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <Flag size={10} /> Priority
-                    </span>
-                    <Popover open={priorityOpen} onOpenChange={setPriorityOpen}>
-                      <PopoverTrigger asChild>
-                        <button type="button" className="flex h-7 items-center gap-1.5 text-xs text-foreground hover:text-foreground transition-colors">
-                          {selectedPriority ? (
-                            <>
-                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: selectedPriority.color }} />
-                              <span className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium capitalize ${PRIORITY_BADGE[task.priority ?? ""] ?? ""}`}>
-                                {selectedPriority.label}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">No priority</span>
-                          )}
-                          <ChevronDown size={11} className="text-muted-foreground" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-40 p-1" align="start">
-                        <button type="button" onClick={() => { saveField("priority", null); setPriorityOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary">
-                          <span className="h-2 w-2 rounded-full border border-muted-foreground" /> None
-                        </button>
-                        {PRIORITY_OPTIONS.map((opt) => (
-                          <button key={opt.value} type="button" onClick={() => { saveField("priority", opt.value); setPriorityOpen(false); }}
-                            className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors", task.priority === opt.value ? "bg-secondary text-foreground font-medium" : "hover:bg-secondary/50 text-muted-foreground")}
-                          >
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: opt.color }} />
-                            {opt.label}
-                          </button>
-                        ))}
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Assignee */}
-                  <div className="flex flex-col gap-1 border-b border-r border-border px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <User size={10} /> Assignee
-                    </span>
-                    <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
-                      <PopoverTrigger asChild>
-                        <button type="button" className="flex h-7 items-center gap-1.5 text-xs hover:text-foreground transition-colors">
-                          {task.assigneeUserId ? (
-                            <>
-                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">{assigneeInitials}</div>
-                              <span className="text-foreground">{task.assigneeName}</span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">Unassigned</span>
-                          )}
-                          <ChevronDown size={11} className="text-muted-foreground" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-2" align="start">
-                        <Input placeholder="Search members…" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} className="mb-2 h-7 text-xs" />
-                        <div className="max-h-48 overflow-y-auto space-y-0.5">
-                          {task.assigneeUserId && (
-                            <button type="button" onClick={() => { saveField("assigneeUserId", null); setAssigneeOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary">
-                              <User size={14} /> Unassign
-                            </button>
-                          )}
-                          {filteredMembers.map((m) => (
-                            <button key={m.userId} type="button" onClick={() => { saveField("assigneeUserId", m.userId); setAssigneeOpen(false); setMemberSearch(""); }}
-                              className={cn("flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors", task.assigneeUserId === m.userId ? "bg-secondary text-foreground font-medium" : "hover:bg-secondary/50 text-muted-foreground")}
+                  {/* 2-column grid */}
+                  <div className="grid grid-cols-2">
+                    {/* Column */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <AlertCircle size={10} /> Column
+                      </span>
+                      <Select
+                        value={task.columnId ?? ""}
+                        onValueChange={(v) =>
+                          saveField({ columnId: v || null })
+                        }
+                      >
+                        <SelectTrigger className="h-7 border bg-transparent px-2 cursor-pointer text-xs shadow-none focus:ring-0 -ml-0.5">
+                          <SelectValue placeholder="No column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {columns.map((c) => (
+                            <SelectItem
+                              key={c.id}
+                              value={c.id}
+                              className="text-xs"
                             >
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">{getInitials(m.name)}</div>
-                              <div className="min-w-0">
-                                <p className="truncate text-foreground">{m.name}</p>
-                                <p className="truncate text-muted-foreground">{m.email}</p>
-                              </div>
-                            </button>
+                              <span className="flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 rounded-full inline-block"
+                                  style={{ backgroundColor: c.color }}
+                                />
+                                {c.name}
+                              </span>
+                            </SelectItem>
                           ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Due date */}
-                  <div className="flex flex-col gap-1 border-b border-border px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <CalendarDays size={10} /> Due date
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="date"
-                        defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          updateTask.mutate({ taskId: task.id, data: { projectId: task.projectId, title: task.title, description: task.description ?? "", status: task.status, priority: task.priority ?? null, assigneeUserId: task.assigneeUserId ?? null, dueDate: val ? new Date(val).toISOString() : null, estimateMinutes: task.estimateMinutes ?? null, columnId: task.columnId ?? null } });
-                        }}
-                        className="h-7 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                      {task.dueDate && (
-                        <button type="button" onClick={() => { updateTask.mutate({ taskId: task.id, data: { projectId: task.projectId, title: task.title, description: task.description ?? "", status: task.status, priority: task.priority ?? null, assigneeUserId: task.assigneeUserId ?? null, dueDate: null, estimateMinutes: task.estimateMinutes ?? null, columnId: task.columnId ?? null } }); }} className="text-muted-foreground hover:text-foreground">
-                          <X size={12} />
-                        </button>
-                      )}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
 
-                  {/* Estimate */}
-                  <div className="flex flex-col gap-1 border-r border-border px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <Clock size={10} /> Estimate
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="e.g. 30"
-                        defaultValue={task.estimateMinutes ?? ""}
-                        onBlur={(e) => {
-                          const val = e.target.value ? parseInt(e.target.value) : null;
-                          updateTask.mutate({ taskId: task.id, data: { projectId: task.projectId, title: task.title, description: task.description ?? "", status: task.status, priority: task.priority ?? null, assigneeUserId: task.assigneeUserId ?? null, dueDate: task.dueDate ?? null, estimateMinutes: val, columnId: task.columnId ?? null } });
-                        }}
-                        className="h-7 w-24 rounded border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
-                      <span className="text-xs text-muted-foreground">min</span>
-                    </div>
-                  </div>
-
-                  {/* Reporter */}
-                  <div className="flex flex-col gap-1 px-4 py-2.5">
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                      <User size={10} /> Reporter
-                    </span>
-                    <span className="text-xs text-foreground">
-                      {task.reporterName ?? "—"}
-                    </span>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="mb-5">
-                <p className="mb-2 text-sm font-medium text-foreground">
-                  Description
-                </p>
-                <div className="rounded-card border border-border overflow-hidden">
-                  <TiptapEditor
-                    key={task.id}
-                    content={task.description ?? ""}
-                    placeholder="Add a description…"
-                    members={allMembers.map((m) => ({
-                      id: m.userId,
-                      name: m.name,
-                    }))}
-                    onBlur={(html) => {
-                      const normalized =
-                        html === "<p></p>" ? "" : html;
-                      if (normalized !== (task.description ?? "")) {
-                        updateTask.mutate(
-                          {
-                            taskId: task.id,
-                            data: {
-                              projectId: task.projectId,
-                              title: task.title,
-                              description: normalized,
-                              status: task.status,
-                              priority: task.priority ?? null,
-                              assigneeUserId: task.assigneeUserId ?? null,
-                              dueDate: task.dueDate ?? null,
-                              estimateMinutes: task.estimateMinutes ?? null,
-                              columnId: task.columnId ?? null,
-                            },
-                          },
-                          {
-                            onError: (err) =>
-                              toast.error(
-                                err.message ?? "Failed to save description.",
-                              ),
-                          },
-                        );
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* ─── Subtasks ─────────────────────────────────────────────── */}
-              <div className="mb-5">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <CheckSquare size={13} />
-                    Subtasks
-                    {subtasks.length > 0 && (
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        {subtasksDone}/{subtasks.length}
+                    {/* Priority */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <Flag size={10} /> Priority
                       </span>
-                    )}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setAddingSubtask(true)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Plus size={12} /> Add
-                  </button>
-                </div>
-
-                {/* Progress bar */}
-                {subtasks.length > 0 && (
-                  <div className="mb-2 h-1 w-full rounded-full bg-border overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-success transition-all duration-300"
-                      style={{
-                        width: `${Math.round((subtasksDone / subtasks.length) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Subtask list */}
-                <div className="space-y-1">
-                  {subtasks.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-secondary/50 transition-colors"
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toggleSubtask.mutate(sub.id, {
-                            onError: (err) =>
-                              toast.error(err.message ?? "Failed to update."),
-                          })
-                        }
-                        className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {sub.status === "done" ? (
-                          <CheckSquare size={14} className="text-success" />
-                        ) : (
-                          <Square size={14} />
-                        )}
-                      </button>
-                      <span
-                        className={cn(
-                          "flex-1 text-xs",
-                          sub.status === "done"
-                            ? "line-through text-muted-foreground"
-                            : "text-foreground",
-                        )}
-                      >
-                        {sub.title}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          deleteSubtaskMutation.mutate(sub.id, {
-                            onError: (err) =>
-                              toast.error(err.message ?? "Failed to delete."),
-                          })
-                        }
-                        className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Inline add subtask */}
-                {addingSubtask && (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const trimmed = newSubtask.trim();
-                      if (!trimmed) return;
-                      createSubtask.mutate(trimmed, {
-                        onSuccess: () => {
-                          setNewSubtask("");
-                          setAddingSubtask(false);
-                        },
-                        onError: (err) =>
-                          toast.error(err.message ?? "Failed to create subtask."),
-                      });
-                    }}
-                    className="mt-2 flex items-center gap-2"
-                  >
-                    <Input
-                      autoFocus
-                      value={newSubtask}
-                      onChange={(e) => setNewSubtask(e.target.value)}
-                      placeholder="Subtask title…"
-                      className="h-7 text-xs flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === "Escape") {
-                          setAddingSubtask(false);
-                          setNewSubtask("");
-                        }
-                      }}
-                    />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      disabled={!newSubtask.trim() || createSubtask.isPending}
-                    >
-                      Add
-                    </Button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddingSubtask(false);
-                        setNewSubtask("");
-                      }}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={13} />
-                    </button>
-                  </form>
-                )}
-              </div>
-
-              {/* ─── Attachments ──────────────────────────────────────────── */}
-              <div className="mb-5">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                    <Paperclip size={13} />
-                    Attachments
-                    {attachments.length > 0 && (
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        {attachments.length}
-                      </span>
-                    )}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadAttachment.isPending}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                  >
-                    <Upload size={12} />
-                    {uploadAttachment.isPending ? "Uploading…" : "Upload"}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      uploadAttachment.mutate(
-                        { file },
-                        {
-                          onError: (err) =>
-                            toast.error(err.message ?? "Upload failed."),
-                        },
-                      );
-                      e.target.value = "";
-                    }}
-                  />
-                </div>
-
-                {attachments.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">
-                    No attachments yet.
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  {attachments.map((att) => {
-                    const isImage = att.mimeType?.startsWith("image/");
-                    return (
-                      <div
-                        key={att.id}
-                        className="group relative overflow-hidden rounded-card border border-border bg-secondary/20"
-                      >
-                        {isImage && att.storageUrl ? (
-                          <a
-                            href={att.storageUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex h-8 items-center gap-1.5 text-xs text-foreground border rounded-md p-3 hover:text-foreground transition-colors cursor-pointer"
                           >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={att.storageUrl}
-                              alt={att.fileName}
-                              className="h-20 w-full object-cover"
-                            />
-                          </a>
-                        ) : (
-                          <a
-                            href={att.storageUrl ?? "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex h-20 items-center justify-center"
-                          >
-                            <FileText
-                              size={28}
+                            {selectedPriority ? (
+                              <>
+                                {/* <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{
+                                    backgroundColor: selectedPriority.color,
+                                  }}
+                                /> */}
+                                <span
+                                  className={`rounded-pill px-1.5 py-0.5 text-[10px] font-medium capitalize ${PRIORITY_BADGE[task.priority ?? ""] ?? ""}`}
+                                >
+                                  {selectedPriority.label}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                No priority
+                              </span>
+                            )}
+                            <ChevronDown
+                              size={11}
                               className="text-muted-foreground"
                             />
-                          </a>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-36">
+                          <DropdownMenuItem
+                            onClick={() => saveField({ priority: null })}
+                            className="gap-2 text-xs cursor-pointer"
+                          >
+                            <span className="h-2 w-2 rounded-full border border-muted-foreground" />{" "}
+                            None
+                          </DropdownMenuItem>
+                          {PRIORITY_OPTIONS.map((opt) => (
+                            <DropdownMenuItem
+                              key={opt.value}
+                              onClick={() => saveField({ priority: opt.value })}
+                              className="gap-2 text-xs cursor-pointer"
+                            >
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: opt.color }}
+                              />
+                              {opt.label}
+                              {task.priority === opt.value && (
+                                <span className="ml-auto text-[10px] text-muted-foreground">
+                                  ✓
+                                </span>
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Assignee */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <User size={10} /> Assignee
+                      </span>
+                      <Popover
+                        open={assigneeOpen}
+                        onOpenChange={setAssigneeOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex h-8.5 border px-3 rounded-md min-w-0 items-center gap-1.5 text-xs hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            {task.assigneeUserId ? (
+                              <>
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                                  {assigneeInitials}
+                                </div>
+                                <span className="truncate text-foreground">
+                                  {task.assigneeName}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                Unassigned
+                              </span>
+                            )}
+                            <ChevronDown
+                              size={11}
+                              className="shrink-0 text-muted-foreground"
+                            />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2" align="start">
+                          <Input
+                            placeholder="Search members…"
+                            value={memberSearch}
+                            onChange={(e) => setMemberSearch(e.target.value)}
+                            className="mb-2 h-7 text-xs"
+                          />
+                          <div className="max-h-48 overflow-y-auto space-y-0.5">
+                            {task.assigneeUserId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  saveField({ assigneeUserId: null });
+                                  setAssigneeOpen(false);
+                                }}
+                                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary cursor-pointer"
+                              >
+                                <User size={14} /> Unassign
+                              </button>
+                            )}
+                            {filteredMembers.map((m) => (
+                              <button
+                                key={m.userId}
+                                type="button"
+                                onClick={() => {
+                                  saveField({ assigneeUserId: m.userId });
+                                  setAssigneeOpen(false);
+                                  setMemberSearch("");
+                                }}
+                                className={cn(
+                                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                                  task.assigneeUserId === m.userId
+                                    ? "bg-secondary text-foreground font-medium"
+                                    : "hover:bg-secondary/50 text-muted-foreground",
+                                )}
+                              >
+                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                                  {getInitials(m.name)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate text-foreground">
+                                    {m.name}
+                                  </p>
+                                  <p className="truncate text-muted-foreground">
+                                    {m.email}
+                                  </p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Due date */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <CalendarDays size={10} /> Due date
+                      </span>
+                      <div className="flex min-w-0 items-center gap-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex h-7 items-center gap-1.5 rounded-md border cursor-pointer px-2 text-xs transition-colors hover:bg-secondary",
+                                task.dueDate
+                                  ? "text-foreground font-medium"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarDays size={12} />
+                              {task.dueDate
+                                ? format(new Date(task.dueDate), "MMM d, yyyy")
+                                : "Set date"}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={
+                                task.dueDate
+                                  ? new Date(task.dueDate)
+                                  : undefined
+                              }
+                              onSelect={(date) =>
+                                saveField({
+                                  dueDate: date ? date.toISOString() : null,
+                                })
+                              }
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {task.dueDate && (
+                          <button
+                            type="button"
+                            onClick={() => saveField({ dueDate: null })}
+                            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <X size={11} />
+                          </button>
                         )}
-                        <div className="px-2 py-1.5">
-                          <p className="truncate text-[10px] text-foreground leading-tight">
-                            {att.fileName}
-                          </p>
-                          {att.sizeBytes && (
-                            <p className="text-[9px] text-muted-foreground">
-                              {(att.sizeBytes / 1024).toFixed(0)} KB
-                            </p>
+                      </div>
+                    </div>
+
+                    {/* Estimate */}
+                    <EstimateField
+                      initialMinutes={task.estimateMinutes ?? null}
+                      onSave={(mins) => saveField({ estimateMinutes: mins })}
+                    />
+
+                    {/* Reporter */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <User size={10} /> Reporter
+                      </span>
+                      <span className="text-xs text-foreground">
+                        {task.reporterName ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div className="border-t border-border px-4 py-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2.5">
+                      <Tag size={10} /> Tags
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {TASK_TAG_OPTIONS.map((tag) => {
+                        const active = (task.tags ?? []).includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium capitalize transition-all cursor-pointer",
+                              active
+                                ? cn(
+                                    TAG_COLORS[tag] ??
+                                      "bg-secondary text-foreground border-transparent",
+                                    "shadow-sm",
+                                  )
+                                : "border-border bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border",
+                            )}
+                          >
+                            {active && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                            )}
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="mb-5">
+                  <p className="mb-2 text-sm font-medium text-foreground">
+                    Description
+                  </p>
+                  <div className="rounded-card border border-border overflow-hidden">
+                    <TiptapEditor
+                      key={task.id}
+                      content={task.description ?? ""}
+                      placeholder="Add a description…"
+                      members={allMembers.map((m) => ({
+                        id: m.userId,
+                        name: m.name,
+                      }))}
+                      onBlur={(html) => {
+                        const normalized = html === "<p></p>" ? "" : html;
+                        if (normalized !== (task.description ?? "")) {
+                          saveField({ description: normalized });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* ─── Subtasks ─────────────────────────────────────────────── */}
+                <div className="mb-5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <CheckSquare size={13} />
+                      Subtasks
+                      {subtasks.length > 0 && (
+                        <span className="ml-1 text-xs font-normal text-muted-foreground">
+                          {subtasksDone}/{subtasks.length}
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setSubtaskDialogOpen(true)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      <Plus size={12} /> Add
+                    </button>
+                  </div>
+
+                  {/* Progress bar */}
+                  {subtasks.length > 0 && (
+                    <div className="mb-2 h-1 w-full rounded-full bg-border overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-success transition-all duration-300"
+                        style={{
+                          width: `${Math.round((subtasksDone / subtasks.length) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Subtask list */}
+                  <div className="space-y-1">
+                    {subtasks.map((sub) => (
+                      <div
+                        key={sub.id}
+                        className="group flex items-start gap-2 rounded px-2 py-1.5 hover:bg-secondary/50 transition-colors"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleSubtask.mutate(sub.id, {
+                              onError: (err) =>
+                                toast.error(err.message ?? "Failed to update."),
+                            })
+                          }
+                          className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {sub.status === "done" ? (
+                            <CheckSquare size={14} className="text-success" />
+                          ) : (
+                            <Square size={14} />
                           )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <span
+                            className={cn(
+                              "text-xs block",
+                              sub.status === "done"
+                                ? "line-through text-muted-foreground"
+                                : "text-foreground",
+                            )}
+                          >
+                            {sub.title}
+                          </span>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {sub.assigneeName && (
+                              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                <User size={9} /> {sub.assigneeName}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground">
+                              {relativeTime(sub.createdAt)}
+                            </span>
+                            {(sub.tags ?? []).map((t) => (
+                              <span
+                                key={t}
+                                className={cn(
+                                  "rounded-full border px-1.5 py-0 text-[9px] font-medium capitalize",
+                                  TAG_COLORS[t] ??
+                                    "bg-secondary text-foreground border-border",
+                                )}
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                         <button
                           type="button"
                           onClick={() =>
-                            deleteAttachmentMutation.mutate(att.id, {
+                            deleteSubtaskMutation.mutate(sub.id, {
                               onError: (err) =>
-                                toast.error(
-                                  err.message ?? "Failed to delete attachment.",
-                                ),
+                                toast.error(err.message ?? "Failed to delete."),
                             })
                           }
-                          className="absolute right-1 top-1 rounded bg-card/80 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all"
+                          className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all mt-0.5"
                         >
                           <Trash2 size={12} />
                         </button>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Meta */}
-              <p className="mt-auto pt-2 text-[11px] text-muted-foreground">
-                Created {relativeTime(task.createdAt)}
-                {task.reporterName ? ` by ${task.reporterName}` : ""}
-              </p>
-            </div>
-
-            {/* ─── Right pane ─────────────────────────────────────────────── */}
-            <div className="flex w-96 shrink-0 flex-col overflow-hidden bg-secondary/20">
-              <div className="border-b border-border px-4 py-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-foreground">
-                  Activity & Comments
+                {/* Meta */}
+                <p className="mt-auto pt-2 text-[11px] text-muted-foreground">
+                  Created {relativeTime(task.createdAt)}
+                  {task.reporterName ? ` by ${task.reporterName}` : ""}
                 </p>
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {feed.length > 0 ? `${feed.length} items` : ""}
-                </span>
               </div>
 
-              {/* Feed */}
-              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                {feed.length === 0 && (
-                  <p className="text-center text-xs text-muted-foreground py-4">
-                    No activity yet.
-                  </p>
-                )}
-                {feed.map((item) => (
-                  <div key={item.id} className="flex gap-2.5">
-                    {/* Avatar */}
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary mt-0.5">
-                      {getInitials(item.actorName)}
-                    </div>
-                    <div className="flex-1 min-w-0">
+              {/* ─── Right pane ─────────────────────────────────────────────── */}
+              <div className="flex w-96 shrink-0 flex-col overflow-hidden bg-secondary/20">
+                {/* Tabs header */}
+                <div className="border-b border-border px-4 pt-3 pb-0 flex items-center gap-0">
+                  {(["comments", "logs", "files"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={cn(
+                        "px-3 pb-2.5 pt-0.5 text-xs font-medium capitalize border-b-2 transition-colors cursor-pointer",
+                        activeTab === tab
+                          ? "border-primary text-primary"
+                          : "border-transparent text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {tab === "comments" ? "Comments" : tab === "logs" ? "Logs" : `Files${attachments.length > 0 ? ` (${attachments.length})` : ""}`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feed — Comments & Logs tabs */}
+                {activeTab !== "files" && (
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                  {(() => {
+                    const visibleFeed = activeTab === "comments"
+                      ? feed.filter((i) => i.type === "comment" || i.type === "file")
+                      : feed.filter((i) => i.type === "activity");
+                    if (visibleFeed.length === 0) {
+                      return (
+                        <p className="text-center text-xs text-muted-foreground py-4">
+                          {activeTab === "comments" ? "No comments yet." : "No activity yet."}
+                        </p>
+                      );
+                    }
+                    return visibleFeed.map((item) => (
+                    <div key={item.id} className="group">
                       {item.type === "comment" ? (
-                        <>
-                          <div className="flex items-baseline gap-1.5 mb-1">
-                            <span className="text-xs font-medium text-foreground">
-                              {item.actorName ?? "Someone"}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {relativeTime(item.createdAt)}
-                            </span>
+                        /* ── Comment ── */
+                        <div className="flex gap-2.5">
+                          {/* Avatar */}
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">
+                            {getInitials(item.actorName)}
                           </div>
-                          <div
-                            className="rounded-card border border-border bg-card px-3 py-2 text-xs text-foreground prose prose-sm max-w-none [&_p]:my-0"
-                            dangerouslySetInnerHTML={{ __html: item.body ?? "" }}
-                          />
-                        </>
+
+                          <div className="flex-1 min-w-0">
+                            {/* Name + time + actions */}
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[11px] font-semibold text-foreground leading-none">
+                                {item.actorName ?? "Someone"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground leading-none">
+                                {relativeTime(item.createdAt)}
+                              </span>
+                              {item.updatedAt &&
+                                item.updatedAt !== item.createdAt && (
+                                  <span className="text-[10px] text-muted-foreground/50 italic leading-none">
+                                    edited
+                                  </span>
+                                )}
+                              {currentUserId &&
+                                item.authorId === currentUserId && (
+                                  <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingCommentId(item.id);
+                                        setEditingCommentBody(item.body ?? "");
+                                      }}
+                                      className="flex h-5 w-5 items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                    >
+                                      <Pencil size={10} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        deleteComment.mutate(item.id, {
+                                          onError: (err) =>
+                                            toast.error(
+                                              err.message ??
+                                                "Failed to delete.",
+                                            ),
+                                        })
+                                      }
+                                      disabled={deleteComment.isPending}
+                                      className="flex h-5 w-5 items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                )}
+                            </div>
+
+                            {/* Body or edit mode */}
+                            {editingCommentId === item.id ? (
+                              <div className="rounded-lg border border-ring/60 bg-background overflow-hidden shadow-sm">
+                                <TiptapEditor
+                                  key={`edit-${item.id}`}
+                                  content={editingCommentBody}
+                                  minimal
+                                  members={allMembers.map((m) => ({
+                                    id: m.userId,
+                                    name: m.name,
+                                  }))}
+                                  onChange={setEditingCommentBody}
+                                  onSubmit={() => {
+                                    if (!editingCommentBody.trim() || updateComment.isPending) return;
+                                    updateComment.mutate(
+                                      { commentId: item.id, body: editingCommentBody },
+                                      {
+                                        onSuccess: () => setEditingCommentId(null),
+                                        onError: (err) => toast.error(err.message),
+                                      },
+                                    );
+                                  }}
+                                  placeholder="Edit comment…"
+                                />
+                                <div className="flex items-center justify-end gap-1.5 border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingCommentId(null)}
+                                    className="rounded border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateComment.mutate(
+                                        { commentId: item.id, body: editingCommentBody },
+                                        {
+                                          onSuccess: () => setEditingCommentId(null),
+                                          onError: (err) => toast.error(err.message),
+                                        },
+                                      )
+                                    }
+                                    disabled={
+                                      !editingCommentBody.trim() ||
+                                      updateComment.isPending
+                                    }
+                                    className="flex items-center gap-1 rounded bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground disabled:opacity-50 transition-opacity cursor-pointer"
+                                  >
+                                    <Check size={10} /> Save
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <CommentBody
+                                html={item.body ?? ""}
+                                members={allMembers}
+                                className="text-xs text-foreground leading-relaxed prose prose-sm max-w-none [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px]"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : item.type === "file" ? (
+                        /* ── File upload ── */
+                        <div className="flex gap-2.5">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">
+                            {getInitials(item.actorName)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-[11px] font-semibold text-foreground leading-none">
+                                {item.actorName ?? "Someone"}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground leading-none">attached a file</span>
+                              <span className="text-[10px] text-muted-foreground/60 leading-none">
+                                {relativeTime(item.createdAt)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteAttachmentMutation.mutate(item.id.replace(/^file-/, ""), {
+                                    onError: (err) => toast.error(err.message ?? "Failed to delete."),
+                                  })
+                                }
+                                disabled={deleteAttachmentMutation.isPending}
+                                className="ml-auto flex h-5 w-5 items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 size={10} />
+                              </button>
+                            </div>
+                            {(() => {
+                              const isImage = item.mimeType?.startsWith("image/");
+                              return (
+                                <div className="group/file relative overflow-hidden rounded-lg border border-border bg-card w-fit max-w-full">
+                                  {isImage && item.storageUrl ? (
+                                    <button
+                                      type="button"
+                                      className="relative block"
+                                      onClick={() => setLightboxSrc({ src: item.storageUrl!, alt: item.fileName! })}
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={item.storageUrl}
+                                        alt={item.fileName ?? ""}
+                                        className="h-32 max-w-[220px] object-cover rounded-t-lg"
+                                      />
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/file:bg-black/25 transition-colors rounded-t-lg">
+                                        <ZoomIn size={18} className="text-white opacity-0 group-hover/file:opacity-100 transition-opacity drop-shadow" />
+                                      </div>
+                                    </button>
+                                  ) : (
+                                    <a
+                                      href={item.storageUrl ?? "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex h-16 w-40 items-center justify-center gap-2 px-3"
+                                    >
+                                      <FileText size={22} className="shrink-0 text-muted-foreground" />
+                                    </a>
+                                  )}
+                                  <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-t border-border/60">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-[10px] font-medium text-foreground leading-tight max-w-[160px]">
+                                        {item.fileName}
+                                      </p>
+                                      {item.sizeBytes && (
+                                        <p className="text-[9px] text-muted-foreground">{(item.sizeBytes / 1024).toFixed(0)} KB</p>
+                                      )}
+                                    </div>
+                                    <a
+                                      href={item.storageUrl ?? "#"}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                                      title="Download"
+                                    >
+                                      <Download size={11} />
+                                    </a>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">
+                        /* ── Activity ── */
+                        <div className="flex items-start gap-2">
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[8px] font-bold text-muted-foreground">
+                            {getInitials(item.actorName)}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground leading-snug pt-0.5">
+                            <span className="font-medium text-foreground/80">
                               {item.actorName ?? "Someone"}
                             </span>{" "}
                             {formatActivityMessage(
@@ -915,51 +1483,246 @@ export function TaskDetailSheet({ taskId, onClose }: TaskDetailSheetProps) {
                               item.oldValues,
                               item.newValues,
                             )}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            · {relativeTime(item.createdAt)}
-                          </span>
+                            <span className="ml-1.5 text-[10px] text-muted-foreground/60">
+                              {relativeTime(item.createdAt)}
+                            </span>
+                          </p>
                         </div>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ));
+                  })()}
+                </div>
+                )}
 
-              {/* Comment input */}
-              <div className="border-t border-border px-4 py-3">
-                <div className="rounded-md border border-input bg-background overflow-hidden mb-2">
-                  <TiptapEditor
-                    key={commentKey}
-                    content=""
-                    minimal
-                    members={allMembers.map((m) => ({ id: m.userId, name: m.name }))}
-                    onChange={setCommentHtml}
-                    placeholder="Write a comment… (type @ to mention)"
-                    className="min-h-[72px] text-xs"
-                  />
+                {/* Files tab */}
+                {activeTab === "files" && (
+                  <div className="flex-1 overflow-y-auto px-4 py-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {attachments.length > 0 ? `${attachments.length} file${attachments.length !== 1 ? "s" : ""}` : "No files yet"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadAttachment.isPending}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <Upload size={12} />
+                        {uploadAttachment.isPending ? "Uploading…" : "Upload"}
+                      </button>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        uploadAttachment.mutate(
+                          { file },
+                          { onError: (err) => toast.error(err.message ?? "Upload failed.") },
+                        );
+                        e.target.value = "";
+                      }}
+                    />
+                    {attachments.length === 0 ? (
+                      <div
+                        className="flex flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-10 text-center cursor-pointer hover:border-foreground/30 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Paperclip size={20} className="text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground">
+                          Click to upload a file
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {attachments.map((att) => {
+                          const isImage = att.mimeType?.startsWith("image/");
+                          return (
+                            <div
+                              key={att.id}
+                              className="group relative overflow-hidden rounded-card border border-border bg-card"
+                            >
+                              {isImage && att.storageUrl ? (
+                                <button
+                                  type="button"
+                                  className="relative block w-full"
+                                  onClick={() => setLightboxSrc({ src: att.storageUrl!, alt: att.fileName })}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={att.storageUrl} alt={att.fileName} className="h-20 w-full object-cover" />
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-colors">
+                                    <ZoomIn size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                                  </div>
+                                </button>
+                              ) : (
+                                <a href={att.storageUrl ?? "#"} target="_blank" rel="noopener noreferrer" className="flex h-20 items-center justify-center">
+                                  <FileText size={28} className="text-muted-foreground" />
+                                </a>
+                              )}
+                              <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                                <div className="min-w-0">
+                                  <p className="truncate text-[10px] text-foreground leading-tight">{att.fileName}</p>
+                                  {att.sizeBytes && (
+                                    <p className="text-[9px] text-muted-foreground">{(att.sizeBytes / 1024).toFixed(0)} KB</p>
+                                  )}
+                                </div>
+                                <a
+                                  href={att.storageUrl ?? "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Download"
+                                >
+                                  <Download size={11} />
+                                </a>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteAttachmentMutation.mutate(att.id, {
+                                    onError: (err) => toast.error(err.message ?? "Failed to delete attachment."),
+                                  })
+                                }
+                                className="absolute right-1 top-1 rounded bg-card/80 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Comment input — Comments tab only */}
+                {activeTab === "comments" && (
+                <div className="border-t border-border px-3 py-3">
+                  <div className="rounded-lg border border-input bg-background overflow-hidden shadow-sm focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/20 transition-all">
+                    <TiptapEditor
+                      key={commentKey}
+                      content=""
+                      minimal
+                      members={allMembers.map((m) => ({
+                        id: m.userId,
+                        name: m.name,
+                      }))}
+                      onChange={setCommentHtml}
+                      onSubmit={() =>
+                        !isCommentEmpty &&
+                        !createComment.isPending &&
+                        handleSubmitComment()
+                      }
+                      placeholder="Write a comment… (type @ to mention)"
+                      className="text-sm"
+                    />
+                    <div className="flex items-center justify-between border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground/50 select-none">
+                          @ mention · Enter to post
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/30 select-none">·</span>
+                        <button
+                          type="button"
+                          title="Attach file (max 5 MB)"
+                          disabled={uploadAttachment.isPending}
+                          onClick={() => commentAttachRef.current?.click()}
+                          className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                        >
+                          <Paperclip size={11} />
+                        </button>
+                        <input
+                          ref={commentAttachRef}
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) {
+                              toast.error("File too large. Maximum size is 5 MB.");
+                              e.target.value = "";
+                              return;
+                            }
+                            uploadAttachment.mutate(
+                              { file },
+                              {
+                                onSuccess: () => {
+                                  toast.success(`"${file.name}" attached.`);
+                                },
+                                onError: (err) => toast.error(err.message ?? "Upload failed."),
+                              },
+                            );
+                            e.target.value = "";
+                          }}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        className="h-6 px-2.5 text-[11px] cursor-pointer gap-1"
+                        onClick={() => handleSubmitComment()}
+                        disabled={isCommentEmpty || createComment.isPending}
+                      >
+                        <Send size={11} />
+                        {createComment.isPending ? "Posting…" : "Post"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">
-                    ⌘ + Enter to post
-                  </span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleSubmitComment()}
-                    disabled={isCommentEmpty || createComment.isPending}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmitComment();
-                    }}
-                  >
-                    <Send size={13} className="mr-1.5" />
-                    {createComment.isPending ? "Posting…" : "Post"}
-                  </Button>
-                </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        {/* end full-height flex wrapper */}
       </DialogContent>
+
+      {/* Subtask creation dialog */}
+      {task && (
+        <CreateTaskDialog
+          open={subtaskDialogOpen}
+          onClose={() => setSubtaskDialogOpen(false)}
+          parentTaskId={task.id}
+          defaultProjectId={task.projectId}
+          onCreated={() => {
+            if (taskId) {
+              qc.invalidateQueries({
+                queryKey: taskDetailKeys.subtasks(taskId),
+              });
+            }
+          }}
+        />
+      )}
+
+      <DeleteTaskDialog
+        open={confirmDelete}
+        taskTitle={task?.title ?? ""}
+        isPending={deleteTaskMutation.isPending}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          if (!task) return;
+          deleteTaskMutation.mutate(
+            { taskId: task.id },
+            {
+              onSuccess: () => {
+                setConfirmDelete(false);
+                onClose();
+              },
+            },
+          );
+        }}
+      />
+
+      {/* Image lightbox */}
+      {lightboxSrc && (
+        <ImageLightbox
+          src={lightboxSrc.src}
+          alt={lightboxSrc.alt}
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
     </Dialog>
   );
 }

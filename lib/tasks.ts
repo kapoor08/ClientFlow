@@ -32,6 +32,8 @@ export type TaskListItem = {
   attachmentCount: number;
   createdAt: Date;
   columnId: string | null;
+  refNumber: string | null;
+  tags: string[];
 };
 
 type ListTasksOptions = {
@@ -70,6 +72,7 @@ export async function listTasksForUser(
   const whereClause = and(
     eq(tasks.organizationId, context.organizationId),
     isNull(tasks.deletedAt),
+    isNull(tasks.parentTaskId),
     trimmed
       ? or(
           ilike(tasks.title, `%${trimmed}%`),
@@ -109,6 +112,8 @@ export async function listTasksForUser(
           sql<number>`(SELECT COUNT(*) FROM task_attachments WHERE task_id = ${tasks.id})`,
         createdAt: tasks.createdAt,
         columnId: tasks.columnId,
+        refNumber: tasks.refNumber,
+        tags: tasks.tags,
       })
       .from(tasks)
       .leftJoin(projects, eq(tasks.projectId, projects.id))
@@ -140,11 +145,13 @@ export async function createTaskForUser(
 
   const taskId = crypto.randomUUID();
   const title = input.title.trim();
+  const refNumber = `CF-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 
   await db.insert(tasks).values({
     id: taskId,
     organizationId: context.organizationId,
     projectId: input.projectId,
+    parentTaskId: input.parentTaskId ?? null,
     title,
     description: input.description?.trim() || null,
     status: input.status,
@@ -154,6 +161,8 @@ export async function createTaskForUser(
     estimateMinutes: input.estimateMinutes,
     reporterUserId: userId,
     columnId: input.columnId ?? null,
+    refNumber,
+    tags: input.tags ?? [],
   });
 
   // ─── Audit log (global) ────────────────────────────────────────────────────
@@ -214,6 +223,8 @@ export async function updateTaskForUser(
       columnId: tasks.columnId,
       columnName: taskBoardColumns.name,
       estimateMinutes: tasks.estimateMinutes,
+      description: tasks.description,
+      tags: tasks.tags,
     })
     .from(tasks)
     .leftJoin(assigneeUser, eq(tasks.assigneeUserId, assigneeUser.id))
@@ -241,6 +252,7 @@ export async function updateTaskForUser(
       assigneeUserId: input.assigneeUserId,
       dueDate: input.dueDate,
       estimateMinutes: input.estimateMinutes,
+      tags: input.tags ?? [],
       completedAt: input.status === "done" ? new Date() : null,
       updatedAt: new Date(),
     })
@@ -340,6 +352,39 @@ export async function updateTaskForUser(
       "dueDate.changed",
       { label: oldDue ? formatDateShort(oldDue) : "None" },
       { label: newDue ? formatDateShort(newDue) : "None" },
+    ));
+  }
+
+  // Estimate
+  if ((existing.estimateMinutes ?? null) !== (input.estimateMinutes ?? null)) {
+    entries.push(entry(
+      "estimate.changed",
+      { minutes: existing.estimateMinutes ?? null },
+      { minutes: input.estimateMinutes ?? null },
+    ));
+  }
+
+  // Description
+  const oldDesc = existing.description?.trim() || null;
+  const newDesc = input.description?.trim() || null;
+  if (oldDesc !== newDesc) {
+    entries.push(entry(
+      "description.changed",
+      { hadContent: !!oldDesc },
+      { hadContent: !!newDesc },
+    ));
+  }
+
+  // Tags
+  const oldTags = [...(existing.tags ?? [])].sort();
+  const newTags = [...(input.tags ?? [])].sort();
+  if (JSON.stringify(oldTags) !== JSON.stringify(newTags)) {
+    const added = newTags.filter((t) => !oldTags.includes(t));
+    const removed = oldTags.filter((t) => !newTags.includes(t));
+    entries.push(entry(
+      "tags.changed",
+      { tags: oldTags, removed },
+      { tags: newTags, added },
     ));
   }
 
@@ -456,22 +501,41 @@ export async function moveTaskColumnForUser(
 
   if (!existing) throw new Error("Task not found.");
 
+  // Resolve the target column's type to derive the new status
+  const COLUMN_TYPE_TO_STATUS: Record<string, string> = {
+    todo: "todo",
+    in_progress: "in_progress",
+    testing_qa: "review",
+    completed: "done",
+  };
+
+  let newStatus: string | null = null;
+  let newColumnName: string | null = null;
+
+  if (columnId) {
+    const [targetCol] = await db
+      .select({ name: taskBoardColumns.name, columnType: taskBoardColumns.columnType })
+      .from(taskBoardColumns)
+      .where(eq(taskBoardColumns.id, columnId))
+      .limit(1);
+
+    if (targetCol) {
+      newColumnName = targetCol.name;
+      newStatus = targetCol.columnType ? (COLUMN_TYPE_TO_STATUS[targetCol.columnType] ?? null) : null;
+    }
+  }
+
   await db
     .update(tasks)
-    .set({ columnId, updatedAt: new Date() })
+    .set({
+      columnId,
+      ...(newStatus ? { status: newStatus, completedAt: newStatus === "done" ? new Date() : null } : {}),
+      updatedAt: new Date(),
+    })
     .where(eq(tasks.id, taskId));
 
   // Log the column move in task audit log
   if (existing.columnId !== columnId) {
-    let newColumnName: string | null = null;
-    if (columnId) {
-      const [col] = await db
-        .select({ name: taskBoardColumns.name })
-        .from(taskBoardColumns)
-        .where(eq(taskBoardColumns.id, columnId))
-        .limit(1);
-      newColumnName = col?.name ?? null;
-    }
 
     db.insert(taskAuditLogs)
       .values({

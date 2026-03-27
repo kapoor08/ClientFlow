@@ -34,6 +34,9 @@ type CreateTaskDialogProps = {
   defaultColumnId?: string;
   defaultColumnName?: string;
   defaultColumnColor?: string;
+  parentTaskId?: string;
+  defaultProjectId?: string;
+  onCreated?: () => void;
 };
 
 type ProjectOption = { id: string; name: string };
@@ -52,10 +55,13 @@ export function CreateTaskDialog({
   defaultColumnId,
   defaultColumnName,
   defaultColumnColor,
+  parentTaskId,
+  defaultProjectId,
+  onCreated,
 }: CreateTaskDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [projectId, setProjectId] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeUserId, setAssigneeUserId] = useState<string | null>(null);
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
   const [dueDate, setDueDate] = useState<string>("");
@@ -79,7 +85,10 @@ export function CreateTaskDialog({
 
   const { data: teamData } = useQuery({
     queryKey: ["team-create-task-list"],
-    queryFn: () => http<{ members: MemberOption[] }>("/api/team").then(r => ({ members: r.members ?? [] })),
+    queryFn: () =>
+      http<{ members: MemberOption[] }>("/api/team").then((r) => ({
+        members: r.members ?? [],
+      })),
     enabled: open,
     staleTime: 60 * 1000,
   });
@@ -97,7 +106,7 @@ export function CreateTaskDialog({
   function handleClose() {
     setTitle("");
     setDescription("");
-    setProjectId("");
+    setProjectId(defaultProjectId ?? "");
     setAssigneeUserId(null);
     setAssigneeName(null);
     setDueDate("");
@@ -130,10 +139,12 @@ export function CreateTaskDialog({
         assigneeUserId: assigneeUserId ?? undefined,
         dueDate: dueDate ? new Date(dueDate).toISOString() : null,
         columnId: defaultColumnId ?? null,
+        parentTaskId: parentTaskId ?? null,
       },
       {
         onSuccess: () => {
-          toast.success("Task created.");
+          toast.success(parentTaskId ? "Subtask created." : "Task created.");
+          onCreated?.();
           handleClose();
         },
         onError: (err) => {
@@ -146,7 +157,9 @@ export function CreateTaskDialog({
   const columnColor = defaultColumnColor ?? "#3b82f6";
   const columnName = defaultColumnName ?? "To Do";
 
-  const selectedPriorityOpt = PRIORITY_OPTIONS.find((o) => o.value === priority);
+  const selectedPriorityOpt = PRIORITY_OPTIONS.find(
+    (o) => o.value === priority,
+  );
   const assigneeInitials = assigneeName
     ? assigneeName
         .split(" ")
@@ -195,7 +208,7 @@ export function CreateTaskDialog({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* Project select */}
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-8 w-auto min-w-32 text-xs">
+              <SelectTrigger className="h-8 w-auto min-w-32 text-xs cursor-pointer">
                 <SelectValue placeholder="Select project…" />
               </SelectTrigger>
               <SelectContent>
@@ -209,7 +222,7 @@ export function CreateTaskDialog({
 
             {/* Assignee */}
             <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
-              <PopoverTrigger asChild>
+              <PopoverTrigger asChild className="cursor-pointer">
                 <button
                   type="button"
                   className={cn(
@@ -220,7 +233,7 @@ export function CreateTaskDialog({
                   )}
                 >
                   {assigneeInitials ? (
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary cursor-pointer">
                       {assigneeInitials}
                     </div>
                   ) : (
@@ -298,7 +311,9 @@ export function CreateTaskDialog({
                   type="button"
                   className={cn(
                     "flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
-                    dueDate ? "text-foreground font-medium" : "text-muted-foreground",
+                    dueDate
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground",
                   )}
                 >
                   <CalendarDays size={13} />
@@ -347,7 +362,9 @@ export function CreateTaskDialog({
                   type="button"
                   className={cn(
                     "flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
-                    priority ? "text-foreground font-medium" : "text-muted-foreground",
+                    priority
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground",
                   )}
                 >
                   {selectedPriorityOpt ? (

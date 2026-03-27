@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { tasks, taskAttachments } from "@/db/schema";
+import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { cloudinary } from "@/lib/cloudinary";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -13,6 +14,7 @@ export type TaskAttachmentItem = {
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
+  uploaderName: string | null;
   createdAt: Date;
 };
 
@@ -62,9 +64,11 @@ export async function listTaskAttachments(
       fileName: taskAttachments.fileName,
       mimeType: taskAttachments.mimeType,
       sizeBytes: taskAttachments.sizeBytes,
+      uploaderName: user.name,
       createdAt: taskAttachments.createdAt,
     })
     .from(taskAttachments)
+    .leftJoin(user, eq(taskAttachments.uploadedByUserId, user.id))
     .where(eq(taskAttachments.taskId, taskId))
     .orderBy(asc(taskAttachments.createdAt));
 

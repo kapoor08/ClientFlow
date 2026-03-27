@@ -55,8 +55,10 @@ export function useUpdateTask(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, data }) => updateTask(taskId, data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: taskKeys.all });
+      qc.invalidateQueries({ queryKey: ["task-detail", variables.taskId] });
+      qc.invalidateQueries({ queryKey: ["task-activity", variables.taskId] });
       qc.invalidateQueries({ queryKey: notificationKeys.list() });
     },
   });
@@ -82,6 +84,9 @@ export function useMoveTask(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, columnId }) => moveTask(taskId, columnId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: taskKeys.all }),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
+      qc.invalidateQueries({ queryKey: ["task-activity", variables.taskId] });
+    },
   });
 }

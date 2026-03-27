@@ -43,6 +43,13 @@
       "when": 1774459204489,
       "tag": "0005_fat_spiral",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774545719068,
+      "tag": "0006_dark_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

@@ -37,6 +37,8 @@ export default async function Page() {
           dueDate: t.dueDate ? t.dueDate.toISOString() : null,
           createdAt: t.createdAt.toISOString(),
           columnId: t.columnId ?? null,
+          refNumber: t.refNumber ?? null,
+          tags: t.tags ?? [],
         })),
         pagination: result.pagination,
       }

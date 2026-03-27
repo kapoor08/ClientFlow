@@ -17,6 +17,8 @@ export type TaskDetail = {
   estimateMinutes: number | null;
   createdAt: string;
   updatedAt: string;
+  refNumber: string | null;
+  tags: string[];
 };
 
 export type TaskComment = {
@@ -44,6 +46,8 @@ export type SubtaskItem = {
   status: string;
   assigneeUserId: string | null;
   assigneeName: string | null;
+  createdAt: string;
+  tags: string[];
 };
 
 export type TaskAttachment = {
@@ -53,6 +57,7 @@ export type TaskAttachment = {
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
+  uploaderName: string | null;
   createdAt: string;
 };
 
@@ -131,9 +136,43 @@ export function formatActivityMessage(
       return `set due date to ${to}`;
     }
 
+    case "estimate.changed": {
+      const mins = nv.minutes as number | null;
+      if (!mins) return "removed the estimate";
+      return `set estimate to ${formatEstimateMinutes(mins)}`;
+    }
+
+    case "description.changed": {
+      const hadBefore = ov.hadContent as boolean;
+      const hasNow = nv.hadContent as boolean;
+      if (!hadBefore && hasNow) return "added a description";
+      if (hadBefore && !hasNow) return "removed the description";
+      return "updated the description";
+    }
+
+    case "tags.changed": {
+      const added = (nv.added as string[]) ?? [];
+      const removed = (ov.removed as string[]) ?? [];
+      const parts: string[] = [];
+      if (added.length) parts.push(`added ${added.map((t) => `#${t}`).join(", ")}`);
+      if (removed.length) parts.push(`removed ${removed.map((t) => `#${t}`).join(", ")}`);
+      return parts.join(" and ") || "updated tags";
+    }
+
     default:
       return formatActivityLabel(action);
   }
+}
+
+/** Format total minutes as a compact string (mirrors lib/tasks-shared) */
+function formatEstimateMinutes(mins: number): string {
+  let rem = mins;
+  const W = 5 * 8 * 60, D = 8 * 60, H = 60;
+  const w = Math.floor(rem / W); rem %= W;
+  const d = Math.floor(rem / D); rem %= D;
+  const h = Math.floor(rem / H); rem %= H;
+  const m = rem;
+  return [w && `${w}w`, d && `${d}d`, h && `${h}h`, m && `${m}m`].filter(Boolean).join(" ");
 }
 
 function capitalize(s: string): string {

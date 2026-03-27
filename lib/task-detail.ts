@@ -26,6 +26,8 @@ export type TaskDetail = {
   estimateMinutes: number | null;
   createdAt: Date;
   updatedAt: Date;
+  refNumber: string | null;
+  tags: string[];
 };
 
 export async function getTaskDetailForUser(
@@ -58,6 +60,8 @@ export async function getTaskDetailForUser(
       estimateMinutes: tasks.estimateMinutes,
       createdAt: tasks.createdAt,
       updatedAt: tasks.updatedAt,
+      refNumber: tasks.refNumber,
+      tags: tasks.tags,
     })
     .from(tasks)
     .leftJoin(projects, eq(tasks.projectId, projects.id))

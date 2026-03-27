@@ -28,6 +28,17 @@ const taskPriorityValues = TASK_PRIORITY_OPTIONS.map((o) => o.value) as [
   ...TaskPriority[],
 ];
 
+export const TASK_TAG_OPTIONS = [
+  "bug",
+  "enhancement",
+  "feature",
+  "improvement",
+  "question",
+  "documentation",
+  "design",
+  "blocked",
+] as const;
+
 export const taskFormSchema = z.object({
   projectId: z.string().min(1, "Project is required."),
   title: z
@@ -41,6 +52,8 @@ export const taskFormSchema = z.object({
   dueDate: z.date().nullable().default(null),
   estimateMinutes: z.number().int().positive().nullable().default(null),
   columnId: z.string().nullable().default(null),
+  tags: z.array(z.string()).default([]),
+  parentTaskId: z.string().nullable().optional(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

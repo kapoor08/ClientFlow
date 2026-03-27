@@ -123,6 +123,53 @@ export async function createTaskComment(
   return { commentId };
 }
 
+export async function updateTaskComment(
+  userId: string,
+  taskId: string,
+  commentId: string,
+  body: string,
+): Promise<void> {
+  const access = await verifyTaskAccess(userId, taskId);
+  if (!access) throw new Error("Task not found.");
+
+  const [comment] = await db
+    .select({ authorUserId: taskComments.authorUserId })
+    .from(taskComments)
+    .where(and(eq(taskComments.id, commentId), eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
+    .limit(1);
+
+  if (!comment) throw new Error("Comment not found.");
+  if (comment.authorUserId !== userId) throw new Error("Not authorized.");
+
+  await db
+    .update(taskComments)
+    .set({ body, updatedAt: new Date() })
+    .where(eq(taskComments.id, commentId));
+}
+
+export async function deleteTaskComment(
+  userId: string,
+  taskId: string,
+  commentId: string,
+): Promise<void> {
+  const access = await verifyTaskAccess(userId, taskId);
+  if (!access) throw new Error("Task not found.");
+
+  const [comment] = await db
+    .select({ authorUserId: taskComments.authorUserId })
+    .from(taskComments)
+    .where(and(eq(taskComments.id, commentId), eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
+    .limit(1);
+
+  if (!comment) throw new Error("Comment not found.");
+  if (comment.authorUserId !== userId) throw new Error("Not authorized.");
+
+  await db
+    .update(taskComments)
+    .set({ deletedAt: new Date() })
+    .where(eq(taskComments.id, commentId));
+}
+
 export async function listTaskActivity(
   userId: string,
   taskId: string,

@@ -26,6 +26,23 @@ export function createComment(
   });
 }
 
+export function updateComment(
+  taskId: string,
+  commentId: string,
+  body: string,
+): Promise<void> {
+  return http<void>(`/api/tasks/${taskId}/comments/${commentId}`, {
+    method: "PATCH",
+    body: { body },
+  });
+}
+
+export function deleteComment(taskId: string, commentId: string): Promise<void> {
+  return http<void>(`/api/tasks/${taskId}/comments/${commentId}`, {
+    method: "DELETE",
+  });
+}
+
 export function listActivity(taskId: string): Promise<{ activity: TaskActivity[] }> {
   return http<{ activity: TaskActivity[] }>(`/api/tasks/${taskId}/activity`);
 }

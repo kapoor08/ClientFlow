@@ -9,6 +9,8 @@ import {
   getTaskDetail,
   listComments,
   createComment,
+  updateComment,
+  deleteComment,
   listActivity,
   listSubtasks,
   createSubtask,
@@ -85,6 +87,26 @@ export function useCreateComment(
   });
 }
 
+export function useUpdateComment(
+  taskId: string,
+): UseMutationResult<void, HttpError, { commentId: string; body: string }> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ commentId, body }) => updateComment(taskId, commentId, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskDetailKeys.comments(taskId) }),
+  });
+}
+
+export function useDeleteComment(
+  taskId: string,
+): UseMutationResult<void, HttpError, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) => deleteComment(taskId, commentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: taskDetailKeys.comments(taskId) }),
+  });
+}
+
 // ─── Subtask hooks ─────────────────────────────────────────────────────────────
 
 export function useSubtasks(
@@ -119,6 +141,7 @@ export function useToggleSubtask(
     mutationFn: (subtaskId: string) => toggleSubtask(taskId, subtaskId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskDetailKeys.subtasks(taskId) });
+      qc.invalidateQueries({ queryKey: taskDetailKeys.activity(taskId) });
     },
   });
 }
@@ -131,6 +154,7 @@ export function useDeleteSubtask(
     mutationFn: (subtaskId: string) => deleteSubtask(taskId, subtaskId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskDetailKeys.subtasks(taskId) });
+      qc.invalidateQueries({ queryKey: taskDetailKeys.activity(taskId) });
     },
   });
 }
@@ -168,6 +192,7 @@ export function useUploadAttachment(
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskDetailKeys.attachments(taskId) });
+      qc.invalidateQueries({ queryKey: taskDetailKeys.activity(taskId) });
       qc.invalidateQueries({ queryKey: taskKeys.all });
     },
   });
@@ -181,6 +206,7 @@ export function useDeleteAttachment(
     mutationFn: (attachmentId: string) => deleteAttachment(taskId, attachmentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskDetailKeys.attachments(taskId) });
+      qc.invalidateQueries({ queryKey: taskDetailKeys.activity(taskId) });
       qc.invalidateQueries({ queryKey: taskKeys.all });
     },
   });

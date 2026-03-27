@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQueryState } from "nuqs";
 import {
   DndContext,
   DragOverlay,
@@ -29,15 +30,33 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useTasks, useMoveTask } from "@/core/tasks/useCase";
-import { useBoardColumns, useDeleteColumn, useReorderColumns } from "@/core/task-columns/useCase";
-import { getInitials, formatDueShort, PRIORITY_BADGE } from "@/core/tasks/entity";
-import type { TaskListItem, TaskListResponse, TaskFilters } from "@/core/tasks/entity";
-import type { BoardColumn, BoardColumnsResponse } from "@/core/task-columns/entity";
+import { useTasks, useMoveTask, useDeleteTask } from "@/core/tasks/useCase";
+import {
+  useBoardColumns,
+  useDeleteColumn,
+  useReorderColumns,
+} from "@/core/task-columns/useCase";
+import {
+  getInitials,
+  formatDueShort,
+  PRIORITY_BADGE,
+} from "@/core/tasks/entity";
+import type {
+  TaskListItem,
+  TaskListResponse,
+  TaskFilters,
+} from "@/core/tasks/entity";
+import type {
+  BoardColumn,
+  BoardColumnsResponse,
+} from "@/core/task-columns/entity";
 import { EditColumnDialog } from "./components/EditColumnDialog";
 import { FiltersDrawer } from "./components/FiltersDrawer";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
 import { TaskDetailSheet } from "./components/TaskDetailSheet";
+import { DeleteTaskDialog } from "./components/DeleteTaskDialog";
+import { DeleteColumnDialog } from "./components/DeleteColumnDialog";
+import { MoveToProjectDialog } from "./components/MoveToProjectDialog";
 import {
   Search,
   Plus,
@@ -73,15 +92,27 @@ function SortableTaskCard({
   task,
   currentUserId,
   onClick,
+  onDelete,
+  onMoveToProject,
   isDragOverlay,
 }: {
   task: TaskListItem;
   currentUserId: string;
   onClick: () => void;
+  onDelete: (task: TaskListItem) => void;
+  onMoveToProject: (task: TaskListItem) => void;
   isDragOverlay?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: task.id, data: { type: "task", task } });
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id, data: { type: "task", task } });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -109,14 +140,54 @@ function SortableTaskCard({
         <p className="text-sm font-medium text-foreground leading-snug flex-1 min-w-0">
           {task.title}
         </p>
-        <button
-          type="button"
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground -mr-1"
-          aria-label="Task options"
-        >
-          <MoreHorizontal size={13} />
-        </button>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground -mr-1 cursor-pointer"
+            aria-label="Task options"
+          >
+            <MoreHorizontal size={13} />
+          </button>
+          {menuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                }}
+              />
+              <div className="absolute right-0 top-6 z-20 min-w-40 rounded-card border border-border bg-card shadow-cf-2 py-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveToProject(task);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                >
+                  <Pencil size={13} /> Move to Project
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(task);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger hover:bg-danger/10 transition-colors cursor-pointer"
+                >
+                  <Trash2 size={13} /> Delete Task
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {task.projectName && (
         <p className="mt-0.5 text-xs text-muted-foreground truncate">
@@ -189,6 +260,8 @@ function SortableColumn({
   onEditColumn,
   onDeleteColumn,
   onTaskClick,
+  onDeleteTask,
+  onMoveToProject,
   isDragOverlay,
 }: {
   column: BoardColumn;
@@ -198,6 +271,8 @@ function SortableColumn({
   onEditColumn: (col: BoardColumn) => void;
   onDeleteColumn: (col: BoardColumn) => void;
   onTaskClick: (task: TaskListItem) => void;
+  onDeleteTask: (task: TaskListItem) => void;
+  onMoveToProject: (task: TaskListItem) => void;
   isDragOverlay?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -233,7 +308,7 @@ function SortableColumn({
       >
         {/* Colored left-border accent */}
         <div
-          className="h-5 w-[3px] shrink-0 rounded-full"
+          className="h-5 w-0.75 shrink-0 rounded-full"
           style={{ backgroundColor: column.color }}
         />
         <span className="font-display text-[13px] font-semibold text-foreground tracking-tight leading-none">
@@ -245,17 +320,23 @@ function SortableColumn({
         <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onAddTask(column); }}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            aria-label="Add task"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddTask(column);
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+            aria-label="Add Task"
           >
             <Plus size={13} />
           </button>
           <div className="relative">
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((v) => !v);
+              }}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
               aria-label="Column options"
             >
               <MoreHorizontal size={13} />
@@ -306,11 +387,13 @@ function SortableColumn({
               task={task}
               currentUserId={currentUserId}
               onClick={() => onTaskClick(task)}
+              onDelete={onDeleteTask}
+              onMoveToProject={onMoveToProject}
             />
           ))}
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="rounded-card border border-dashed border-border/60 px-4 py-6 text-center text-xs text-muted-foreground/60">
+          <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground/60">
             No tasks yet
           </div>
         )}
@@ -320,9 +403,9 @@ function SortableColumn({
       <button
         type="button"
         onClick={() => onAddTask(column)}
-        className="mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+        className="mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
       >
-        <Plus size={12} /> Add task
+        <Plus size={12} /> Add Task
       </button>
     </div>
   );
@@ -366,7 +449,18 @@ const TasksPage = ({
   );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<"task" | "column" | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const dragStartColumnId = useRef<string | null>(null);
+  const [selectedTaskRef, setSelectedTaskRef] = useQueryState("task");
+  const [deleteTask, setDeleteTask] = useState<TaskListItem | null>(null);
+  const [deleteColumn, setDeleteColumn] = useState<BoardColumn | null>(null);
+  const [moveTask, setMoveTask] = useState<TaskListItem | null>(null);
+
+  // Resolve URL ref (refNumber or db id) → actual db id for the detail sheet
+  const selectedTaskId = selectedTaskRef
+    ? (localTasks.find(
+        (t) => t.refNumber === selectedTaskRef || t.id === selectedTaskRef,
+      )?.id ?? selectedTaskRef)
+    : null;
 
   const { data: columnsData } = useBoardColumns(initialColumns);
   const { data: tasksData } = useTasks({ pageSize: 200 }, initialData);
@@ -374,6 +468,7 @@ const TasksPage = ({
   const moveTaskMutation = useMoveTask();
   const reorderColumnsMutation = useReorderColumns();
   const deleteColumnMutation = useDeleteColumn();
+  const deleteTaskMutation = useDeleteTask();
 
   // Sync remote data into local state
   useEffect(() => {
@@ -398,6 +493,12 @@ const TasksPage = ({
     const { id, data } = event.active;
     setActiveId(String(id));
     setActiveType(data.current?.type ?? null);
+    if (data.current?.type === "task") {
+      const task = data.current.task as TaskListItem;
+      dragStartColumnId.current = task.columnId ?? getTaskColumnId(task, localColumns);
+    } else {
+      dragStartColumnId.current = null;
+    }
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -458,9 +559,13 @@ const TasksPage = ({
         targetColumnId = getTaskColumnId(overTask, localColumns);
       }
 
-      if (targetColumnId !== null && targetColumnId !== activeTask.columnId) {
-        moveTaskMutation.mutate({ taskId: activeTask.id, columnId: targetColumnId });
+      if (targetColumnId !== null && targetColumnId !== dragStartColumnId.current) {
+        moveTaskMutation.mutate({
+          taskId: activeTask.id,
+          columnId: targetColumnId,
+        });
       }
+      dragStartColumnId.current = null;
     } else if (activeData?.type === "column") {
       if (String(active.id) !== String(over.id)) {
         setLocalColumns((prev) => {
@@ -526,11 +631,11 @@ const TasksPage = ({
 
   const activeTask =
     activeType === "task"
-      ? localTasks.find((t) => t.id === activeId) ?? null
+      ? (localTasks.find((t) => t.id === activeId) ?? null)
       : null;
   const activeColumn =
     activeType === "column"
-      ? localColumns.find((c) => c.id === activeId) ?? null
+      ? (localColumns.find((c) => c.id === activeId) ?? null)
       : null;
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
@@ -545,13 +650,15 @@ const TasksPage = ({
   }
 
   function handleDeleteColumn(col: BoardColumn) {
-    if (
-      !window.confirm(
-        `Delete column "${col.name}"? Tasks in this column will be unassigned.`,
-      )
-    )
-      return;
-    deleteColumnMutation.mutate({ columnId: col.id });
+    setDeleteColumn(col);
+  }
+
+  function handleDeleteTask(task: TaskListItem) {
+    setDeleteTask(task);
+  }
+
+  function handleMoveToProject(task: TaskListItem) {
+    setMoveTask(task);
   }
 
   const isLoading = !columnsData && !tasksData;
@@ -583,7 +690,7 @@ const TasksPage = ({
             placeholder="Search tasks…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-8 text-sm"
+            className="pl-9 h-8 text-sm bg-white"
           />
         </div>
 
@@ -591,7 +698,7 @@ const TasksPage = ({
           type="button"
           onClick={() => setAssignedToMe((v) => !v)}
           className={cn(
-            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors",
+            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer",
             assignedToMe
               ? "border-primary bg-primary/10 text-primary font-medium"
               : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
@@ -605,7 +712,7 @@ const TasksPage = ({
           type="button"
           onClick={() => setFiltersOpen(true)}
           className={cn(
-            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors",
+            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer",
             filters.priority || filters.projectId || filters.assigneeUserId
               ? "border-primary bg-primary/10 text-primary font-medium"
               : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
@@ -652,7 +759,9 @@ const TasksPage = ({
                   onAddTask={handleAddTask}
                   onEditColumn={handleEditColumn}
                   onDeleteColumn={handleDeleteColumn}
-                  onTaskClick={(task) => setSelectedTaskId(task.id)}
+                  onTaskClick={(task) => setSelectedTaskRef(task.refNumber ?? task.id)}
+                  onDeleteTask={handleDeleteTask}
+                  onMoveToProject={handleMoveToProject}
                 />
               ))}
             </SortableContext>
@@ -674,6 +783,8 @@ const TasksPage = ({
                 task={activeTask}
                 currentUserId={currentUserId}
                 onClick={() => {}}
+                onDelete={() => {}}
+                onMoveToProject={() => {}}
                 isDragOverlay
               />
             )}
@@ -685,7 +796,9 @@ const TasksPage = ({
                 onAddTask={() => {}}
                 onEditColumn={() => {}}
                 onDeleteColumn={() => {}}
-                onTaskClick={() => { /* drag overlay */ }}
+                onTaskClick={() => {}}
+                onDeleteTask={() => {}}
+                onMoveToProject={() => {}}
                 isDragOverlay
               />
             )}
@@ -727,7 +840,42 @@ const TasksPage = ({
 
       <TaskDetailSheet
         taskId={selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
+        onClose={() => setSelectedTaskRef(null)}
+        currentUserId={currentUserId}
+      />
+
+      <DeleteTaskDialog
+        open={!!deleteTask}
+        taskTitle={deleteTask?.title ?? ""}
+        isPending={deleteTaskMutation.isPending}
+        onClose={() => setDeleteTask(null)}
+        onConfirm={() => {
+          if (!deleteTask) return;
+          deleteTaskMutation.mutate(
+            { taskId: deleteTask.id },
+            { onSuccess: () => setDeleteTask(null) },
+          );
+        }}
+      />
+
+      <DeleteColumnDialog
+        open={!!deleteColumn}
+        columnName={deleteColumn?.name ?? ""}
+        isPending={deleteColumnMutation.isPending}
+        onClose={() => setDeleteColumn(null)}
+        onConfirm={() => {
+          if (!deleteColumn) return;
+          deleteColumnMutation.mutate(
+            { columnId: deleteColumn.id },
+            { onSuccess: () => setDeleteColumn(null) },
+          );
+        }}
+      />
+
+      <MoveToProjectDialog
+        open={!!moveTask}
+        task={moveTask}
+        onClose={() => setMoveTask(null)}
       />
     </div>
   );

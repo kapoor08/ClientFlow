@@ -13,6 +13,8 @@ export type SubtaskItem = {
   status: string;
   assigneeUserId: string | null;
   assigneeName: string | null;
+  createdAt: Date;
+  tags: string[];
 };
 
 async function verifyTaskAccess(
@@ -54,6 +56,8 @@ export async function listSubtasksForTask(
       status: tasks.status,
       assigneeUserId: tasks.assigneeUserId,
       assigneeName: assigneeUser.name,
+      createdAt: tasks.createdAt,
+      tags: tasks.tags,
     })
     .from(tasks)
     .leftJoin(assigneeUser, eq(tasks.assigneeUserId, assigneeUser.id))

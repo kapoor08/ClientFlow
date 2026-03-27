@@ -137,6 +137,8 @@ export const tasks = pgTable("tasks", {
   position: integer("position"),
   estimateMinutes: integer("estimate_minutes"),
   actualMinutes: integer("actual_minutes"),
+  refNumber: text("ref_number"),
+  tags: text("tags").array().notNull().default([]),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
   deletedAt: timestamp("deleted_at"),

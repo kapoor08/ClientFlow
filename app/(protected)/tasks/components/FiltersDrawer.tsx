@@ -116,7 +116,7 @@ export function FiltersDrawer({
           </button>
         </SheetHeader>
 
-        <div className="py-5 space-y-6">
+        <div className="p-5 space-y-6">
           {/* Project */}
           <div className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -127,7 +127,10 @@ export function FiltersDrawer({
               onValueChange={handleProjectChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All projects" />
+                <SelectValue
+                  className="cursor-pointer"
+                  placeholder="All projects"
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All projects</SelectItem>
@@ -152,7 +155,7 @@ export function FiltersDrawer({
                   type="button"
                   onClick={() => togglePriority(opt.value)}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors",
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition-colors cursor-pointer",
                     filters.priority === opt.value
                       ? "border-foreground bg-secondary text-foreground font-medium"
                       : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
@@ -198,7 +201,7 @@ export function FiltersDrawer({
                     type="button"
                     onClick={() => handleAssigneeSelect(m.userId)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors cursor-pointer",
                       isSelected
                         ? "bg-secondary text-foreground"
                         : "hover:bg-secondary/50 text-muted-foreground hover:text-foreground",
