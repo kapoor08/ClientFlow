@@ -1,6 +1,7 @@
 import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
+import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
 import {
   and,
   asc,
@@ -374,6 +375,13 @@ export async function createClientForUser(
     entityType: "client",
     entityId: clientId,
     metadata: { name: values.name },
+  }).catch(console.error);
+
+  // ─── Webhook dispatch ─────────────────────────────────────────────────────
+  dispatchWebhookEvent(access.organizationId, "client.created", {
+    clientId,
+    name: values.name,
+    status: values.status,
   }).catch(console.error);
 
   // Notify all org members about the new client

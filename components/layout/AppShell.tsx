@@ -7,22 +7,39 @@ import SignOutButton from "@/components/auth/SignOutButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { TrialBanner } from "@/components/layout/TrialBanner";
 import AppSidebar from "./AppSidebar";
+import { OrgSwitcher, type OrgOption } from "./OrgSwitcher";
+import type { RolePermissionsConfig, MemberPermissionOverrides } from "@/config/role-permissions";
 
 type AppShellProps = {
   children: ReactNode;
   user: User;
   planCode: string;
   daysLeftInTrial: number | null;
+  roleKey?: string | null;
+  orgName?: string | null;
+  logoUrl?: string | null;
+  brandColor?: string | null;
+  orgs?: OrgOption[];
+  activeOrgId?: string;
+  rolePermissions?: RolePermissionsConfig | null;
+  memberPermissionOverrides?: MemberPermissionOverrides | null;
 };
 
-const AppShell = ({ children, user, planCode, daysLeftInTrial }: AppShellProps) => {
+const AppShell = ({ children, user, planCode, daysLeftInTrial, roleKey, orgName, logoUrl, brandColor, orgs, activeOrgId, rolePermissions, memberPermissionOverrides }: AppShellProps) => {
+  const isClient = roleKey === "client";
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar planCode={planCode} />
+      {isClient
+        ? <AppSidebar mode="portal" logoUrl={logoUrl} brandColor={brandColor} orgName={orgName} rolePermissions={rolePermissions} memberPermissionOverrides={memberPermissionOverrides} />
+        : <AppSidebar mode="admin" planCode={planCode} roleKey={roleKey} logoUrl={logoUrl} orgName={orgName} brandColor={brandColor} rolePermissions={rolePermissions} memberPermissionOverrides={memberPermissionOverrides} />
+      }
       <div className="flex flex-1 flex-col min-w-0">
         {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3">
+            {orgs && orgs.length > 1 && activeOrgId && (
+              <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
+            )}
             <div className="flex w-52 items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Search size={14} />

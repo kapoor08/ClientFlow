@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
@@ -15,10 +15,13 @@ import {
   useSignUp,
   validatePassword,
 } from "@/core/auth";
+import { toast } from "sonner";
 import GooogleIcon from "@/assets/GoogleIcon";
 
 const SignUp = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirectTo") || "";
   const signUp = useSignUp();
   const googleSignIn = useGoogleSignIn();
 
@@ -57,9 +60,9 @@ const SignUp = () => {
         password,
         callbackURL: authRoutes.signIn,
       });
-      router.push(
-        `${authRoutes.verifyEmail}?email=${encodeURIComponent(email.trim())}`,
-      );
+      toast.success("Account created. Please verify your email.");
+      const verifyUrl = `${authRoutes.verifyEmail}?email=${encodeURIComponent(email.trim())}${redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
+      router.push(verifyUrl);
       router.refresh();
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "Unable to create account."));
@@ -187,7 +190,7 @@ const SignUp = () => {
       <div className="mt-4 text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link
-          href={authRoutes.signIn}
+          href={redirectTo ? `${authRoutes.signIn}?redirectTo=${encodeURIComponent(redirectTo)}` : authRoutes.signIn}
           className="font-medium text-primary hover:underline"
         >
           Sign in

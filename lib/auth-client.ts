@@ -1,4 +1,5 @@
 import { nextCookies } from "better-auth/next-js";
+import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 const baseURL =
@@ -8,5 +9,5 @@ const baseURL =
 
 export const authClient = createAuthClient({
   baseURL,
-  plugins: [nextCookies()],
+  plugins: [nextCookies(), twoFactorClient()],
 });

@@ -15,7 +15,9 @@ import {
 import { writeAuditLog } from "@/lib/audit";
 import { enforceTaskCreationLimit } from "@/lib/plan-enforcement";
 import { dispatchNotification } from "@/lib/notifications";
+import { onTaskAssigned, onTaskStatusChanged } from "@/lib/email-triggers";
 import type { TaskFormValues } from "@/lib/tasks-shared";
+import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
 
 export type TaskListItem = {
   id: string;
@@ -185,6 +187,15 @@ export async function createTaskForUser(
     newValues: { title },
   }).catch(console.error);
 
+  // ─── Webhook dispatch ─────────────────────────────────────────────────────
+  dispatchWebhookEvent(context.organizationId, "task.created", {
+    taskId,
+    title,
+    status: input.status,
+    priority: input.priority,
+    projectId: input.projectId ?? null,
+  }).catch(console.error);
+
   // ─── Notify assignee ───────────────────────────────────────────────────────
   if (input.assigneeUserId && input.assigneeUserId !== userId) {
     dispatchNotification({
@@ -194,6 +205,25 @@ export async function createTaskForUser(
       title: "Task assigned to you",
       body: title,
       url: "/tasks",
+    }).catch(console.error);
+
+    // Email trigger
+    Promise.all([
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, input.assigneeUserId)).limit(1),
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+      input.projectId
+        ? db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1)
+        : Promise.resolve([null] as const),
+    ]).then(([assigneeRows, actorRows, projectRows]) => {
+      const assignee = assigneeRows[0];
+      const actor = actorRows[0];
+      if (!assignee?.email || !actor?.email) return;
+      return onTaskAssigned({
+        assignee: { id: input.assigneeUserId!, name: assignee.name ?? "Team member", email: assignee.email },
+        task: { id: taskId, title, dueDate: input.dueDate },
+        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+      });
     }).catch(console.error);
   }
 
@@ -252,6 +282,8 @@ export async function updateTaskForUser(
       assigneeUserId: input.assigneeUserId,
       dueDate: input.dueDate,
       estimateMinutes: input.estimateMinutes,
+      columnId: input.columnId ?? null,
+      reporterUserId: input.reporterUserId ?? null,
       tags: input.tags ?? [],
       completedAt: input.status === "done" ? new Date() : null,
       updatedAt: new Date(),
@@ -422,6 +454,45 @@ export async function updateTaskForUser(
       title: `Task status changed: ${formatStatusLabel(input.status)}`,
       body: taskTitle,
       url: "/tasks",
+    }).catch(console.error);
+  }
+
+  // ─── Email triggers ────────────────────────────────────────────────────────
+  if (assigneeChanged && input.assigneeUserId && input.assigneeUserId !== userId) {
+    Promise.all([
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, input.assigneeUserId)).limit(1),
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+      db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1),
+    ]).then(([assigneeRows, actorRows, projectRows]) => {
+      const assignee = assigneeRows[0];
+      const actor = actorRows[0];
+      if (!assignee?.email || !actor?.email) return;
+      return onTaskAssigned({
+        assignee: { id: input.assigneeUserId!, name: assignee.name ?? "Team member", email: assignee.email },
+        task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
+        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+      });
+    }).catch(console.error);
+  }
+
+  if (existing.status !== input.status && assigneeToNotify && assigneeToNotify !== userId) {
+    Promise.all([
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, assigneeToNotify)).limit(1),
+      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+      db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1),
+    ]).then(([recipientRows, actorRows, projectRows]) => {
+      const recipient = recipientRows[0];
+      const actor = actorRows[0];
+      if (!recipient?.email || !actor?.email) return;
+      return onTaskStatusChanged({
+        recipients: [{ id: assigneeToNotify!, name: recipient.name ?? "Team member", email: recipient.email }],
+        task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
+        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+        fromStatus: formatStatusLabel(existing.status),
+        toStatus: formatStatusLabel(input.status),
+      });
     }).catch(console.error);
   }
 

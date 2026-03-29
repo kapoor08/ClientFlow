@@ -109,6 +109,12 @@ export const organizationCurrentSubscriptions = pgTable(
   ],
 );
 
+export type InvoiceLineItem = {
+  description: string;
+  quantity: number;
+  unitPriceCents: number;
+};
+
 export const invoices = pgTable("invoices", {
   id: text("id").primaryKey(),
   organizationId: text("organization_id")
@@ -116,6 +122,14 @@ export const invoices = pgTable("invoices", {
     .references(() => organizations.id, { onDelete: "cascade" }),
   subscriptionId: text("subscription_id").references(() => subscriptions.id),
   externalInvoiceId: text("external_invoice_id"),
+  // Manual invoice fields
+  clientId: text("client_id"),
+  number: text("number"),
+  title: text("title"),
+  isManual: boolean("is_manual").default(false).notNull(),
+  lineItems: jsonb("line_items").$type<InvoiceLineItem[]>(),
+  notes: text("notes"),
+  sentAt: timestamp("sent_at"),
   status: text("status").notNull(),
   amountDueCents: integer("amount_due_cents"),
   amountPaidCents: integer("amount_paid_cents"),

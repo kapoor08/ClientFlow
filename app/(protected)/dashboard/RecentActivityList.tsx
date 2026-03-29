@@ -1,0 +1,74 @@
+import Link from "next/link";
+import { ArrowUpRight, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { DashboardActivity } from "@/core/dashboard/entity";
+import { formatActivity, formatTimeAgo } from "@/core/dashboard/entity";
+
+// ─── ActivityItem ─────────────────────────────────────────────────────────────
+
+function ActivityItem({ item }: { item: DashboardActivity }) {
+  const initials = item.actorName
+    ? item.actorName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
+
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary mt-0.5">
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-foreground">
+          <span className="font-medium">{item.actorName ?? "Someone"}</span>
+          {" "}
+          <span className="text-muted-foreground">{formatActivity(item.action)}</span>
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{formatTimeAgo(item.createdAt)}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── RecentActivityList ───────────────────────────────────────────────────────
+
+export function RecentActivityList({
+  recentActivity,
+  isLoading,
+}: {
+  recentActivity: DashboardActivity[];
+  isLoading: boolean;
+}) {
+  return (
+    <div className="lg:col-span-2">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
+          <Activity size={16} />
+          Recent Activity
+        </h2>
+        <Button variant="default" size="sm" asChild>
+          <Link href="/activity-logs" className="flex items-center gap-1">
+            View All <ArrowUpRight size={14} />
+          </Link>
+        </Button>
+      </div>
+
+      <div className="rounded-card border border-border bg-card shadow-cf-1 px-4 py-1">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
+              <Skeleton className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="mt-1.5 h-3 w-16" />
+              </div>
+            </div>
+          ))
+        ) : recentActivity.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">No recent activity.</p>
+        ) : (
+          recentActivity.map((item) => <ActivityItem key={item.id} item={item} />)
+        )}
+      </div>
+    </div>
+  );
+}

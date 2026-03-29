@@ -14,6 +14,7 @@ import {
   Settings2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PushEnableButton } from "@/components/notifications/PushEnableButton";
 import {
@@ -82,7 +83,10 @@ const NotificationsPage = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => markAllRead.mutate()}
+              onClick={() => markAllRead.mutate(undefined, {
+                onSuccess: () => toast.success("All notifications marked as read."),
+                onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong."),
+              })}
             >
               <Check size={14} className="mr-1.5" /> Mark All Read
             </Button>
@@ -124,7 +128,12 @@ const NotificationsPage = () => {
                   key={n.id}
                   className={`flex items-start gap-3 p-4 transition-colors cursor-pointer hover:bg-secondary/30 ${!n.isRead ? "bg-brand-100/20" : ""}`}
                   onClick={() => {
-                    if (!n.isRead) markRead.mutate({ id: n.id, isRead: true });
+                    if (!n.isRead) markRead.mutate(
+                      { id: n.id, isRead: true },
+                      {
+                        onError: (err) => toast.error(err instanceof Error ? err.message : "Something went wrong."),
+                      },
+                    );
                   }}
                 >
                   <div

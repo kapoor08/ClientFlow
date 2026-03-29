@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { FolderKanban, Mail, Phone, User } from "lucide-react";
 import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
+import { toast } from "sonner";
 import { getUserInitials } from "@/core/auth";
 import { useDeleteClient } from "@/core/clients/useCase";
 import type { PaginationMeta } from "@/lib/pagination";
@@ -242,6 +243,9 @@ export function ClientsTable({
     setDeletingId(clientId);
     try {
       await deleteClient.mutateAsync({ clientId });
+      toast.success("Client deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete client.");
     } finally {
       setDeletingId(null);
     }

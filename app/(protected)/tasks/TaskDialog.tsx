@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,19 +139,26 @@ export function TaskDialog({
     try {
       if (mode === "create") {
         await createTask.mutateAsync(payload);
+        toast.success("Task created.");
       } else if (task) {
         await updateTask.mutateAsync({ taskId: task.id, data: payload });
+        toast.success("Task updated.");
       }
       onClose();
-    } catch {
-      // error is surfaced via createTask.error / updateTask.error below
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
   async function handleDelete() {
     if (!task) return;
-    await deleteTask.mutateAsync({ taskId: task.id });
-    onClose();
+    try {
+      await deleteTask.mutateAsync({ taskId: task.id });
+      toast.success("Task deleted.");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete task.");
+    }
   }
 
   const watchedStatus = watch("status");

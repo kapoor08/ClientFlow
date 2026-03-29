@@ -54,7 +54,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center">
           <Image
-            src="/logo.png"
+            src="/app-logo.png"
             alt="ClientFlow"
             width={130}
             height={28}
@@ -62,7 +62,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
             priority
           />
           <Image
-            src="/logo.png"
+            src="/app-logo.png"
             alt="ClientFlow"
             width={130}
             height={28}
@@ -169,7 +169,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
 
         <button
           className={cn(
-            "rounded-lg p-2 transition-colors md:hidden text-muted-foreground hover:bg-secondary",
+            "rounded-lg p-2 transition-colors md:hidden text-muted-foreground hover:bg-secondary cursor-pointer",
           )}
           onClick={() => setMobileOpen((prev) => !prev)}
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
@@ -218,7 +218,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                     </Badge>
                   </div>
                 </div>
-                <Button size="sm" asChild className="rounded-full">
+                <Button size="sm" asChild className="rounded-full cursor-pointer">
                   <Link
                     href={viewer.dashboardHref}
                     onClick={() => setMobileOpen(false)}

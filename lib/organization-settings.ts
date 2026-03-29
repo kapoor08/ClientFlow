@@ -1,4 +1,5 @@
 import { and, asc, eq, ne } from "drizzle-orm";
+import { getActiveOrgIdFromCookie } from "./active-org";
 import { user } from "@/db/auth-schema";
 import {
   organizationMemberships,
@@ -6,6 +7,7 @@ import {
   organizationSettings,
   roles,
 } from "@/db/schema";
+import type { RolePermissionsConfig, MemberPermissionOverrides } from "@/config/role-permissions";
 import { db } from "./db";
 
 const ACTIVE_MEMBERSHIP_STATUS = "active";
@@ -27,8 +29,16 @@ export type OrganizationSettingsContext = {
   timezone: string | null;
   currencyCode: string | null;
   requireEmailVerification: boolean;
+  logoUrl: string | null;
+  brandColor: string | null;
+  sessionTimeoutHours: number | null;
+  ipAllowlist: string[] | null;
+  ssoConfig: Record<string, unknown> | null;
   roleKey: string | null;
   canManageSettings: boolean;
+  rolePermissionsConfig: RolePermissionsConfig | null;
+  memberPermissionOverrides: MemberPermissionOverrides | null;
+  onboardingCompletedAt: Date | null;
 };
 
 export function getOrganizationRoleLabel(roleKey: string | null) {
@@ -41,11 +51,12 @@ export function getOrganizationRoleLabel(roleKey: string | null) {
 
 export function getWorkspaceHomeHrefForRole(roleKey: string | null) {
   switch (roleKey) {
+    case "client":
+      return "/client-portal";
     case "owner":
     case "admin":
     case "manager":
     case "member":
-    case "client":
     default:
       return "/dashboard";
   }
@@ -217,37 +228,50 @@ export async function bootstrapWorkspaceForUser(
 export async function getOrganizationSettingsContextForUser(
   userId: string,
 ): Promise<OrganizationSettingsContext | null> {
-  const rows = await db
-    .select({
-      organizationId: organizations.id,
-      organizationName: organizations.name,
-      organizationSlug: organizations.slug,
-      timezone: organizations.timezone,
-      currencyCode: organizations.currencyCode,
-      requireEmailVerification: organizationSettings.requireEmailVerification,
-      roleKey: roles.key,
-    })
-    .from(organizationMemberships)
-    .innerJoin(
-      organizations,
-      eq(organizationMemberships.organizationId, organizations.id),
-    )
-    .leftJoin(
-      organizationSettings,
-      eq(organizationSettings.organizationId, organizations.id),
-    )
-    .leftJoin(roles, eq(organizationMemberships.roleId, roles.id))
-    .where(
-      and(
-        eq(organizationMemberships.userId, userId),
-        eq(organizationMemberships.status, ACTIVE_MEMBERSHIP_STATUS),
-        eq(organizations.isActive, true),
-      ),
-    )
-    .orderBy(asc(organizationMemberships.createdAt))
-    .limit(1);
+  const [activeOrgId, rows] = await Promise.all([
+    getActiveOrgIdFromCookie(),
+    db
+      .select({
+        organizationId: organizations.id,
+        organizationName: organizations.name,
+        organizationSlug: organizations.slug,
+        timezone: organizations.timezone,
+        currencyCode: organizations.currencyCode,
+        requireEmailVerification: organizationSettings.requireEmailVerification,
+        logoUrl: organizationSettings.logoUrl,
+        brandColor: organizationSettings.brandColor,
+        sessionTimeoutHours: organizationSettings.sessionTimeoutHours,
+        ipAllowlist: organizationSettings.ipAllowlist,
+        ssoConfig: organizationSettings.ssoConfig,
+        rolePermissionsConfig: organizationSettings.rolePermissionsConfig,
+        onboardingCompletedAt: organizationSettings.onboardingCompletedAt,
+        memberPermissionOverrides: organizationMemberships.permissionOverrides,
+        roleKey: roles.key,
+      })
+      .from(organizationMemberships)
+      .innerJoin(
+        organizations,
+        eq(organizationMemberships.organizationId, organizations.id),
+      )
+      .leftJoin(
+        organizationSettings,
+        eq(organizationSettings.organizationId, organizations.id),
+      )
+      .leftJoin(roles, eq(organizationMemberships.roleId, roles.id))
+      .where(
+        and(
+          eq(organizationMemberships.userId, userId),
+          eq(organizationMemberships.status, ACTIVE_MEMBERSHIP_STATUS),
+          eq(organizations.isActive, true),
+        ),
+      )
+      .orderBy(asc(organizationMemberships.createdAt)),
+  ]);
 
-  const row = rows[0];
+  // Prefer the cookie-selected org; fall back to oldest membership
+  const row =
+    (activeOrgId ? rows.find((r) => r.organizationId === activeOrgId) : null) ??
+    rows[0];
 
   if (!row) {
     return null;
@@ -262,9 +286,53 @@ export async function getOrganizationSettingsContextForUser(
     timezone: row.timezone,
     currencyCode: row.currencyCode,
     requireEmailVerification: row.requireEmailVerification ?? false,
+    logoUrl: row.logoUrl ?? null,
+    brandColor: row.brandColor ?? null,
+    sessionTimeoutHours: row.sessionTimeoutHours ?? null,
+    ipAllowlist: (row.ipAllowlist as string[] | null) ?? null,
+    ssoConfig: (row.ssoConfig as Record<string, unknown> | null) ?? null,
     roleKey,
     canManageSettings: roleKey ? MANAGE_SETTINGS_ROLE_KEYS.has(roleKey) : false,
+    rolePermissionsConfig: (row.rolePermissionsConfig as RolePermissionsConfig | null) ?? null,
+    memberPermissionOverrides: (row.memberPermissionOverrides as MemberPermissionOverrides | null) ?? null,
+    onboardingCompletedAt: row.onboardingCompletedAt ?? null,
   };
+}
+
+export type UserOrgOption = {
+  id: string;
+  name: string;
+  roleKey: string | null;
+  logoUrl: string | null;
+};
+
+export async function listOrganizationsForUser(userId: string): Promise<UserOrgOption[]> {
+  const rows = await db
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      roleKey: roles.key,
+      logoUrl: organizationSettings.logoUrl,
+    })
+    .from(organizationMemberships)
+    .innerJoin(organizations, eq(organizationMemberships.organizationId, organizations.id))
+    .leftJoin(organizationSettings, eq(organizationSettings.organizationId, organizations.id))
+    .leftJoin(roles, eq(organizationMemberships.roleId, roles.id))
+    .where(
+      and(
+        eq(organizationMemberships.userId, userId),
+        eq(organizationMemberships.status, ACTIVE_MEMBERSHIP_STATUS),
+        eq(organizations.isActive, true),
+      ),
+    )
+    .orderBy(asc(organizationMemberships.createdAt));
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    roleKey: r.roleKey ?? null,
+    logoUrl: r.logoUrl ?? null,
+  }));
 }
 
 export async function getEmailVerificationPolicyForUserId(userId: string) {
@@ -419,5 +487,109 @@ export async function updateOrganizationSettingsForUser(
         requireEmailVerification: input.requireEmailVerification,
         updatedAt: new Date(),
       },
+    });
+}
+
+export async function updateOrganizationBrandingForUser(
+  userId: string,
+  input: { logoUrl?: string | null; brandColor?: string | null },
+): Promise<{ logoUrl: string | null; brandColor: string | null }> {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) throw new Error("No active organization found.");
+  if (!context.canManageSettings) throw new Error("Only admins can update branding.");
+
+  const [saved] = await db
+    .insert(organizationSettings)
+    .values({
+      id: createId(),
+      organizationId: context.organizationId,
+      requireEmailVerification: context.requireEmailVerification,
+      logoUrl: input.logoUrl ?? null,
+      brandColor: input.brandColor ?? null,
+    })
+    .onConflictDoUpdate({
+      target: organizationSettings.organizationId,
+      set: {
+        ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl } : {}),
+        ...(input.brandColor !== undefined ? { brandColor: input.brandColor } : {}),
+        updatedAt: new Date(),
+      },
+    })
+    .returning({
+      logoUrl: organizationSettings.logoUrl,
+      brandColor: organizationSettings.brandColor,
+    });
+
+  return {
+    logoUrl: saved?.logoUrl ?? null,
+    brandColor: saved?.brandColor ?? null,
+  };
+}
+
+export async function updateSsoConfigForUser(
+  userId: string,
+  ssoConfig: Record<string, unknown> | null,
+) {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) throw new Error("No active organization found.");
+  if (!context.canManageSettings) throw new Error("Only admins can update SSO settings.");
+
+  await db
+    .insert(organizationSettings)
+    .values({
+      id: createId(),
+      organizationId: context.organizationId,
+      requireEmailVerification: context.requireEmailVerification,
+      ssoConfig,
+    })
+    .onConflictDoUpdate({
+      target: organizationSettings.organizationId,
+      set: { ssoConfig, updatedAt: new Date() },
+    });
+}
+
+export async function updateSecurityPoliciesForUser(
+  userId: string,
+  input: { sessionTimeoutHours?: number | null; ipAllowlist?: string[] | null },
+) {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) throw new Error("No active organization found.");
+  if (!context.canManageSettings) throw new Error("Only admins can update security policies.");
+
+  await db
+    .insert(organizationSettings)
+    .values({
+      id: createId(),
+      organizationId: context.organizationId,
+      requireEmailVerification: context.requireEmailVerification,
+      sessionTimeoutHours: input.sessionTimeoutHours ?? null,
+      ipAllowlist: input.ipAllowlist ?? null,
+    })
+    .onConflictDoUpdate({
+      target: organizationSettings.organizationId,
+      set: {
+        ...(input.sessionTimeoutHours !== undefined ? { sessionTimeoutHours: input.sessionTimeoutHours } : {}),
+        ...(input.ipAllowlist !== undefined ? { ipAllowlist: input.ipAllowlist } : {}),
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function completeOnboardingForUser(userId: string): Promise<void> {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) return;
+  if (context.onboardingCompletedAt) return; // already done
+
+  await db
+    .insert(organizationSettings)
+    .values({
+      id: createId(),
+      organizationId: context.organizationId,
+      requireEmailVerification: context.requireEmailVerification,
+      onboardingCompletedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: organizationSettings.organizationId,
+      set: { onboardingCompletedAt: new Date(), updatedAt: new Date() },
     });
 }

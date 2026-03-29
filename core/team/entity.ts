@@ -1,3 +1,5 @@
+import type { MemberPermissionOverrides } from "@/config/role-permissions";
+
 export type TeamMemberItem = {
   membershipId: string;
   userId: string;
@@ -9,6 +11,7 @@ export type TeamMemberItem = {
   status: string;
   joinedAt: string | null;
   projectCount: number;
+  permissionOverrides: MemberPermissionOverrides | null;
 };
 
 export type AssignableRole = {

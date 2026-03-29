@@ -83,7 +83,8 @@ export function getPlanLimits(planCode: string): PlanLimits {
 }
 
 export function canAccessHref(planCode: string, href: string): boolean {
-  const allowed = PLAN_MODULE_HREFS[planCode as PlanCode] ?? PLAN_MODULE_HREFS.free;
+  const code = planCode as PlanCode;
+  const allowed = code in PLAN_MODULE_HREFS ? PLAN_MODULE_HREFS[code] : PLAN_MODULE_HREFS.free;
   if (allowed === null) return true;
-  return allowed.some((h) => href.startsWith(h));
+  return allowed!.some((h) => href.startsWith(h));
 }

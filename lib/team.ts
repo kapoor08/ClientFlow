@@ -5,6 +5,7 @@ import { user } from "@/db/auth-schema";
 import { organizationMemberships, projectMembers, roles } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import type { MemberPermissionOverrides } from "@/config/role-permissions";
 
 export type TeamModuleAccess = {
   organizationId: string;
@@ -24,6 +25,7 @@ export type TeamMember = {
   status: string;
   joinedAt: Date | null;
   projectCount: number;
+  permissionOverrides: MemberPermissionOverrides | null;
 };
 
 export type AssignableRole = {
@@ -63,6 +65,7 @@ export async function listTeamMembersForUser(userId: string): Promise<{
         roleName: roles.name,
         status: organizationMemberships.status,
         joinedAt: organizationMemberships.joinedAt,
+        permissionOverrides: organizationMemberships.permissionOverrides,
       })
       .from(organizationMemberships)
       .innerJoin(user, eq(organizationMemberships.userId, user.id))
@@ -99,6 +102,7 @@ export async function listTeamMembersForUser(userId: string): Promise<{
     members: rows.map((r) => ({
       ...r,
       projectCount: countMap.get(r.userId) ?? 0,
+      permissionOverrides: (r.permissionOverrides as MemberPermissionOverrides | null) ?? null,
     })),
     assignableRoles: roleRows,
   };
@@ -171,6 +175,34 @@ export async function updateMemberStatusForUser(
   await db
     .update(organizationMemberships)
     .set({ status: newStatus, updatedAt: new Date() })
+    .where(eq(organizationMemberships.id, targetMembershipId));
+}
+
+export async function updateMemberPermissionOverridesForUser(
+  userId: string,
+  targetMembershipId: string,
+  overrides: MemberPermissionOverrides | null,
+): Promise<void> {
+  const access = await getTeamAccessForUser(userId);
+  if (!access) throw new Error("No active organization found.");
+  if (!access.canManage) throw new Error("You do not have permission to manage member permissions.");
+
+  const existing = await db
+    .select({ id: organizationMemberships.id, userId: organizationMemberships.userId })
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.id, targetMembershipId),
+        eq(organizationMemberships.organizationId, access.organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0]) throw new Error("Member not found.");
+
+  await db
+    .update(organizationMemberships)
+    .set({ permissionOverrides: overrides, updatedAt: new Date() })
     .where(eq(organizationMemberships.id, targetMembershipId));
 }
 

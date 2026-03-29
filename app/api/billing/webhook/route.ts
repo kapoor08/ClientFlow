@@ -6,10 +6,20 @@ import {
   plans,
   subscriptions,
   organizationCurrentSubscriptions,
+  organizations,
+  organizationMemberships,
+  roles,
   invoices,
   billingWebhookEvents,
 } from "@/db/schema";
+import { user } from "@/db/auth-schema";
 import { eq } from "drizzle-orm";
+import {
+  onPaymentFailed,
+  onInvoiceAvailable,
+  onSubscriptionChanged,
+} from "@/lib/email-triggers";
+import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +52,30 @@ function getSubscriptionPeriod(stripeSub: Stripe.Subscription): {
   const trialEnd = stripeSub.trial_end ?? null;
 
   return { periodStart, periodEnd, trialEnd };
+}
+
+// ─── Billing email helper ─────────────────────────────────────────────────────
+
+async function getOrgBillingContext(orgId: string) {
+  const [org, ownerMembership] = await Promise.all([
+    db.select({ id: organizations.id, name: organizations.name }).from(organizations).where(eq(organizations.id, orgId)).limit(1),
+    db
+      .select({ userId: organizationMemberships.userId, name: user.name, email: user.email })
+      .from(organizationMemberships)
+      .innerJoin(user, eq(organizationMemberships.userId, user.id))
+      .innerJoin(roles, eq(organizationMemberships.roleId, roles.id))
+      .where(eq(organizationMemberships.organizationId, orgId))
+      .limit(1),
+  ]);
+
+  const orgData = org[0];
+  const owner = ownerMembership[0];
+  if (!orgData || !owner?.email) return null;
+
+  return {
+    org: { id: orgData.id, name: orgData.name },
+    owner: { id: owner.userId, name: owner.name ?? "Account owner", email: owner.email },
+  };
 }
 
 // ─── Event handlers ───────────────────────────────────────────────────────────
@@ -109,6 +143,18 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
   const stripeSubscriptionId = stripeSub.id;
   const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
 
+  // Fetch current sub state for email trigger context
+  const [existingSub] = await db
+    .select({
+      id: subscriptions.id,
+      organizationId: subscriptions.organizationId,
+      cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
+      planId: subscriptions.planId,
+    })
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
+
   await db
     .update(subscriptions)
     .set({
@@ -121,6 +167,32 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
+
+  // Email trigger: subscription lifecycle change
+  if (existingSub?.organizationId) {
+    const changeType: "cancelled" | "resumed" | "upgraded" =
+      stripeSub.cancel_at_period_end && !existingSub.cancelAtPeriodEnd
+        ? "cancelled"
+        : !stripeSub.cancel_at_period_end && existingSub.cancelAtPeriodEnd
+          ? "resumed"
+          : "upgraded";
+
+    Promise.all([
+      getOrgBillingContext(existingSub.organizationId),
+      db.select({ name: plans.name }).from(plans).where(eq(plans.id, existingSub.planId)).limit(1),
+    ]).then(([ctx, planRows]) => {
+      if (!ctx) return;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      return onSubscriptionChanged({
+        owner: ctx.owner,
+        org: ctx.org,
+        changeType,
+        oldPlan: planRows?.[0]?.name ?? "Current plan",
+        newPlan: planRows?.[0]?.name ?? "Current plan",
+        billingUrl: `${appUrl}/settings/billing`,
+      });
+    }).catch(console.error);
+  }
 }
 
 async function handleSubscriptionDeleted(stripeSub: Stripe.Subscription) {
@@ -176,6 +248,34 @@ async function handleInvoicePaid(stripeInvoice: Stripe.Invoice) {
         : new Date(),
     })
     .onConflictDoNothing();
+
+  // Webhook dispatch: invoice.paid
+  dispatchWebhookEvent(sub.organizationId, "invoice.paid", {
+    externalInvoiceId: stripeInvoice.id,
+    amountPaid: stripeInvoice.amount_paid,
+    currency: stripeInvoice.currency,
+  }).catch(console.error);
+
+  // Email trigger: invoice available
+  getOrgBillingContext(sub.organizationId).then((ctx) => {
+    if (!ctx) return;
+    const amountFormatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: stripeInvoice.currency.toUpperCase(),
+    }).format(stripeInvoice.amount_paid / 100);
+    return onInvoiceAvailable({
+      owner: ctx.owner,
+      org: ctx.org,
+      invoice: {
+        number: stripeInvoice.number ?? stripeInvoice.id,
+        amountDue: amountFormatted,
+        dueDate: stripeInvoice.due_date
+          ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+          : "—",
+      },
+      invoiceUrl: stripeInvoice.hosted_invoice_url ?? "",
+    });
+  }).catch(console.error);
 }
 
 async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
@@ -206,6 +306,29 @@ async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
       dueAt: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000) : null,
     })
     .onConflictDoNothing();
+
+  // Email trigger: payment failed
+  getOrgBillingContext(sub.organizationId).then((ctx) => {
+    if (!ctx) return;
+    const amountFormatted = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: stripeInvoice.currency.toUpperCase(),
+    }).format(stripeInvoice.amount_due / 100);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    return onPaymentFailed({
+      owner: ctx.owner,
+      org: ctx.org,
+      invoice: {
+        number: stripeInvoice.number ?? stripeInvoice.id,
+        amountDue: amountFormatted,
+        dueDate: stripeInvoice.due_date
+          ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+          : "—",
+      },
+      failureReason: "Your card was declined.",
+      retryUrl: `${appUrl}/settings/billing`,
+    });
+  }).catch(console.error);
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────

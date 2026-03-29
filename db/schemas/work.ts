@@ -1,6 +1,7 @@
 import {
   AnyPgColumn,
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -214,3 +215,51 @@ export const taskAssignees = pgTable(
     ),
   ],
 );
+
+export const timeEntries = pgTable(
+  "time_entries",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    taskId: text("task_id").references(() => tasks.id, { onDelete: "set null" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    minutes: integer("minutes").notNull(),
+    description: text("description"),
+    loggedAt: timestamp("logged_at").notNull().defaultNow(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("time_entries_project_idx").on(table.projectId),
+    index("time_entries_task_idx").on(table.taskId),
+  ],
+);
+
+export type ProjectTemplateTask = {
+  title: string;
+  description?: string;
+  priority?: string;
+  dueDaysFromStart?: number;
+};
+
+export const projectTemplates = pgTable("project_templates", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  defaultStatus: text("default_status").default("planning").notNull(),
+  defaultPriority: text("default_priority"),
+  tasks: jsonb("tasks").$type<ProjectTemplateTask[]>().default([]).notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

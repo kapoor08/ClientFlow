@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ControlledInput } from "@/components/form/ControlledInput";
 import { ControlledPhoneInput } from "@/components/form/ControlledPhoneInput";
@@ -59,17 +60,21 @@ export function ClientForm(props: ClientFormProps) {
         { clientId: props.clientId, data: values },
         {
           onSuccess: () => {
+            toast.success("Client updated.");
             router.push(`/clients/${props.clientId}`);
             router.refresh();
           },
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update client."),
         },
       );
     } else {
       createClient.mutate(values, {
         onSuccess: (data) => {
+          toast.success("Client created.");
           router.push(`/clients/${data.clientId}`);
           router.refresh();
         },
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to create client."),
       });
     }
   };

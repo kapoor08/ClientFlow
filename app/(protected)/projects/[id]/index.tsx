@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { FileUploader } from "@/components/files/FileUploader";
 import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
+import { ProjectTimesheetSection } from "./TimesheetSection";
 import { getProjectDetailForUser } from "@/lib/projects";
 import { getServerSession } from "@/lib/get-session";
 import {
@@ -275,6 +276,9 @@ export default async function ProjectDetailPage({
 
       {/* Tasks */}
       <ProjectTasksSection projectId={project.id} canWrite={access.canWrite} />
+
+      {/* Timesheet */}
+      <ProjectTimesheetSection projectId={project.id} />
 
       {/* Footer meta */}
       <p className="text-right text-xs text-muted-foreground">

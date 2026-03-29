@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Building2, Calendar, FolderKanban } from "lucide-react";
 import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
+import { toast } from "sonner";
 import { useDeleteProject } from "@/core/projects/useCase";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ProjectListItem } from "@/lib/projects";
@@ -277,6 +278,9 @@ export function ProjectsTable({
     setDeletingId(projectId);
     try {
       await deleteProject.mutateAsync({ projectId });
+      toast.success("Project deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project.");
     } finally {
       setDeletingId(null);
     }

@@ -10,7 +10,7 @@ const PublicFooter = () => {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2">
               <Image
-                src="/logo.png"
+                src="/app-logo.png"
                 alt="ClientFlow"
                 width={130}
                 height={28}

@@ -54,6 +54,7 @@ export const taskFormSchema = z.object({
   columnId: z.string().nullable().default(null),
   tags: z.array(z.string()).default([]),
   parentTaskId: z.string().nullable().optional(),
+  reporterUserId: z.string().nullable().optional(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

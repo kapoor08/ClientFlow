@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "./get-session";
 import { PlanLimitError } from "./plan-enforcement";
+import { validateApiKey } from "./api-key-auth";
 
 export type AuthenticatedContext = {
   userId: string;
 };
+
+/**
+ * Context returned when a request is authenticated via either a user session
+ * or a bearer API key.
+ */
+export type ApiAuthContext =
+  | { type: "session"; userId: string }
+  | { type: "apiKey"; organizationId: string };
 
 export class ApiError extends Error {
   constructor(
@@ -28,6 +37,32 @@ export async function requireAuth(): Promise<AuthenticatedContext> {
   }
 
   return { userId: session.user.id };
+}
+
+/**
+ * Accepts either a session cookie OR an `X-API-Key` header.
+ * Returns ApiAuthContext so the caller can branch on `.type`.
+ *
+ * Throws ApiError(401) if neither credential is valid.
+ */
+export async function requireSessionOrApiKeyAuth(
+  request: Request,
+): Promise<ApiAuthContext> {
+  const apiKeyHeader = request.headers.get("x-api-key");
+
+  if (apiKeyHeader) {
+    const result = await validateApiKey(apiKeyHeader);
+    if (!result) {
+      throw new ApiError("Invalid or expired API key.", 401);
+    }
+    return { type: "apiKey", organizationId: result.organizationId };
+  }
+
+  const session = await getServerSession();
+  if (!session?.user) {
+    throw new ApiError("Unauthorized.", 401);
+  }
+  return { type: "session", userId: session.user.id };
 }
 
 /**

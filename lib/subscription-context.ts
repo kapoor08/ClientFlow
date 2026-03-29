@@ -11,6 +11,7 @@ import { getOrganizationSettingsContextForUser } from "@/lib/organization-settin
 
 export type SubscriptionContext = {
   planCode: string;
+  roleKey: string | null;
   status: string;
   trialEndsAt: Date | null;
   daysLeftInTrial: number | null;
@@ -67,6 +68,7 @@ export async function getSubscriptionContextForUser(
 
   return {
     planCode: row.planCode,
+    roleKey: orgContext.roleKey,
     status: row.status,
     trialEndsAt,
     daysLeftInTrial,

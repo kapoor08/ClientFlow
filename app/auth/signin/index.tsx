@@ -14,6 +14,7 @@ import {
   useGoogleSignIn,
   useSignIn,
 } from "@/core/auth";
+import { toast } from "sonner";
 import GooogleIcon from "@/assets/GoogleIcon";
 
 const SignIn = () => {
@@ -42,6 +43,7 @@ const SignIn = () => {
         password,
         callbackURL: redirectTo,
       });
+      toast.success("Signed in successfully.");
       router.push(redirectTo);
       router.refresh();
     } catch (currentError) {
@@ -126,10 +128,19 @@ const SignIn = () => {
       <div className="mt-4 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href={authRoutes.signUp}
+          href={redirectTo && redirectTo !== authRoutes.dashboard ? `${authRoutes.signUp}?redirectTo=${encodeURIComponent(redirectTo)}` : authRoutes.signUp}
           className="font-medium text-primary hover:underline"
         >
           Sign up
+        </Link>
+      </div>
+
+      <div className="mt-3 text-center">
+        <Link
+          href="/auth/sso"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Sign in with SSO →
         </Link>
       </div>
     </AuthSplitLayout>

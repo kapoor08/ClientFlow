@@ -7,6 +7,11 @@ import {
 import { writeAuditLog } from "@/lib/audit";
 import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { onRoleChanged } from "@/lib/email-triggers";
+import { db } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { organizationMemberships, organizations, roles } from "@/db/schema";
+import { user } from "@/db/auth-schema";
 
 type RouteContext = { params: Promise<{ memberId: string }> };
 
@@ -25,8 +30,40 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     if (action === "change-role") {
       const roleKey = body?.roleKey as string | undefined;
       if (!roleKey) throw new ApiError("roleKey is required.", 422);
+
+      // Capture old role before update for email trigger
+      const [memberBefore] = await db
+        .select({ userId: organizationMemberships.userId, roleId: organizationMemberships.roleId })
+        .from(organizationMemberships)
+        .where(eq(organizationMemberships.id, memberId))
+        .limit(1);
+
       await updateMemberRoleForUser(userId, memberId, roleKey);
       if (orgId) writeAuditLog({ organizationId: orgId, actorUserId: userId, action: "member.role_changed", entityType: "membership", entityId: memberId, metadata: { newRoleKey: roleKey }, ipAddress: ip, userAgent: ua }).catch(console.error);
+
+      // Email trigger: notify the member of their role change
+      if (memberBefore && orgId) {
+        Promise.all([
+          db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, memberBefore.userId)).limit(1),
+          db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+          db.select({ id: organizations.id, name: organizations.name }).from(organizations).where(eq(organizations.id, orgId)).limit(1),
+          db.select({ name: roles.name }).from(roles).where(eq(roles.id, memberBefore.roleId)).limit(1),
+          db.select({ name: roles.name }).from(roles).where(eq(roles.key, roleKey)).limit(1),
+        ]).then(([memberRows, actorRows, orgRows, oldRoleRows, newRoleRows]) => {
+          const member = memberRows[0];
+          const actor = actorRows[0];
+          const org = orgRows[0];
+          if (!member?.email || !actor?.email || !org) return;
+          return onRoleChanged({
+            member: { id: memberBefore.userId, name: member.name ?? "Team member", email: member.email },
+            org: { id: orgId!, name: org.name },
+            actor: { id: userId, name: actor.name ?? "An admin", email: actor.email },
+            oldRole: oldRoleRows?.[0]?.name ?? roleKey,
+            newRole: newRoleRows?.[0]?.name ?? roleKey,
+          });
+        }).catch(console.error);
+      }
+
       return NextResponse.json({ ok: true });
     }
 

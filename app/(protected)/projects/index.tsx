@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, LayoutTemplate } from "lucide-react";
 import { listProjectsForUser } from "@/lib/projects";
 import { projectsSearchParamsCache } from "@/core/projects/searchParams";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
@@ -42,13 +42,22 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
       description={`${pagination.total} project${pagination.total === 1 ? "" : "s"} total`}
       action={
         access.canWrite ? (
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus size={15} />
-            New Project
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/projects/templates"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+            >
+              <LayoutTemplate size={14} />
+              Templates
+            </Link>
+            <Link
+              href="/projects/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus size={15} />
+              New Project
+            </Link>
+          </div>
         ) : undefined
       }
     >

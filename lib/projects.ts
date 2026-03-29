@@ -1,6 +1,7 @@
 import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
+import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
 import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/lib/db";
@@ -325,6 +326,14 @@ export async function createProjectForUser(
     entityType: "project",
     entityId: projectId,
     metadata: { name: input.name.trim() },
+  }).catch(console.error);
+
+  // ─── Webhook dispatch ─────────────────────────────────────────────────────
+  dispatchWebhookEvent(access.organizationId, "project.created", {
+    projectId,
+    name: input.name.trim(),
+    status: input.status,
+    clientId: input.clientId ?? null,
   }).catch(console.error);
 
   // Notify all org members about the new project (awaited so notification is in DB before response)

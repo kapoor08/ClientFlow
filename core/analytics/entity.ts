@@ -8,6 +8,11 @@ export type MonthlyCount = {
   total: number;
 };
 
+export type MonthlyRevenue = {
+  month: string;
+  totalCents: number;
+};
+
 export type RecentProject = {
   id: string;
   name: string;
@@ -22,8 +27,10 @@ export type AnalyticsSummary = {
   activeProjects: number;
   completedProjects: number;
   totalFiles: number;
+  totalRevenueCents: number;
   projectsByStatus: ProjectStatusBreakdown[];
   monthlyProjectCreation: MonthlyCount[];
+  monthlyRevenue: MonthlyRevenue[];
   recentProjects: RecentProject[];
 };
 

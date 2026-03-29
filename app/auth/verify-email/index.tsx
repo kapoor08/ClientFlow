@@ -15,6 +15,7 @@ import {
 const VerifyEmailPage = () => {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+  const redirectTo = searchParams.get("redirectTo") || "";
   const resendVerificationEmail = useResendVerificationEmail();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +77,10 @@ const VerifyEmailPage = () => {
         </Button>
 
         <div className="text-center text-sm text-muted-foreground">
-          <Link href={authRoutes.signIn} className="text-primary hover:underline">
+          <Link
+            href={redirectTo ? `${authRoutes.signIn}?redirectTo=${encodeURIComponent(redirectTo)}` : authRoutes.signIn}
+            className="text-primary hover:underline"
+          >
             Back to sign in
           </Link>
         </div>

@@ -12,7 +12,7 @@ import {
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { onUserInvited, onInviteRevoked } from "@/lib/email-triggers";
+import { onUserInvited, onInviteRevoked, onInviteAccepted } from "@/lib/email-triggers";
 import { dispatchNotification } from "@/lib/notifications";
 import {
   getAssignableRoleKeys,
@@ -434,7 +434,7 @@ export async function getInvitationByToken(
 export async function acceptInvitationForUser(
   userId: string,
   rawToken: string,
-): Promise<{ organizationId: string }> {
+): Promise<{ organizationId: string; roleKey: string | null }> {
   const hash = hashToken(rawToken);
 
   const [invitation] = await db
@@ -442,11 +442,13 @@ export async function acceptInvitationForUser(
       id: organizationInvitations.id,
       organizationId: organizationInvitations.organizationId,
       roleId: organizationInvitations.roleId,
+      roleKey: roles.key,
       invitedByUserId: organizationInvitations.invitedByUserId,
       status: organizationInvitations.status,
       expiresAt: organizationInvitations.expiresAt,
     })
     .from(organizationInvitations)
+    .leftJoin(roles, eq(organizationInvitations.roleId, roles.id))
     .where(eq(organizationInvitations.tokenHash, hash))
     .limit(1);
 
@@ -496,5 +498,26 @@ export async function acceptInvitationForUser(
     }).catch(console.error);
   }
 
-  return { organizationId: invitation.organizationId };
+  // Email trigger: notify inviter with full details
+  Promise.all([
+    db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+    invitation.invitedByUserId
+      ? db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, invitation.invitedByUserId)).limit(1)
+      : Promise.resolve([null] as const),
+    db.select({ id: organizations.id, name: organizations.name }).from(organizations).where(eq(organizations.id, invitation.organizationId)).limit(1),
+    db.select({ name: roles.name }).from(roles).where(eq(roles.id, invitation.roleId)).limit(1),
+  ]).then(([acceptedRows, inviterRows, orgRows, roleRows]) => {
+    const accepted = acceptedRows[0];
+    const inviter = inviterRows[0];
+    const org = orgRows[0];
+    if (!accepted?.email || !inviter?.email || !org) return;
+    return onInviteAccepted({
+      acceptedUser: { id: userId, name: accepted.name ?? "A new member", email: accepted.email },
+      org: { id: org.id, name: org.name },
+      role: roleRows?.[0]?.name ?? "Member",
+      recipients: [{ id: invitation.invitedByUserId!, name: inviter.name ?? "Team admin", email: inviter.email }],
+    });
+  }).catch(console.error);
+
+  return { organizationId: invitation.organizationId, roleKey: invitation.roleKey ?? null };
 }

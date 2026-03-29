@@ -293,3 +293,38 @@ export async function getSignedUploadParams(
     folder,
   };
 }
+
+/**
+ * Generates a Cloudinary signed upload for a named folder (e.g. org-logos).
+ * Used by the branding settings page. Scoped to the user's organization.
+ */
+export async function getSignedUploadParamsForFolder(
+  userId: string,
+  folderName: string,
+): Promise<{
+  signature: string;
+  timestamp: number;
+  cloudName: string;
+  apiKey: string;
+  folder: string;
+}> {
+  const access = await getFilesModuleAccessForUser(userId);
+  if (!access) throw new Error("No active organization found.");
+  if (!access.canWrite) throw new Error("You do not have permission to upload files.");
+
+  const timestamp = Math.round(Date.now() / 1000);
+  const folder = `clientflow/${access.organizationId}/${folderName}`;
+
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder },
+    process.env.CLOUDINARY_API_SECRET!,
+  );
+
+  return {
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+    apiKey: process.env.CLOUDINARY_API_KEY!,
+    folder,
+  };
+}

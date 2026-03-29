@@ -1,9 +1,12 @@
 import {
   boolean,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { user } from "../auth-schema";
 import { createdAt, updatedAt } from "./helpers";
@@ -34,6 +37,13 @@ export const organizationSettings = pgTable(
     requireEmailVerification: boolean("require_email_verification")
       .default(false)
       .notNull(),
+    logoUrl: text("logo_url"),
+    brandColor: text("brand_color"),
+    sessionTimeoutHours: integer("session_timeout_hours"),
+    ipAllowlist: jsonb("ip_allowlist").$type<string[]>(),
+    ssoConfig: jsonb("sso_config").$type<Record<string, unknown>>(),
+    rolePermissionsConfig: jsonb("role_permissions_config").$type<import("@/config/role-permissions").RolePermissionsConfig>(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -73,6 +83,7 @@ export const organizationMemberships = pgTable(
     status: text("status").notNull(),
     joinedAt: timestamp("joined_at"),
     invitedByUserId: text("invited_by_user_id").references(() => user.id),
+    permissionOverrides: jsonb("permission_overrides").$type<Record<string, import("@/config/role-permissions").MemberPermissionOverride>>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -131,5 +142,50 @@ export const rolePermissions = pgTable(
       table.roleId,
       table.permissionId,
     ),
+  ],
+);
+
+export const outboundWebhooks = pgTable(
+  "outbound_webhooks",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: jsonb("events").$type<string[]>().default([]).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdByUserId: text("created_by_user_id").references(() => user.id),
+    lastTriggeredAt: timestamp("last_triggered_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("outbound_webhooks_organization_idx").on(table.organizationId),
+  ],
+);
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    keyHash: text("key_hash").notNull(),
+    keyPrefix: text("key_prefix").notNull(),
+    createdByUserId: text("created_by_user_id").references(() => user.id),
+    lastUsedAt: timestamp("last_used_at"),
+    expiresAt: timestamp("expires_at"),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("api_keys_organization_idx").on(table.organizationId),
+    uniqueIndex("api_keys_hash_unique").on(table.keyHash),
   ],
 );

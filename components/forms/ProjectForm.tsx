@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 import {
   projectFormSchema,
   getDefaultProjectFormValues,
@@ -94,10 +95,12 @@ export function ProjectForm({
     try {
       if (mode === "create") {
         const res = await createProject.mutateAsync(values);
+        toast.success("Project created.");
         router.push(`/projects/${res.projectId}`);
         router.refresh();
       } else {
         await updateProject.mutateAsync({ projectId: projectId!, data: values });
+        toast.success("Project updated.");
         router.push(`/projects/${projectId}`);
         router.refresh();
       }
@@ -105,6 +108,7 @@ export function ProjectForm({
       const message =
         err instanceof Error ? err.message : "Something went wrong.";
       setServerError(message);
+      toast.error(message);
     }
   }
 

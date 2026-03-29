@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getServerSession } from "@/lib/get-session";
 import { listTeamMembersForUser } from "@/lib/team";
+import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import TeamsPage from ".";
 import type { TeamListResponse } from "@/core/team/entity";
 
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const session = await getServerSession();
-  const result = await listTeamMembersForUser(session!.user.id);
+  const [result, orgCtx] = await Promise.all([
+    listTeamMembersForUser(session!.user.id),
+    getOrganizationSettingsContextForUser(session!.user.id),
+  ]);
 
   const initialData: TeamListResponse = {
     access: result.access
@@ -27,5 +31,5 @@ export default async function Page() {
     assignableRoles: result.assignableRoles,
   };
 
-  return <TeamsPage initialData={initialData} />;
+  return <TeamsPage initialData={initialData} orgRolePermissions={orgCtx?.rolePermissionsConfig ?? null} />;
 }

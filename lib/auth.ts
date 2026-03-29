@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
+import { twoFactor } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { account, session, user, verification } from "@/db/auth-schema";
+import { account, session, twoFactorTable, user, verification } from "@/db/auth-schema";
 import { bootstrapWorkspaceForUser } from "@/lib/organization-settings";
 import { sendVerifyEmail, sendPasswordReset } from "@/lib/email";
 import { db } from "./db";
@@ -50,6 +51,7 @@ export const auth = betterAuth({
       session,
       account,
       verification,
+      twoFactor: twoFactorTable,
     },
   }),
   trustedOrigins: [baseURL],
@@ -95,6 +97,7 @@ export const auth = betterAuth({
       }
     },
   },
+  plugins: [twoFactor({ issuer: "ClientFlow" })],
   socialProviders:
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? {

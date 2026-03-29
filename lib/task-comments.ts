@@ -1,11 +1,12 @@
 import "server-only";
 
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
-import { tasks, taskComments, taskAuditLogs } from "@/db/schema";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { tasks, taskComments, taskAuditLogs, projects } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { dispatchNotification } from "@/lib/notifications";
+import { onTaskCommentAdded, onTaskMentioned } from "@/lib/email-triggers";
 
 export type TaskComment = {
   id: string;
@@ -29,12 +30,12 @@ export type TaskActivityEntry = {
 async function verifyTaskAccess(
   userId: string,
   taskId: string,
-): Promise<{ organizationId: string; assigneeUserId: string | null; title: string } | null> {
+): Promise<{ organizationId: string; assigneeUserId: string | null; title: string; projectId: string | null } | null> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
 
   const [task] = await db
-    .select({ id: tasks.id, assigneeUserId: tasks.assigneeUserId, title: tasks.title })
+    .select({ id: tasks.id, assigneeUserId: tasks.assigneeUserId, title: tasks.title, projectId: tasks.projectId })
     .from(tasks)
     .where(
       and(
@@ -50,6 +51,7 @@ async function verifyTaskAccess(
     organizationId: context.organizationId,
     assigneeUserId: task.assigneeUserId,
     title: task.title,
+    projectId: task.projectId ?? null,
   };
 }
 
@@ -119,6 +121,64 @@ export async function createTaskComment(
       url: "/tasks",
     }).catch(console.error);
   }
+
+  // ─── Email triggers ────────────────────────────────────────────────────────
+  const commentSnippet = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+
+  // Extract mentioned user IDs from Tiptap mention nodes: data-id="<userId>"
+  const mentionedIds = Array.from(body.matchAll(/data-id="([^"]+)"/g)).map((m) => m[1]);
+
+  const actorId = userId;
+  Promise.all([
+    db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, actorId)).limit(1),
+    access.assigneeUserId
+      ? db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, access.assigneeUserId)).limit(1)
+      : Promise.resolve([null] as const),
+    access.projectId
+      ? db.select({ name: projects.name }).from(projects).where(eq(projects.id, access.projectId)).limit(1)
+      : Promise.resolve([null] as const),
+    mentionedIds.length > 0
+      ? db.select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, mentionedIds))
+      : Promise.resolve([] as { id: string; name: string | null; email: string }[]),
+  ]).then(([actorRows, assigneeRows, projectRows, mentionedUsers]) => {
+    const actor = actorRows[0];
+    if (!actor?.email) return;
+
+    const taskRef = { id: taskId, title: access.title, dueDate: null };
+    const projectRef = { id: access.projectId ?? "", name: projectRows?.[0]?.name ?? "Unknown project" };
+    const actorRef = { id: actorId, name: actor.name ?? "A teammate", email: actor.email };
+
+    const promises: Promise<unknown>[] = [];
+
+    // Comment notification to assignee
+    if (access.assigneeUserId && access.assigneeUserId !== userId) {
+      const assignee = assigneeRows[0];
+      if (assignee?.email) {
+        promises.push(onTaskCommentAdded({
+          recipients: [{ id: access.assigneeUserId, name: assignee.name ?? "Team member", email: assignee.email }],
+          task: taskRef,
+          project: projectRef,
+          actor: actorRef,
+          commentSnippet,
+        }));
+      }
+    }
+
+    // Mention notifications (excluding the comment author)
+    for (const mentioned of mentionedUsers) {
+      if (mentioned.id !== userId && mentioned.email) {
+        promises.push(onTaskMentioned({
+          mentioned: { id: mentioned.id, name: mentioned.name ?? "Team member", email: mentioned.email },
+          task: taskRef,
+          project: projectRef,
+          actor: actorRef,
+          commentSnippet,
+        }));
+      }
+    }
+
+    return Promise.all(promises);
+  }).catch(console.error);
 
   return { commentId };
 }

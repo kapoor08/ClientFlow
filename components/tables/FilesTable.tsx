@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RowActions } from "@/components/data-table";
 import { useAllFiles, useDeleteFile } from "@/core/files/useCase";
+import { toast } from "sonner";
 import type { OrgFileListItem } from "@/core/files/entity";
 import {
   FilePreviewModal,
@@ -197,6 +198,9 @@ export function FilesTable({ initialFiles, canWrite }: FilesTableProps) {
     setDeletingId(fileId);
     try {
       await deleteFile.mutateAsync({ fileId });
+      toast.success("File deleted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete file.");
     } finally {
       setDeletingId(null);
     }

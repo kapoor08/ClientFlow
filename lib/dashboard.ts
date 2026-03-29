@@ -13,7 +13,7 @@ import {
   inArray,
   sum,
 } from "drizzle-orm";
-import { clients, invoices, projects, tasks } from "@/db/schema";
+import { auditLogs, clients, invoices, projects, tasks } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -25,6 +25,23 @@ export type DashboardTask = {
   status: string;
   priority: string | null;
   dueDate: Date | null;
+};
+
+export type DashboardProject = {
+  id: string;
+  name: string;
+  status: string;
+  priority: string | null;
+  dueDate: Date | null;
+  clientName: string | null;
+};
+
+export type DashboardActivity = {
+  id: string;
+  action: string;
+  entityType: string;
+  actorName: string | null;
+  createdAt: Date;
 };
 
 export type DashboardKPIs = {
@@ -41,6 +58,8 @@ export type DashboardContext = {
   userName: string | null;
   kpis: DashboardKPIs;
   tasksDueSoon: DashboardTask[];
+  recentProjects: DashboardProject[];
+  recentActivity: DashboardActivity[];
 };
 
 const TERMINAL_PROJECT_STATUSES = ["completed", "cancelled"] as const;
@@ -72,6 +91,8 @@ export async function getDashboardContextForUser(
     overdueTaskRows,
     revenueRows,
     tasksDueSoonRows,
+    recentProjectRows,
+    recentActivityRows,
   ] = await Promise.all([
     // Active clients
     db
@@ -182,6 +203,43 @@ export async function getDashboardContextForUser(
       )
       .orderBy(tasks.dueDate)
       .limit(8),
+
+    // 5 most recently updated active projects with client name
+    db
+      .select({
+        id: projects.id,
+        name: projects.name,
+        status: projects.status,
+        priority: projects.priority,
+        dueDate: projects.dueDate,
+        clientName: clients.name,
+      })
+      .from(projects)
+      .leftJoin(clients, eq(projects.clientId, clients.id))
+      .where(
+        and(
+          eq(projects.organizationId, orgId),
+          isNull(projects.deletedAt),
+          not(inArray(projects.status, TERMINAL_PROJECT_STATUSES)),
+        ),
+      )
+      .orderBy(desc(projects.updatedAt))
+      .limit(5),
+
+    // 8 most recent audit log entries with actor name
+    db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        entityType: auditLogs.entityType,
+        actorName: user.name,
+        createdAt: auditLogs.createdAt,
+      })
+      .from(auditLogs)
+      .leftJoin(user, eq(auditLogs.actorUserId, user.id))
+      .where(eq(auditLogs.organizationId, orgId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(8),
   ]);
 
   return {
@@ -196,5 +254,7 @@ export async function getDashboardContextForUser(
       monthlyRevenueCents: Number(revenueRows[0]?.value ?? 0),
     },
     tasksDueSoon: tasksDueSoonRows,
+    recentProjects: recentProjectRows,
+    recentActivity: recentActivityRows,
   };
 }

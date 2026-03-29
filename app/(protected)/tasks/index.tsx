@@ -770,7 +770,7 @@ const TasksPage = ({
             <button
               type="button"
               onClick={() => setCreateColumnOpen(true)}
-              className="flex h-fit w-72 shrink-0 items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-6 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+              className="flex h-fit w-72 shrink-0 items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-6 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <Plus size={16} />
               Add Column

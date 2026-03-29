@@ -4,10 +4,12 @@ import {
   Bell,
   BookOpen,
   CheckSquare,
+  Code2,
   CreditCard,
   FileText,
   FolderKanban,
   LayoutDashboard,
+  Receipt,
   Settings,
   Shield,
   UserPlus,
@@ -42,6 +44,7 @@ export const navGroups = [
     label: "Business",
     items: [
       { icon: BarChart3, label: "Analytics", href: "/analytics" },
+      { icon: Receipt, label: "Invoices", href: "/invoices" },
       { icon: CreditCard, label: "Billing", href: "/billing" },
     ],
   },
@@ -56,6 +59,7 @@ export const navGroups = [
       { icon: Users, label: "Team & Roles", href: "/teams" },
       { icon: BookOpen, label: "Audit Logs", href: "/audit-logs" },
       { icon: Shield, label: "Security", href: "/org-security" },
+      { icon: Code2, label: "Developer", href: "/developer" },
     ],
   },
 ];

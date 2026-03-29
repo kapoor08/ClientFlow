@@ -50,6 +50,48 @@
       "when": 1774545719068,
       "tag": "0006_dark_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774724332604,
+      "tag": "0007_happy_jubilee",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774785284124,
+      "tag": "0008_add_role_permissions_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774786334704,
+      "tag": "0009_add_member_permission_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774787632888,
+      "tag": "0010_add_onboarding_completed_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774793027472,
+      "tag": "0011_parallel_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1774794658035,
+      "tag": "0012_clever_christian_walker",
+      "breakpoints": true
     }
   ]
 }

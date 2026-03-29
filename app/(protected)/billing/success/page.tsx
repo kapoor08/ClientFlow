@@ -1,14 +1,27 @@
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SubscriptionActivator } from "./SubscriptionActivator";
+import { getServerSession } from "@/lib/get-session";
+import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 
 export const metadata: Metadata = {
   title: "Payment Successful",
 };
 
-export default function BillingSuccessPage() {
+export default async function BillingSuccessPage() {
+  const session = await getServerSession();
+  if (!session?.user) redirect("/auth/sign-in");
+
+  const ctx = await getOrganizationSettingsContextForUser(session.user.id);
+
+  // First-time purchase — send to onboarding
+  if (!ctx?.onboardingCompletedAt) {
+    redirect("/onboarding");
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
       <SubscriptionActivator />
@@ -20,7 +33,7 @@ export default function BillingSuccessPage() {
         </div>
 
         <h1 className="font-display text-2xl font-bold text-foreground">
-          Payment successful!
+          Plan upgraded!
         </h1>
         <p className="mt-2 text-muted-foreground">
           Your subscription is now active. All features on your plan are

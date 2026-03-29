@@ -1,7 +1,7 @@
 import "server-only";
 
-import { and, count, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
-import { clients, projectFiles, projects } from "@/db/schema";
+import { and, count, desc, eq, gte, inArray, isNull, lte, sql, sum } from "drizzle-orm";
+import { clients, invoices, projectFiles, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 
@@ -13,6 +13,11 @@ export type ProjectStatusBreakdown = {
 export type MonthlyCount = {
   month: string;
   total: number;
+};
+
+export type MonthlyRevenue = {
+  month: string;
+  totalCents: number;
 };
 
 export type RecentProject = {
@@ -29,8 +34,10 @@ export type AnalyticsSummary = {
   activeProjects: number;
   completedProjects: number;
   totalFiles: number;
+  totalRevenueCents: number;
   projectsByStatus: ProjectStatusBreakdown[];
   monthlyProjectCreation: MonthlyCount[];
+  monthlyRevenue: MonthlyRevenue[];
   recentProjects: RecentProject[];
 };
 
@@ -74,6 +81,8 @@ export async function getAnalyticsSummaryForUser(
     byStatusResult,
     monthlyResult,
     recentProjectsResult,
+    totalRevenueResult,
+    monthlyRevenueResult,
   ] = await Promise.all([
     // Total active clients — org-wide snapshot (no date/client filter)
     db
@@ -171,6 +180,38 @@ export async function getAnalyticsSummaryForUser(
       )
       .orderBy(desc(projects.updatedAt))
       .limit(6),
+
+    // Total revenue from paid invoices
+    db
+      .select({ total: sum(invoices.amountPaidCents) })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.organizationId, orgId),
+          eq(invoices.status, "paid"),
+          dateFrom ? gte(invoices.paidAt, dateFrom) : undefined,
+          dateTo ? lte(invoices.paidAt, dateTo) : undefined,
+        ),
+      ),
+
+    // Monthly revenue trend (paid invoices)
+    db
+      .select({
+        month: sql<string>`to_char(date_trunc('month', ${invoices.paidAt}), 'Mon YY')`,
+        monthDate: sql<string>`date_trunc('month', ${invoices.paidAt})`,
+        totalCents: sum(invoices.amountPaidCents),
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.organizationId, orgId),
+          eq(invoices.status, "paid"),
+          gte(invoices.paidAt, chartStart),
+          dateTo ? lte(invoices.paidAt, dateTo) : undefined,
+        ),
+      )
+      .groupBy(sql`date_trunc('month', ${invoices.paidAt})`)
+      .orderBy(sql`date_trunc('month', ${invoices.paidAt}) asc`),
   ]);
 
   return {
@@ -178,6 +219,7 @@ export async function getAnalyticsSummaryForUser(
     activeProjects: activeProjectsResult[0]?.total ?? 0,
     completedProjects: completedProjectsResult[0]?.total ?? 0,
     totalFiles: totalFilesResult[0]?.total ?? 0,
+    totalRevenueCents: Number(totalRevenueResult[0]?.total ?? 0),
     projectsByStatus: byStatusResult.map((r) => ({
       status: r.status ?? "unknown",
       total: r.total,
@@ -185,6 +227,10 @@ export async function getAnalyticsSummaryForUser(
     monthlyProjectCreation: monthlyResult.map((r) => ({
       month: r.month,
       total: r.total,
+    })),
+    monthlyRevenue: monthlyRevenueResult.map((r) => ({
+      month: r.month,
+      totalCents: Number(r.totalCents ?? 0),
     })),
     recentProjects: recentProjectsResult,
   };

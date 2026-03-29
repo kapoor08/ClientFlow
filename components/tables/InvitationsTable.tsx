@@ -7,6 +7,7 @@ import {
   TimerOff,
   Ban,
 } from "lucide-react";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { RowActions } from "@/components/data-table";
 import type { InvitationListItem } from "@/core/invitations/entity";
@@ -83,9 +84,21 @@ function InvitationRow({ invitation }: { invitation: InvitationListItem }) {
         {/* Actions — first column */}
         <td className="px-4 py-3">
           <RowActions
-            onResend={canResend ? () => resend.mutate({ invitationId: invitation.id }) : undefined}
+            onResend={canResend ? () => resend.mutate(
+              { invitationId: invitation.id },
+              {
+                onSuccess: () => toast.success("Invitation resent."),
+                onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to resend invitation."),
+              },
+            ) : undefined}
             isResending={resend.isPending}
-            onRevoke={canRevoke ? () => revoke.mutate({ invitationId: invitation.id }) : undefined}
+            onRevoke={canRevoke ? () => revoke.mutate(
+              { invitationId: invitation.id },
+              {
+                onSuccess: () => toast.success("Invitation revoked."),
+                onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to revoke invitation."),
+              },
+            ) : undefined}
             isRevoking={revoke.isPending}
             revokeLabel={invitation.email}
           />

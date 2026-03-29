@@ -45,6 +45,7 @@ export type CreateTaskData = {
   columnId?: string | null;
   tags?: string[];
   parentTaskId?: string | null;
+  reporterUserId?: string | null;
 };
 
 export type UpdateTaskData = CreateTaskData & { status: string };

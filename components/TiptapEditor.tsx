@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  forwardRef,
   useEffect,
-  useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useEditor, EditorContent, ReactRenderer } from "@tiptap/react";
+import { createPortal } from "react-dom";
+import { useEditor, EditorContent } from "@tiptap/react";
 import { mergeAttributes, Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -20,144 +19,58 @@ import { Bold, Italic, List, ListOrdered, Strikethrough, Code } from "lucide-rea
 
 type MemberItem = { id: string; name: string };
 
-// ─── MentionList — rendered in its own React root via ReactRenderer ────────────
-// This isolation is critical: Radix's flushSync on the parent tree cannot
-// reach this root, so suggestion state is never cleared mid-click.
-
-type MentionListProps = {
+type MentionState = {
   items: MemberItem[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   command: (item: any) => void;
+  position: { top: number; left: number };
+  selectedIndex: number;
 };
 
-type MentionListHandle = {
-  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
-};
+// ─── MentionList — rendered via createPortal inside the same React root ────────
+// Being in the same React tree means Radix's onPointerDownCapture fires for
+// clicks here, setting isPointerInsideReactTreeRef = true so the dialog never
+// treats these clicks as "outside interactions".
 
-const MentionList = forwardRef<MentionListHandle, MentionListProps>(
-  function MentionList({ items, command }, ref) {
-    const [selectedIndex, setSelectedIndex] = useState(0);
-
-    const selectItem = (index: number) => {
-      const item = items[index];
-      if (item) command({ id: item.id, label: item.name });
-    };
-
-    useImperativeHandle(ref, () => ({
-      onKeyDown({ event }) {
-        if (event.key === "ArrowUp") {
-          setSelectedIndex((i) => (i <= 0 ? items.length - 1 : i - 1));
-          return true;
-        }
-        if (event.key === "ArrowDown") {
-          setSelectedIndex((i) => (i >= items.length - 1 ? 0 : i + 1));
-          return true;
-        }
-        if (event.key === "Enter") {
-          selectItem(selectedIndex);
-          return true;
-        }
-        return false;
-      },
-    }));
-
-    if (!items.length)
-      return (
-        <p className="px-3 py-2 text-xs text-muted-foreground">No members found</p>
-      );
-
+function MentionList({
+  items,
+  selectedIndex,
+  command,
+}: {
+  items: MemberItem[];
+  selectedIndex: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  command: (item: any) => void;
+}) {
+  if (!items.length) {
     return (
-      <>
-        {items.map((item, index) => (
-          <button
-            key={item.id}
-            type="button"
-            // onMouseDown keeps editor focused; selectItem calls Tiptap command directly
-            onMouseDown={(e) => {
-              e.preventDefault();
-              selectItem(index);
-            }}
-            className={cn(
-              "flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors",
-              index === selectedIndex ? "bg-secondary font-medium" : "hover:bg-secondary/60",
-            )}
-          >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
-              {item.name.charAt(0).toUpperCase()}
-            </span>
-            <span>{item.name}</span>
-          </button>
-        ))}
-      </>
+      <p className="px-3 py-2 text-xs text-muted-foreground">No members found</p>
     );
-  },
-);
+  }
 
-// ─── Build suggestion config ───────────────────────────────────────────────────
-
-function buildSuggestion(membersRef: React.RefObject<MemberItem[]>) {
-  return {
-    items({ query }: { query: string }) {
-      return (membersRef.current ?? [])
-        .filter((m) => m.name.toLowerCase().includes(query.toLowerCase()))
-        .slice(0, 8);
-    },
-
-    render() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let component: ReactRenderer<MentionListHandle, MentionListProps> | null = null;
-      let container: HTMLDivElement | null = null;
-
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onStart(props: any) {
-          container = document.createElement("div");
-          container.setAttribute("data-mention-dropdown", "");
-          container.style.cssText =
-            "position:fixed;z-index:99999;pointer-events:auto;min-width:13rem;border-radius:0.5rem;overflow:hidden;border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow-cf-2,0 4px 16px rgba(0,0,0,.12));padding:4px 0";
-          document.body.appendChild(container);
-
-          component = new ReactRenderer(MentionList, {
-            props: { items: props.items ?? [], command: props.command },
-            editor: props.editor,
-          });
-          container.appendChild(component.element);
-
-          const rect: DOMRect = props.clientRect?.();
-          if (rect) {
-            container.style.top = `${rect.bottom + 6}px`;
-            container.style.left = `${rect.left}px`;
-          }
-        },
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onUpdate(props: any) {
-          component?.updateProps({ items: props.items ?? [], command: props.command });
-
-          const rect: DOMRect = props.clientRect?.();
-          if (rect && container) {
-            container.style.top = `${rect.bottom + 6}px`;
-            container.style.left = `${rect.left}px`;
-          }
-        },
-
-        onKeyDown({ event }: { event: KeyboardEvent }) {
-          if (event.key === "Escape") {
-            container?.remove();
-            return true;
-          }
-          return component?.ref?.onKeyDown({ event }) ?? false;
-        },
-
-        onExit() {
-          container?.remove();
-          component?.destroy();
-          container = null;
-          component = null;
-        },
-      };
-    },
-  };
+  return (
+    <>
+      {items.map((item, index) => (
+        <button
+          key={item.id}
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            command({ id: item.id, label: item.name });
+          }}
+          className={cn(
+            "flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors",
+            index === selectedIndex ? "bg-secondary font-medium" : "hover:bg-secondary/60",
+          )}
+        >
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+            {item.name.charAt(0).toUpperCase()}
+          </span>
+          <span>{item.name}</span>
+        </button>
+      ))}
+    </>
+  );
 }
 
 // ─── Toolbar button ────────────────────────────────────────────────────────────
@@ -231,6 +144,13 @@ export function TiptapEditor({
     membersRef.current = members;
   }, [members]);
 
+  // ── Mention dropdown state (lives in this React tree so createPortal works) ──
+  const [mentionState, setMentionState] = useState<MentionState | null>(null);
+  const setMentionRef = useRef(setMentionState);
+  useEffect(() => {
+    setMentionRef.current = setMentionState;
+  });
+
   const extensions = useMemo(
     () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -249,7 +169,98 @@ export function TiptapEditor({
               `@${node.attrs.label ?? node.attrs.id}`,
             ];
           },
-          suggestion: buildSuggestion(membersRef),
+          suggestion: {
+            items({ query }: { query: string }) {
+              return (membersRef.current ?? [])
+                .filter((m) => m.name.toLowerCase().includes(query.toLowerCase()))
+                .slice(0, 8);
+            },
+
+            render() {
+              return {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onStart(props: any) {
+                  const rect: DOMRect | undefined = props.clientRect?.();
+                  setMentionRef.current({
+                    items: props.items ?? [],
+                    command: props.command,
+                    position: rect
+                      ? { top: rect.bottom + 6, left: rect.left }
+                      : { top: 0, left: 0 },
+                    selectedIndex: 0,
+                  });
+                },
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onUpdate(props: any) {
+                  const rect: DOMRect | undefined = props.clientRect?.();
+                  setMentionRef.current((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          items: props.items ?? [],
+                          command: props.command,
+                          position: rect
+                            ? { top: rect.bottom + 6, left: rect.left }
+                            : prev.position,
+                          selectedIndex: 0,
+                        }
+                      : null,
+                  );
+                },
+
+                onKeyDown({ event }: { event: KeyboardEvent }) {
+                  if (event.key === "Escape") {
+                    setMentionRef.current(null);
+                    return true;
+                  }
+                  if (event.key === "ArrowUp") {
+                    setMentionRef.current((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            selectedIndex:
+                              prev.selectedIndex <= 0
+                                ? prev.items.length - 1
+                                : prev.selectedIndex - 1,
+                          }
+                        : null,
+                    );
+                    return true;
+                  }
+                  if (event.key === "ArrowDown") {
+                    setMentionRef.current((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            selectedIndex:
+                              prev.selectedIndex >= prev.items.length - 1
+                                ? 0
+                                : prev.selectedIndex + 1,
+                          }
+                        : null,
+                    );
+                    return true;
+                  }
+                  if (event.key === "Enter") {
+                    setMentionRef.current((prev) => {
+                      if (prev) {
+                        const item = prev.items[prev.selectedIndex];
+                        if (item) prev.command({ id: item.id, label: item.name });
+                      }
+                      return null;
+                    });
+                    return true;
+                  }
+                  return false;
+                },
+
+                onExit() {
+                  setMentionRef.current(null);
+                },
+              };
+            },
+          },
         }),
       ];
 
@@ -338,6 +349,42 @@ export function TiptapEditor({
           minimal ? "tiptap-content-minimal px-0 py-0" : "px-3 py-2",
         )}
       />
+
+      {/* Mention dropdown — rendered via createPortal so it lives in this React
+          tree. Radix's onPointerDownCapture fires for mousedown inside portals
+          that share the same React root, setting isPointerInsideReactTreeRef=true
+          and preventing the dialog from closing on mention item clicks. */}
+      {mentionState &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            data-mention-dropdown=""
+            style={{
+              position: "fixed",
+              zIndex: 99999,
+              pointerEvents: "auto",
+              top: mentionState.position.top,
+              left: mentionState.position.left,
+              minWidth: "13rem",
+              borderRadius: "0.5rem",
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow-cf-2, 0 4px 16px rgba(0,0,0,.12))",
+              padding: "4px 0",
+            }}
+          >
+            <MentionList
+              items={mentionState.items}
+              selectedIndex={mentionState.selectedIndex}
+              command={(item) => {
+                mentionState.command(item);
+                setMentionState(null);
+              }}
+            />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

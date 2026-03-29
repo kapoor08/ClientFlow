@@ -1,49 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Search, FileCode, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuditLogs } from "@/core/audit/useCase";
 import { useDebounce } from "@/hooks/use-debounce";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function ActionBadge({ action }: { action: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-pill bg-secondary px-2 py-0.5 text-xs font-mono font-medium text-foreground">
-      <FileCode size={10} />
-      {action}
-    </span>
-  );
-}
-
-// ─── Skeleton row ─────────────────────────────────────────────────────────────
-
-function SkeletonRow() {
-  return (
-    <tr className="border-b border-border last:border-0">
-      <td className="px-4 py-3"><Skeleton className="h-3 w-28" /></td>
-      <td className="px-4 py-3"><Skeleton className="h-3 w-24" /></td>
-      <td className="px-4 py-3"><Skeleton className="h-5 w-32 rounded-full" /></td>
-      <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-3 w-20" /></td>
-      <td className="hidden px-4 py-3 lg:table-cell"><Skeleton className="h-3 w-24" /></td>
-      <td className="hidden px-4 py-3 xl:table-cell"><Skeleton className="h-3 w-40" /></td>
-    </tr>
-  );
-}
+import { AuditLogRow, SkeletonRow } from "./AuditLogRow";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -67,13 +30,26 @@ const AuditLogsPage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Audit Logs
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Security-grade immutable action trail
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-foreground">
+            Audit Logs
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Security-grade immutable action trail
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const params = new URLSearchParams();
+            if (search) params.set("q", search);
+            window.location.href = `/api/audit-logs/export?${params.toString()}`;
+          }}
+        >
+          <Download size={14} className="mr-1.5" /> Export CSV
+        </Button>
       </div>
 
       <div className="mb-4 relative max-w-sm">
@@ -128,41 +104,7 @@ const AuditLogsPage = () => {
                 </td>
               </tr>
             ) : (
-              logs.map((e) => (
-                <tr
-                  key={e.id}
-                  className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
-                >
-                  <td className="px-4 py-3 text-xs text-muted-foreground font-mono whitespace-nowrap">
-                    {formatDate(e.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium text-foreground leading-tight">
-                      {e.actorName ?? "System"}
-                    </p>
-                    {e.actorEmail && (
-                      <p className="text-xs text-muted-foreground">{e.actorEmail}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <ActionBadge action={e.action} />
-                  </td>
-                  <td className="hidden px-4 py-3 text-xs text-muted-foreground font-mono md:table-cell">
-                    {e.entityType}
-                    {e.entityId && (
-                      <span className="ml-1 text-muted-foreground/60">
-                        :{e.entityId.slice(0, 8)}…
-                      </span>
-                    )}
-                  </td>
-                  <td className="hidden px-4 py-3 text-xs text-muted-foreground font-mono lg:table-cell">
-                    {e.ipAddress ?? "—"}
-                  </td>
-                  <td className="hidden px-4 py-3 text-xs text-muted-foreground xl:table-cell max-w-xs truncate">
-                    {e.userAgent ?? "—"}
-                  </td>
-                </tr>
-              ))
+              logs.map((e) => <AuditLogRow key={e.id} entry={e} />)
             )}
           </tbody>
         </table>
