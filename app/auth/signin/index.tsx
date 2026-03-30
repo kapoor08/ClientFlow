@@ -45,7 +45,6 @@ const SignIn = () => {
       });
       toast.success("Signed in successfully.");
       router.push(redirectTo);
-      router.refresh();
     } catch (currentError) {
       setError(getAuthErrorMessage(currentError, "Unable to sign in."));
     }

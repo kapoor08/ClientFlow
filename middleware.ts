@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Session cookie name must match what BetterAuth sets.
- * BetterAuth default: "better-auth.session_token"
+ * BetterAuth sets "better-auth.session_token" in development (HTTP).
+ * In production (HTTPS / NODE_ENV=production) it automatically prepends
+ * "__Secure-" to satisfy the Secure cookie prefix requirements.
+ * We check both so the middleware works in all environments.
  */
-const SESSION_COOKIE = "better-auth.session_token";
+const SESSION_COOKIES = [
+  "__Secure-better-auth.session_token", // production (Vercel / any HTTPS)
+  "better-auth.session_token",           // development (localhost HTTP)
+];
 
 /**
  * Route prefixes that require an authenticated session.
@@ -53,8 +58,10 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
   if (!isProtected) return NextResponse.next();
 
-  // Check for a session cookie
-  const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
+  // Check for a session cookie (works for both dev and production cookie names)
+  const sessionToken = SESSION_COOKIES.some(
+    (name) => request.cookies.get(name)?.value,
+  );
 
   if (!sessionToken) {
     // No session — redirect to sign-in, preserving the intended destination
