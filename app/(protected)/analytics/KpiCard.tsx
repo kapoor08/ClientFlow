@@ -1,3 +1,5 @@
+"use client";
+
 import { motion, type Variants } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";

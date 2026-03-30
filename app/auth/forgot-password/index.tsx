@@ -2,44 +2,44 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  authRoutes,
-  getAuthErrorMessage,
-  useForgotPassword,
-} from "@/core/auth";
+import { authRoutes, getAuthErrorMessage, useForgotPassword } from "@/core/auth";
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "Enter a valid email address." }),
+});
+
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPasswordPage = () => {
   const forgotPassword = useForgotPassword();
-  const [email, setEmail] = useState("");
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
 
-    if (!email.trim()) {
-      setError("Enter the email address associated with your account.");
-      return;
-    }
-
+  const onSubmit = async (values: ForgotPasswordFormValues) => {
+    setApiError(null);
     try {
-      await forgotPassword.mutateAsync({ email });
-      setSubmittedEmail(email.trim());
-    } catch (currentError) {
-      setError(
-        getAuthErrorMessage(
-          currentError,
-          "Unable to send a password reset link."
-        )
-      );
+      await forgotPassword.mutateAsync({ email: values.email });
+      setSubmittedEmail(values.email.trim());
+    } catch (err) {
+      setApiError(getAuthErrorMessage(err, "Unable to send a password reset link."));
     }
-  }
+  };
 
   return (
     <AuthSplitLayout
@@ -67,24 +67,22 @@ const ForgotPasswordPage = () => {
           </Link>
         </div>
       ) : (
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          {error ? <AuthNotice tone="error" message={error} /> : null}
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          {apiError && <AuthNotice tone="error" message={apiError} />}
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-            />
-          </div>
+          <ControlledInput
+            name="email"
+            label="Email address"
+            type="email"
+            control={control}
+            error={errors.email}
+            placeholder="you@company.com"
+            autoComplete="email"
+          />
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={forgotPassword.isPending}
           >
             {forgotPassword.isPending ? "Sending link..." : "Send Reset Link"}

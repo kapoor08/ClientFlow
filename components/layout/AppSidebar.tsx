@@ -162,8 +162,8 @@ const AppSidebar = (props: AppSidebarProps) => {
             <Image
               src="/app-logo.png"
               alt="ClientFlow"
-              width={130}
-              height={28}
+              width={120}
+              height={30}
               className="h-auto w-auto"
               priority
             />

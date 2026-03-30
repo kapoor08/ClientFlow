@@ -1,128 +1,77 @@
-"use client";
-
-import { useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Users,
-  FolderKanban,
-  FileUp,
-  CheckSquare,
-  DollarSign,
-} from "lucide-react";
-import { useMotionStagger } from "@/hooks/use-home-motion";
-import { useAnalytics, DEFAULT_FILTERS } from "@/core/analytics/useCase";
-import { type AnalyticsFilters } from "@/core/analytics/entity";
-import { KpiCard, KpiSkeleton } from "./KpiCard";
-import { ChartsRow } from "./ChartsRow";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { getServerSession } from "@/lib/get-session";
+import { getAnalyticsSummaryForUser } from "@/lib/analytics";
+import { analyticsSearchParamsCache } from "@/core/analytics/searchParams";
+import { resolveDateRange } from "@/core/analytics/entity";
+import type { DatePreset } from "@/core/analytics/entity";
 import { FilterBar } from "./FilterBar";
+import { KpiGrid } from "./KpiGrid";
+import { ChartsRow } from "./ChartsRow";
 import { RecentProjectsSection } from "./RecentProjectsSection";
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+type AnalyticsPageProps = {
+  searchParams: Promise<Record<string, string | string[]>>;
+};
 
-const AnalyticsPage = () => {
-  const motionStagger = useMotionStagger({
-    step: 0.06,
-    initialY: 12,
-    duration: 0.35,
+const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
+  const session = await getServerSession();
+  const { datePreset, clientId } =
+    analyticsSearchParamsCache.parse(await searchParams);
+
+  const { dateFrom, dateTo } = resolveDateRange(datePreset as DatePreset);
+
+  const serverSummary = await getAnalyticsSummaryForUser(session!.user.id, {
+    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+    dateTo: dateTo ? new Date(dateTo) : undefined,
+    clientId: clientId || undefined,
   });
 
-  const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_FILTERS);
-  const { data, isLoading } = useAnalytics(filters);
+  if (!serverSummary) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-muted-foreground">No active organization found.</p>
+      </div>
+    );
+  }
 
-  const summary = data?.summary;
-  const totalProjects =
-    summary?.projectsByStatus.reduce((acc, r) => acc + r.total, 0) ?? 0;
+  // Serialize Dates to ISO strings for client components
+  const summary = {
+    ...serverSummary,
+    recentProjects: serverSummary.recentProjects.map((p) => ({
+      ...p,
+      dueDate: p.dueDate instanceof Date ? p.dueDate.toISOString() : p.dueDate,
+      updatedAt:
+        p.updatedAt instanceof Date
+          ? p.updatedAt.toISOString()
+          : String(p.updatedAt),
+    })),
+  };
 
-  const kpis = summary
-    ? [
-        {
-          label: "Active Clients",
-          value: summary.totalClients,
-          icon: Users,
-          description: "Clients with active status",
-        },
-        {
-          label: "Active Projects",
-          value: summary.activeProjects,
-          icon: FolderKanban,
-          description: "Active & in-progress",
-        },
-        {
-          label: "Completed",
-          value: summary.completedProjects,
-          icon: CheckSquare,
-          description: "Projects completed",
-        },
-        {
-          label: "Files Uploaded",
-          value: summary.totalFiles,
-          icon: FileUp,
-          description: "Across all projects",
-        },
-        {
-          label: "Total Revenue",
-          value: `$${(summary.totalRevenueCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          icon: DollarSign,
-          description: "Paid invoices",
-        },
-      ]
-    : [];
+  const totalProjects = summary.projectsByStatus.reduce(
+    (acc, r) => acc + r.total,
+    0,
+  );
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Analytics
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Organizational performance overview
-        </p>
-      </div>
+    <ListPageLayout
+      title="Analytics"
+      description="Organizational performance overview"
+    >
+      <FilterBar />
 
-      {/* Filters */}
-      <FilterBar filters={filters} onChange={setFilters} />
-
-      {/* KPI Cards */}
-      {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-8">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <KpiSkeleton key={i} />
-          ))}
-        </div>
-      ) : (
-        <motion.div
-          variants={motionStagger.container}
-          initial="hidden"
-          animate="show"
-          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-8"
-        >
-          {kpis.map((m) => (
-            <KpiCard
-              key={m.label}
-              label={m.label}
-              value={m.value}
-              icon={m.icon}
-              description={m.description}
-              motionItem={motionStagger.item}
-            />
-          ))}
-        </motion.div>
-      )}
+      <KpiGrid summary={summary} />
 
       <ChartsRow
         summary={summary}
-        isLoading={isLoading}
         totalProjects={totalProjects}
-        filters={filters}
+        datePreset={datePreset}
       />
 
-      {/* Recent Projects */}
       <RecentProjectsSection
-        summary={summary}
-        isLoading={isLoading}
-        filters={filters}
+        recentProjects={summary.recentProjects}
+        clientId={clientId}
       />
-    </div>
+    </ListPageLayout>
   );
 };
 

@@ -6,6 +6,9 @@ export const clientsSearchParamsCache = createSearchParamsCache({
   pageSize: parseAsInteger.withDefault(10),
   sort: parseAsString.withDefault(""),
   order: parseAsString.withDefault("asc"),
+  status: parseAsString.withDefault(""),
+  dateFrom: parseAsString.withDefault(""),
+  dateTo: parseAsString.withDefault(""),
 });
 
 export type ClientsSearchParams = ReturnType<

@@ -99,7 +99,10 @@ export function ProjectForm({
         router.push(`/projects/${res.projectId}`);
         router.refresh();
       } else {
-        await updateProject.mutateAsync({ projectId: projectId!, data: values });
+        await updateProject.mutateAsync({
+          projectId: projectId!,
+          data: values,
+        });
         toast.success("Project updated.");
         router.push(`/projects/${projectId}`);
         router.refresh();

@@ -1,5 +1,7 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { ClientForm } from "@/components/forms/ClientForm";
 import { getClientModuleAccessForUser } from "@/lib/clients";
 import { getServerSession } from "@/lib/get-session";
@@ -13,13 +15,19 @@ export default async function NewClientPage() {
   }
 
   return (
-    <FormPageLayout
+    <ListPageLayout
       title="Add Client"
       description="Create a client record for your organization and store the primary contact details."
-      backHref="/clients"
-      backLabel="Back to Clients"
+      action={
+        <Link
+          href="/clients"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={14} /> Back to Clients
+        </Link>
+      }
     >
       <ClientForm mode="create" submitLabel="Create Client" />
-    </FormPageLayout>
+    </ListPageLayout>
   );
 }

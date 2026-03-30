@@ -8,9 +8,11 @@ import {
   count,
   desc,
   eq,
+  gte,
   ilike,
   inArray,
   isNull,
+  lte,
   or,
 } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
@@ -88,6 +90,9 @@ type ListClientsOptions = {
   pageSize?: number;
   sort?: string;
   order?: "asc" | "desc";
+  status?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
 };
 
 function createId() {
@@ -151,6 +156,9 @@ export async function listClientsForUser(
     pageSize = DEFAULT_PAGE_SIZE,
     sort,
     order = "desc",
+    status,
+    dateFrom,
+    dateTo,
   } = options;
 
   const trimmedQuery = query.trim();
@@ -166,6 +174,9 @@ export async function listClientsForUser(
           ilike(clients.contactEmail, `%${trimmedQuery}%`),
         )
       : undefined,
+    status ? eq(clients.status, status) : undefined,
+    dateFrom ? gte(clients.createdAt, dateFrom) : undefined,
+    dateTo ? lte(clients.createdAt, dateTo) : undefined,
   );
 
   const [totalResult, rows] = await Promise.all([

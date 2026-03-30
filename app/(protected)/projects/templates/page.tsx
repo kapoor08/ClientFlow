@@ -49,7 +49,10 @@ export default function ProjectTemplatesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       }).then(async (res) => {
-        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error((d as { error?: string }).error ?? "Failed."); }
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error((d as { error?: string }).error ?? "Failed.");
+        }
         return res.json();
       }),
     onSuccess: () => {
@@ -59,14 +62,18 @@ export default function ProjectTemplatesPage() {
       toast.success("Template created.");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Failed to create template.";
+      const message =
+        err instanceof Error ? err.message : "Failed to create template.";
       setFormError(message);
       toast.error(message);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & Omit<TemplateItem, "id" | "createdAt" | "updatedAt">) =>
+    mutationFn: ({
+      id,
+      ...body
+    }: { id: string } & Omit<TemplateItem, "id" | "createdAt" | "updatedAt">) =>
       fetch(`/api/project-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -79,20 +86,25 @@ export default function ProjectTemplatesPage() {
       toast.success("Template updated.");
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Failed to update template.";
+      const message =
+        err instanceof Error ? err.message : "Failed to update template.";
       setFormError(message);
       toast.error(message);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/project-templates/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) =>
+      fetch(`/api/project-templates/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-templates"] });
       setDeleteTarget(null);
       toast.success("Template deleted.");
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to delete template."),
+    onError: (err) =>
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete template.",
+      ),
   });
 
   const templates = data?.templates ?? [];
@@ -111,20 +123,32 @@ export default function ProjectTemplatesPage() {
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">Project Templates</h1>
+          <h1 className="font-display text-2xl font-semibold text-foreground">
+            Project Templates
+          </h1>
           <p className="text-sm text-muted-foreground">
             Reusable project structures to speed up project creation.
           </p>
         </div>
-        <Button size="sm" onClick={() => { setFormError(null); setCreateOpen(true); }}>
-          <Plus size={14} className="mr-1.5" /> New Template
+        <Button
+          size="sm"
+          onClick={() => {
+            setFormError(null);
+            setCreateOpen(true);
+          }}
+          className="cursor-pointer"
+        >
+          <Plus size={14} /> New Template
         </Button>
       </div>
 
       {isLoading ? (
         <div className="space-y-3">
           {[0, 1].map((i) => (
-            <div key={i} className="rounded-card border border-border bg-card p-5 shadow-cf-1">
+            <div
+              key={i}
+              className="rounded-card border border-border bg-card p-5 shadow-cf-1"
+            >
               <div className="h-3 w-48 animate-pulse rounded bg-secondary" />
             </div>
           ))}
@@ -135,13 +159,20 @@ export default function ProjectTemplatesPage() {
             <FolderKanban size={20} className="text-muted-foreground" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">No templates yet</p>
+            <p className="text-sm font-medium text-foreground">
+              No templates yet
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Create a template to quickly set up new projects with predefined tasks.
+              Create a template to quickly set up new projects with predefined
+              tasks.
             </p>
           </div>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus size={14} className="mr-1.5" /> Create Template
+          <Button
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus size={14} /> Create Template
           </Button>
         </div>
       ) : (
@@ -150,7 +181,10 @@ export default function ProjectTemplatesPage() {
             <TemplateCard
               key={template.id}
               template={template}
-              onEdit={(t) => { setFormError(null); setEditTarget(t); }}
+              onEdit={(t) => {
+                setFormError(null);
+                setEditTarget(t);
+              }}
               onDelete={setDeleteTarget}
               onDuplicate={handleDuplicate}
             />
@@ -161,7 +195,10 @@ export default function ProjectTemplatesPage() {
       {/* Create dialog */}
       <TemplateFormDialog
         open={createOpen}
-        onClose={() => { setCreateOpen(false); setFormError(null); }}
+        onClose={() => {
+          setCreateOpen(false);
+          setFormError(null);
+        }}
         onSave={(data) => createMutation.mutate(data)}
         saving={createMutation.isPending}
         error={formError}
@@ -172,15 +209,25 @@ export default function ProjectTemplatesPage() {
         <TemplateFormDialog
           open={!!editTarget}
           initial={editTarget}
-          onClose={() => { setEditTarget(null); setFormError(null); }}
-          onSave={(data) => updateMutation.mutate({ id: editTarget.id, ...data })}
+          onClose={() => {
+            setEditTarget(null);
+            setFormError(null);
+          }}
+          onSave={(data) =>
+            updateMutation.mutate({ id: editTarget.id, ...data })
+          }
           saving={updateMutation.isPending}
           error={formError}
         />
       )}
 
       {/* Delete confirm */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => {
+          if (!v) setDeleteTarget(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete template?</AlertDialogTitle>
@@ -192,7 +239,9 @@ export default function ProjectTemplatesPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-white hover:bg-danger/90"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget.id)
+              }
             >
               Delete
             </AlertDialogAction>

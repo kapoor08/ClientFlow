@@ -1,7 +1,12 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { ProjectForm } from "@/components/forms/ProjectForm";
-import { getProjectForEditForUser, getProjectModuleAccessForUser } from "@/lib/projects";
+import {
+  getProjectForEditForUser,
+  getProjectModuleAccessForUser,
+} from "@/lib/projects";
 import { listClientsForUser } from "@/lib/clients";
 import { getServerSession } from "@/lib/get-session";
 
@@ -9,7 +14,9 @@ type EditProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function EditProjectPage({ params }: EditProjectPageProps) {
+export default async function EditProjectPage({
+  params,
+}: EditProjectPageProps) {
   const session = await getServerSession();
   const userId = session!.user.id;
   const { id } = await params;
@@ -35,11 +42,17 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
   }));
 
   return (
-    <FormPageLayout
+    <ListPageLayout
       title={`Edit ${result.project.values.name}`}
       description="Update the project details and timeline."
-      backHref={`/projects/${result.project.id}`}
-      backLabel="Back to Project"
+      action={
+        <Link
+          href={`/projects/${result.project.id}`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={14} /> Back to Project
+        </Link>
+      }
     >
       <ProjectForm
         mode="edit"
@@ -48,6 +61,6 @@ export default async function EditProjectPage({ params }: EditProjectPageProps) 
         initialValues={result.project.values}
         clients={clientOptions}
       />
-    </FormPageLayout>
+    </ListPageLayout>
   );
 }

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 type ListPageLayoutProps = {
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   /** Button or action rendered top-right, aligned with the title */
   action?: ReactNode;
   children: ReactNode;

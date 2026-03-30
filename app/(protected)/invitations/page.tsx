@@ -5,4 +5,8 @@ export const metadata: Metadata = {
   title: "Invitations",
 };
 
-export default InvitationsPage;
+export default function Page(props: {
+  searchParams: Promise<Record<string, string | string[]>>;
+}) {
+  return <InvitationsPage {...props} />;
+}

@@ -2,7 +2,7 @@ import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
-import { and, asc, count, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -79,6 +79,10 @@ type ListProjectsOptions = {
   sort?: string;
   order?: "asc" | "desc";
   clientId?: string;
+  status?: string;
+  priority?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
 };
 
 function createId() {
@@ -140,6 +144,10 @@ export async function listProjectsForUser(
     sort,
     order = "desc",
     clientId,
+    status,
+    priority,
+    dateFrom,
+    dateTo,
   } = options;
 
   const trimmedQuery = query.trim();
@@ -154,6 +162,10 @@ export async function listProjectsForUser(
           ilike(clients.name, `%${trimmedQuery}%`),
         )
       : undefined,
+    status ? eq(projects.status, status) : undefined,
+    priority ? eq(projects.priority, priority) : undefined,
+    dateFrom ? gte(projects.startDate, dateFrom) : undefined,
+    dateTo ? lte(projects.startDate, dateTo) : undefined,
   );
 
   const [totalResult, rows] = await Promise.all([

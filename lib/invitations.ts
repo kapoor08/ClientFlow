@@ -2,7 +2,7 @@ import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
 import { createHash } from "crypto";
-import { and, desc, eq, count } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, lt, lte, count } from "drizzle-orm";
 import {
   organizationInvitations,
   organizationMemberships,
@@ -101,9 +101,46 @@ export async function getInvitationsModuleAccessForUser(
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
+const SORTABLE_INVITATION_COLUMNS = {
+  email: organizationInvitations.email,
+  createdAt: organizationInvitations.createdAt,
+  expiresAt: organizationInvitations.expiresAt,
+} as const;
+
+type InvitationSortKey = keyof typeof SORTABLE_INVITATION_COLUMNS;
+
+function resolveInvitationSort(sort: string | undefined, order: "asc" | "desc") {
+  const col =
+    SORTABLE_INVITATION_COLUMNS[
+      (sort as InvitationSortKey) in SORTABLE_INVITATION_COLUMNS
+        ? (sort as InvitationSortKey)
+        : "createdAt"
+    ];
+  return order === "asc" ? asc(col) : desc(col);
+}
+
+function resolveStatusWhereClause(status: string | undefined) {
+  if (!status) return undefined;
+  const now = new Date();
+  if (status === "pending") return and(eq(organizationInvitations.status, "pending"), gte(organizationInvitations.expiresAt, now));
+  if (status === "expired") return and(eq(organizationInvitations.status, "pending"), lt(organizationInvitations.expiresAt, now));
+  if (status === "accepted") return eq(organizationInvitations.status, "accepted");
+  if (status === "revoked") return eq(organizationInvitations.status, "revoked");
+  return undefined;
+}
+
 export async function listInvitationsForOrg(
   userId: string,
-  options: { page?: number; pageSize?: number } = {},
+  options: {
+    page?: number;
+    pageSize?: number;
+    query?: string;
+    status?: string;
+    sort?: string;
+    order?: "asc" | "desc";
+    dateFrom?: Date;
+    dateTo?: Date;
+  } = {},
 ): Promise<{
   access: InvitationsModuleAccess | null;
   invitations: InvitationListItem[];
@@ -113,21 +150,31 @@ export async function listInvitationsForOrg(
   const emptyPagination = buildPaginationMeta(0, 1, DEFAULT_PAGE_SIZE);
   if (!access) return { access: null, invitations: [], pagination: emptyPagination };
 
-  const { page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
+  const {
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    query = "",
+    status,
+    sort,
+    order = "desc",
+    dateFrom,
+    dateTo,
+  } = options;
 
-  const whereClause = eq(
-    organizationInvitations.organizationId,
-    access.organizationId,
+  const trimmedQuery = query.trim();
+
+  const whereClause = and(
+    eq(organizationInvitations.organizationId, access.organizationId),
+    trimmedQuery ? ilike(organizationInvitations.email, `%${trimmedQuery}%`) : undefined,
+    resolveStatusWhereClause(status),
+    dateFrom ? gte(organizationInvitations.createdAt, dateFrom) : undefined,
+    dateTo ? lte(organizationInvitations.createdAt, dateTo) : undefined,
   );
 
   const [{ total }] = await db
     .select({ total: count() })
     .from(organizationInvitations)
     .where(whereClause);
-
-  const invitedByUser = db.$with("invited_by").as(
-    db.select({ id: user.id, name: user.name }).from(user),
-  );
 
   const rows = await db
     .select({
@@ -146,7 +193,7 @@ export async function listInvitationsForOrg(
     .leftJoin(roles, eq(organizationInvitations.roleId, roles.id))
     .leftJoin(user, eq(organizationInvitations.invitedByUserId, user.id))
     .where(whereClause)
-    .orderBy(desc(organizationInvitations.createdAt))
+    .orderBy(resolveInvitationSort(sort, order))
     .limit(pageSize)
     .offset(paginationOffset(page, pageSize));
 

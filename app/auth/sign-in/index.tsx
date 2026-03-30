@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   authRoutes,
   getAuthErrorMessage,
@@ -17,6 +19,13 @@ import {
 import { toast } from "sonner";
 import GooogleIcon from "@/assets/GoogleIcon";
 
+const signInSchema = z.object({
+  email: z.string().email({ message: "Enter a valid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
+});
+
+type SignInFormValues = z.infer<typeof signInSchema>;
+
 const SignIn = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,41 +33,38 @@ const SignIn = () => {
 
   const signIn = useSignIn();
   const googleSignIn = useGoogleSignIn();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-    if (!email.trim() || !password) {
-      setError("Enter both your email and password.");
-      return;
-    }
-
+  const onSubmit = async (values: SignInFormValues) => {
+    setApiError(null);
     try {
       await signIn.mutateAsync({
-        email,
-        password,
+        email: values.email,
+        password: values.password,
         callbackURL: redirectTo,
       });
       toast.success("Signed in successfully.");
       router.push(redirectTo);
-    } catch (currentError) {
-      setError(getAuthErrorMessage(currentError, "Unable to sign in."));
+    } catch (err) {
+      setApiError(getAuthErrorMessage(err, "Unable to sign in."));
     }
-  }
+  };
 
   async function handleGoogleSignIn() {
-    setError(null);
-
+    setApiError(null);
     try {
       await googleSignIn.mutateAsync(redirectTo);
-    } catch (currentError) {
-      setError(
-        getAuthErrorMessage(currentError, "Unable to continue with Google.")
-      );
+    } catch (err) {
+      setApiError(getAuthErrorMessage(err, "Unable to continue with Google."));
     }
   }
 
@@ -69,8 +75,8 @@ const SignIn = () => {
       panelTitle="Welcome back"
       panelDescription="Sign in to manage clients, projects, billing, and your internal operations from one place."
     >
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        {error ? <AuthNotice tone="error" message={error} /> : null}
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        {apiError && <AuthNotice tone="error" message={apiError} />}
 
         <Button
           type="button"
@@ -83,37 +89,34 @@ const SignIn = () => {
           {googleSignIn.isPending ? "Redirecting..." : "Continue with Google"}
         </Button>
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-          />
-        </div>
+        <ControlledInput
+          name="email"
+          label="Email"
+          type="email"
+          control={control}
+          error={errors.email}
+          placeholder="you@company.com"
+          autoComplete="email"
+        />
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+        <ControlledInput
+          name="password"
+          label="Password"
+          type="password"
+          control={control}
+          error={errors.password}
+          placeholder="Enter your password"
+          autoComplete="current-password"
+          showPasswordToggle
+          labelAddon={
             <Link
               href={authRoutes.forgotPassword}
               className="text-xs text-primary hover:underline"
             >
               Forgot password?
             </Link>
-          </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-          />
-        </div>
+          }
+        />
 
         <Button
           type="submit"
@@ -127,7 +130,11 @@ const SignIn = () => {
       <div className="mt-4 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href={redirectTo && redirectTo !== authRoutes.dashboard ? `${authRoutes.signUp}?redirectTo=${encodeURIComponent(redirectTo)}` : authRoutes.signUp}
+          href={
+            redirectTo && redirectTo !== authRoutes.dashboard
+              ? `${authRoutes.signUp}?redirectTo=${encodeURIComponent(redirectTo)}`
+              : authRoutes.signUp
+          }
           className="font-medium text-primary hover:underline"
         >
           Sign up

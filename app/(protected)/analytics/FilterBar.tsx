@@ -1,12 +1,10 @@
 "use client";
 
+import { useTransition } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Filter, X } from "lucide-react";
-import { useAnalytics, DEFAULT_FILTERS } from "@/core/analytics/useCase";
-import {
-  DATE_PRESET_OPTIONS,
-  type AnalyticsFilters,
-} from "@/core/analytics/entity";
+import { parseAsString, useQueryStates } from "nuqs";
+import { DATE_PRESET_OPTIONS } from "@/core/analytics/entity";
 import { listClients } from "@/core/clients/repository";
 import { clientKeys } from "@/core/clients/useCase";
 import {
@@ -18,12 +16,17 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
-type FilterBarProps = {
-  filters: AnalyticsFilters;
-  onChange: (f: AnalyticsFilters) => void;
-};
+export function FilterBar() {
+  const [, startTransition] = useTransition();
 
-export function FilterBar({ filters, onChange }: FilterBarProps) {
+  const [{ datePreset, clientId }, setParams] = useQueryStates(
+    {
+      datePreset: parseAsString.withDefault("6m"),
+      clientId: parseAsString.withDefault(""),
+    },
+    { shallow: false, startTransition, clearOnDefault: true },
+  );
+
   const { data: clientsData } = useQuery({
     queryKey: clientKeys.list({ pageSize: 500 }),
     queryFn: () => listClients({ page: 1 }),
@@ -31,25 +34,19 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
   });
 
   const clientOptions = clientsData?.clients ?? [];
-  const isDirty =
-    filters.datePreset !== DEFAULT_FILTERS.datePreset || !!filters.clientId;
+  const isDirty = datePreset !== "6m" || !!clientId;
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2.5">
-      <div className="flex items-center gap-1.5 text-sm text-muted-foreground mr-1">
+      <div className="mr-1 flex items-center gap-1.5 text-sm text-muted-foreground">
         <Filter size={14} />
         <span className="font-medium">Filters</span>
       </div>
 
       {/* Date range preset */}
       <Select
-        value={filters.datePreset}
-        onValueChange={(val) =>
-          onChange({
-            ...filters,
-            datePreset: val as AnalyticsFilters["datePreset"],
-          })
-        }
+        value={datePreset}
+        onValueChange={(val) => setParams({ datePreset: val, clientId: clientId || null })}
       >
         <SelectTrigger size="sm" className="w-36">
           <SelectValue />
@@ -65,9 +62,12 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
 
       {/* Client filter */}
       <Select
-        value={filters.clientId || "__all__"}
+        value={clientId || "__all__"}
         onValueChange={(val) =>
-          onChange({ ...filters, clientId: val === "__all__" ? "" : val })
+          setParams({
+            datePreset: datePreset || null,
+            clientId: val === "__all__" ? null : val,
+          })
         }
       >
         <SelectTrigger size="sm" className="w-44">
@@ -88,7 +88,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onChange(DEFAULT_FILTERS)}
+          onClick={() => setParams({ datePreset: null, clientId: null })}
           className="h-7 gap-1 text-muted-foreground"
         >
           <X size={12} />

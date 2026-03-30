@@ -3,32 +3,56 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  authRoutes,
-  getAuthErrorMessage,
-  useResetPassword,
-  validatePassword,
-} from "@/core/auth";
+import { authRoutes, getAuthErrorMessage, useResetPassword } from "@/core/auth";
+
+const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters." })
+      .refine((v) => /[A-Z]/.test(v), {
+        message: "Password must include at least one uppercase letter.",
+      })
+      .refine((v) => /[a-z]/.test(v), {
+        message: "Password must include at least one lowercase letter.",
+      })
+      .refine((v) => /[0-9]/.test(v), {
+        message: "Password must include at least one number.",
+      }),
+    confirmPassword: z.string().min(1, { message: "Please confirm your password." }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 const ResetPasswordPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const resetPassword = useResetPassword();
-
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const resetToken = token;
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
 
-  if (!resetToken) {
+  if (!token) {
     return (
       <AuthSplitLayout
         title="Invalid reset link"
@@ -41,7 +65,7 @@ const ResetPasswordPage = () => {
             tone="error"
             message="Request a new password reset email and use the latest link."
           />
-          <Button className="w-full" onClick={() => router.push(authRoutes.forgotPassword)}>
+          <Button className="w-full cursor-pointer" onClick={() => router.push(authRoutes.forgotPassword)}>
             Request New Link
           </Button>
         </div>
@@ -49,38 +73,15 @@ const ResetPasswordPage = () => {
     );
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
-    if (!resetToken) {
-      setError("This reset link is invalid. Request a new one.");
-      return;
-    }
-
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setError(passwordError);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
+  const onSubmit = async (values: ResetPasswordFormValues) => {
+    setApiError(null);
     try {
-      await resetPassword.mutateAsync({
-        token: resetToken,
-        password,
-      });
+      await resetPassword.mutateAsync({ token, password: values.password });
       setCompleted(true);
-    } catch (currentError) {
-      setError(
-        getAuthErrorMessage(currentError, "Unable to reset your password.")
-      );
+    } catch (err) {
+      setApiError(getAuthErrorMessage(err, "Unable to reset your password."));
     }
-  }
+  };
 
   return (
     <AuthSplitLayout
@@ -95,50 +96,40 @@ const ResetPasswordPage = () => {
     >
       {completed ? (
         <div className="mt-6 space-y-4">
-          <AuthNotice
-            tone="success"
-            message="Your password was updated successfully."
-          />
+          <AuthNotice tone="success" message="Your password was updated successfully." />
           <Link href={authRoutes.signIn}>
-            <Button className="w-full">Go to sign in</Button>
+            <Button className="w-full cursor-pointer">Go to sign in</Button>
           </Link>
         </div>
       ) : (
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          {error ? <AuthNotice tone="error" message={error} /> : null}
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+          {apiError && <AuthNotice tone="error" message={apiError} />}
 
-          <div className="space-y-2">
-            <Label htmlFor="password">New password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter a new password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-            />
-          </div>
+          <ControlledInput
+            name="password"
+            label="New Password*"
+            type="password"
+            control={control}
+            error={errors.password}
+            placeholder="Enter a new password"
+            autoComplete="new-password"
+            showPasswordToggle
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Repeat your new password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-            />
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Passwords must be at least 8 characters and include uppercase,
-            lowercase, and numeric characters.
-          </p>
+          <ControlledInput
+            name="confirmPassword"
+            label="Confirm Password*"
+            type="password"
+            control={control}
+            error={errors.confirmPassword}
+            placeholder="Repeat your new password"
+            autoComplete="new-password"
+            showPasswordToggle
+          />
 
           <Button
             type="submit"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={resetPassword.isPending}
           >
             {resetPassword.isPending ? "Updating password..." : "Reset Password"}

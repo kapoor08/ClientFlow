@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -19,13 +20,16 @@ export default function AuthSplitLayout({
   return (
     <div className="flex min-h-screen">
       <div className="hidden w-1/2 flex-col justify-between bg-primary p-12 lg:flex">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-foreground/20">
-            <span className="text-sm font-bold text-primary-foreground">CF</span>
-          </div>
-          <span className="text-lg font-semibold text-primary-foreground">
-            ClientFlow
-          </span>
+        <Link href="/" className="flex items-center gap-2 w-fit">
+          <Image
+            src="/logo-light.png"
+            alt="ClientFlow"
+            width={130}
+            height={28}
+            className="h-auto w-auto"
+            priority
+            draggable={false}
+          />
         </Link>
         <div>
           <h2 className="text-3xl font-bold text-primary-foreground">
@@ -36,7 +40,7 @@ export default function AuthSplitLayout({
           </p>
         </div>
         <p className="text-xs text-primary-foreground/60">
-          (c) {new Date().getFullYear()} ClientFlow, Inc.
+          &copy; {new Date().getFullYear()} ClientFlow, Inc.
         </p>
       </div>
 

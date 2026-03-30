@@ -1,5 +1,7 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { ClientForm } from "@/components/forms/ClientForm";
 import { getClientForEditForUser } from "@/lib/clients";
 import { getServerSession } from "@/lib/get-session";
@@ -26,11 +28,17 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
   }
 
   return (
-    <FormPageLayout
+    <ListPageLayout
       title={`Edit ${result.client.values.name}`}
       description="Update the client record and keep the primary contact details current."
-      backHref={`/clients/${result.client.id}`}
-      backLabel="Back to Client"
+      action={
+        <Link
+          href={`/clients/${result.client.id}`}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={14} /> Back to Client
+        </Link>
+      }
     >
       <ClientForm
         mode="edit"
@@ -38,6 +46,6 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
         submitLabel="Save Changes"
         initialValues={result.client.values}
       />
-    </FormPageLayout>
+    </ListPageLayout>
   );
 }

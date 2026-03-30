@@ -5,4 +5,8 @@ export const metadata: Metadata = {
   title: "Audit Logs",
 };
 
-export default AuditLogsPage;
+export default function Page(props: {
+  searchParams: Promise<Record<string, string | string[]>>;
+}) {
+  return <AuditLogsPage {...props} />;
+}

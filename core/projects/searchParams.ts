@@ -10,6 +10,10 @@ export const projectsSearchParamsCache = createSearchParamsCache({
   pageSize: parseAsInteger.withDefault(10),
   sort: parseAsString.withDefault(""),
   order: parseAsString.withDefault("asc"),
+  status: parseAsString.withDefault(""),
+  priority: parseAsString.withDefault(""),
+  dateFrom: parseAsString.withDefault(""),
+  dateTo: parseAsString.withDefault(""),
 });
 
 export type ProjectsSearchParams = Awaited<

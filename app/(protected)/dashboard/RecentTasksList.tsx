@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { DashboardTask } from "@/core/dashboard/entity";
 import {
   formatDueDate,
@@ -44,13 +43,7 @@ function TaskRow({ task }: { task: DashboardTask }) {
 
 // ─── RecentTasksList ──────────────────────────────────────────────────────────
 
-export function RecentTasksList({
-  tasksDueSoon,
-  isLoading,
-}: {
-  tasksDueSoon: DashboardTask[];
-  isLoading: boolean;
-}) {
+export function RecentTasksList({ tasksDueSoon }: { tasksDueSoon: DashboardTask[] }) {
   return (
     <div className="mt-8">
       <div className="mb-4 flex items-center justify-between">
@@ -83,24 +76,7 @@ export function RecentTasksList({
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-3.5 w-48" />
-                  </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">
-                    <Skeleton className="h-3.5 w-24" />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Skeleton className="h-5 w-20 rounded-full" />
-                  </td>
-                  <td className="hidden px-4 py-3 md:table-cell">
-                    <Skeleton className="h-3.5 w-16" />
-                  </td>
-                </tr>
-              ))
-            ) : tasksDueSoon.length === 0 ? (
+            {tasksDueSoon.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
@@ -110,9 +86,7 @@ export function RecentTasksList({
                 </td>
               </tr>
             ) : (
-              tasksDueSoon.map((task) => (
-                <TaskRow key={task.id} task={task} />
-              ))
+              tasksDueSoon.map((task) => <TaskRow key={task.id} task={task} />)
             )}
           </tbody>
         </table>

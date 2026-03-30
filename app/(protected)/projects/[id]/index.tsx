@@ -6,14 +6,13 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
-  Clock,
   DollarSign,
   Edit,
-  FolderKanban,
   Paperclip,
   Pencil,
   Tag,
 } from "lucide-react";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { FileUploader } from "@/components/files/FileUploader";
 import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
 import { ProjectTimesheetSection } from "./TimesheetSection";
@@ -39,14 +38,6 @@ const statusStyles: Record<ProjectStatus, string> = {
   cancelled: "bg-neutral-200/70 text-neutral-500",
 };
 
-const statusIconBg: Record<ProjectStatus, string> = {
-  planning: "bg-neutral-100 text-neutral-500",
-  active: "bg-info/10 text-info",
-  in_progress: "bg-primary/10 text-primary",
-  on_hold: "bg-warning/10 text-warning",
-  completed: "bg-success/10 text-success",
-  cancelled: "bg-neutral-100 text-neutral-400",
-};
 
 const priorityStyles: Record<ProjectPriority, string> = {
   low: "bg-neutral-200/70 text-neutral-600",
@@ -139,85 +130,60 @@ export default async function ProjectDetailPage({
     project.dueDate < new Date();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      {/* Back + actions */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={14} />
-          Back to Projects
-        </Link>
-        {access.canWrite && (
-          <Link
-            href={`/projects/${project.id}/edit`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium hover:bg-secondary"
-          >
-            <Edit size={13} />
-            Edit
-          </Link>
-        )}
-      </div>
+    <div>
+      <Link
+        href="/projects"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft size={14} /> Back to Projects
+      </Link>
 
-      {/* Header card */}
-      <div className="rounded-card border border-border bg-card shadow-cf-1">
-        <div className="flex items-start gap-4 p-6">
-          <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${statusIconBg[project.status]}`}
-          >
-            <FolderKanban size={22} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-2xl font-semibold text-foreground">
-                {project.name}
-              </h1>
+      <ListPageLayout
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            {project.name}
+            <span
+              className={`rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${statusStyles[project.status]}`}
+            >
+              {project.status.replaceAll("_", " ")}
+            </span>
+            {project.priority && (
               <span
-                className={`rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${statusStyles[project.status]}`}
+                className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${priorityStyles[project.priority]}`}
               >
-                {project.status.replaceAll("_", " ")}
+                <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[project.priority]}`} />
+                {project.priority}
               </span>
-              {project.priority && (
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${priorityStyles[project.priority]}`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${priorityDot[project.priority]}`}
-                  />
-                  {project.priority}
-                </span>
-              )}
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Link
-                href={`/clients/${project.clientId}`}
-                className="flex items-center gap-1 hover:text-primary"
-              >
-                <Building2 size={12} />
-                {project.clientName}
-              </Link>
-              <span className="text-border">·</span>
-              <span className="flex items-center gap-1">
-                <Clock size={12} />
-                Created {formatDate(project.createdAt)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {project.description && (
-          <div className="border-t border-border px-6 py-4">
-            <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
-              <Pencil
-                size={13}
-                className="mt-0.5 shrink-0 text-muted-foreground/50"
-              />
-              {project.description}
-            </p>
-          </div>
-        )}
-      </div>
+            )}
+          </span>
+        }
+        description={
+          <Link
+            href={`/clients/${project.clientId}`}
+            className="flex items-center gap-1 hover:text-primary transition-colors"
+          >
+            <Building2 size={12} />
+            {project.clientName}
+          </Link>
+        }
+        action={
+          access.canWrite ? (
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
+            >
+              <Edit size={13} /> Edit
+            </Link>
+          ) : undefined
+        }
+      >
+      <div className="space-y-5">
+      {project.description && (
+        <p className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+          <Pencil size={13} className="mt-0.5 shrink-0 text-muted-foreground/50" />
+          {project.description}
+        </p>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -284,6 +250,8 @@ export default async function ProjectDetailPage({
       <p className="text-right text-xs text-muted-foreground">
         Last updated {formatDate(project.updatedAt)}
       </p>
+      </div>
+      </ListPageLayout>
     </div>
   );
 }

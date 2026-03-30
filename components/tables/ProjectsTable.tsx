@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Building2, Calendar, FolderKanban } from "lucide-react";
-import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
+import { parseAsString, useQueryState } from "nuqs";
+import {
+  DataTable,
+  DateRangeFilter,
+  FiltersPopover,
+  RowActions,
+  type ColumnDef,
+} from "@/components/data-table";
 import { toast } from "sonner";
 import { useDeleteProject } from "@/core/projects/useCase";
+import {
+  PROJECT_STATUS_OPTIONS,
+  PROJECT_PRIORITY_OPTIONS,
+} from "@/lib/projects-shared";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ProjectListItem } from "@/lib/projects";
 import type { ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
@@ -274,6 +285,20 @@ export function ProjectsTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteProject = useDeleteProject();
 
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useQueryState(
+    "status",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
+  const [priority, setPriority] = useQueryState(
+    "priority",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
+
   const handleDelete = async (projectId: string) => {
     setDeletingId(projectId);
     try {
@@ -288,12 +313,43 @@ export function ProjectsTable({
 
   const columns = buildColumns(canWrite, deletingId, handleDelete);
 
+  const searchExtra = (
+    <>
+      <DateRangeFilter />
+      <FiltersPopover
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: PROJECT_STATUS_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+            })),
+            value: status,
+            onChange: (val) => setStatus(val || null),
+          },
+          {
+            key: "priority",
+            label: "Priority",
+            options: PROJECT_PRIORITY_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+            })),
+            value: priority,
+            onChange: (val) => setPriority(val || null),
+          },
+        ]}
+      />
+    </>
+  );
+
   return (
     <DataTable
       data={projects}
       columns={columns}
       getRowKey={(p) => p.id}
       searchPlaceholder="Search projects…"
+      searchExtra={searchExtra}
       pagination={pagination}
       gridCard={(project) => <ProjectGridCard project={project} />}
       gridCols={3}

@@ -14,9 +14,8 @@ type ClientsPageProps = {
 const ClientsPage = async ({ searchParams }: ClientsPageProps) => {
   const session = await getServerSession();
 
-  const { q, page, pageSize, sort, order } = clientsSearchParamsCache.parse(
-    await searchParams,
-  );
+  const { q, page, pageSize, sort, order, status, dateFrom, dateTo } =
+    clientsSearchParamsCache.parse(await searchParams);
 
   const result = await listClientsForUser(session!.user.id, {
     query: q,
@@ -26,6 +25,9 @@ const ClientsPage = async ({ searchParams }: ClientsPageProps) => {
     // When no column is actively sorted fall back to desc (newest first).
     // When a column is sorted use the explicit order from the URL.
     order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
+    status: status || undefined,
+    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+    dateTo: dateTo ? new Date(dateTo) : undefined,
   });
 
   const canWrite = result.access?.canWrite ?? false;

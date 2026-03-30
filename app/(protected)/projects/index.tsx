@@ -12,7 +12,7 @@ type ProjectsPageProps = {
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const session = await getServerSession();
-  const { q, page, pageSize, sort, order } =
+  const { q, page, pageSize, sort, order, status, priority, dateFrom, dateTo } =
     projectsSearchParamsCache.parse(await searchParams);
 
   const { access, projects, pagination } = await listProjectsForUser(
@@ -23,6 +23,10 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
       pageSize,
       sort,
       order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
+      status: status || undefined,
+      priority: priority || undefined,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
     },
   );
 

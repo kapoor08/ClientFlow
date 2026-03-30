@@ -1,5 +1,7 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { FormPageLayout } from "@/components/layout/FormPageLayout";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { InviteForm } from "@/components/forms/InviteForm";
 import { getInvitationsModuleAccessForUser } from "@/lib/invitations";
 import { getServerSession } from "@/lib/get-session";
@@ -13,13 +15,20 @@ export default async function NewInvitationPage() {
   }
 
   return (
-    <FormPageLayout
+    <ListPageLayout
       title="Send Invitation"
       description="Invite someone to join your organization. They will receive an email with a link to accept."
-      backHref="/invitations"
-      backLabel="Back to Invitations"
+      action={
+        <Link
+          href="/invitations"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft size={14} />
+          Back to Invitations
+        </Link>
+      }
     >
       <InviteForm />
-    </FormPageLayout>
+    </ListPageLayout>
   );
 }

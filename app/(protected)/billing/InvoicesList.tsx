@@ -1,4 +1,3 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import { RowActions } from "@/components/data-table";
 import type { BillingInvoiceItem } from "@/core/billing/entity";
 import { formatPrice, formatDate, getStatusStyle } from "@/core/billing/entity";
@@ -41,13 +40,7 @@ function InvoiceRow({ invoice }: { invoice: BillingInvoiceItem }) {
 
 // ─── InvoicesList ─────────────────────────────────────────────────────────────
 
-export function InvoicesList({
-  invoices,
-  isLoading,
-}: {
-  invoices: BillingInvoiceItem[] | undefined;
-  isLoading: boolean;
-}) {
+export function InvoicesList({ invoices }: { invoices: BillingInvoiceItem[] }) {
   return (
     <>
       <h2 className="mb-4 font-display text-lg font-semibold text-foreground">
@@ -73,17 +66,7 @@ export function InvoicesList({
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3"><Skeleton className="h-3 w-20" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-3 w-16" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-5 w-14 rounded-full" /></td>
-                  <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-3 w-24" /></td>
-                  <td className="px-4 py-3" />
-                </tr>
-              ))
-            ) : !invoices?.length ? (
+            {!invoices.length ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
                   No invoices yet. Your billing history will appear here after

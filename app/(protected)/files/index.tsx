@@ -10,11 +10,20 @@ type FilesPageProps = {
 
 export default async function FilesPage({ searchParams }: FilesPageProps) {
   const session = await getServerSession();
-  const { q, page, pageSize } = filesSearchParamsCache.parse(await searchParams);
+  const { q, page, pageSize, sort, order, dateFrom, dateTo } =
+    filesSearchParamsCache.parse(await searchParams);
 
   const { access, files, pagination } = await listAllFilesForUser(
     session!.user.id,
-    { query: q, page, pageSize },
+    {
+      query: q,
+      page,
+      pageSize,
+      sort,
+      order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+    },
   );
 
   if (!access) {
@@ -36,7 +45,11 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
       title="Files"
       description={`${pagination.total} file${pagination.total === 1 ? "" : "s"} across all projects`}
     >
-      <FilesTable initialFiles={initialFiles} canWrite={access.canWrite} />
+      <FilesTable
+        initialFiles={initialFiles}
+        pagination={pagination}
+        canWrite={access.canWrite}
+      />
     </ListPageLayout>
   );
 }

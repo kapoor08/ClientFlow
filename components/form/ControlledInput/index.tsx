@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 export interface ControlledInputProps<T extends FieldValues> {
   name: Path<T>;
   label?: string;
+  labelAddon?: React.ReactNode;
   control: Control<T>;
   placeholder?: string;
   error?: FieldError;
@@ -27,13 +28,15 @@ export interface ControlledInputProps<T extends FieldValues> {
   description?: string;
   className?: string;
   labelClassName?: string;
-  showPasswordToggle?: boolean; // Enable password visibility toggle
+  showPasswordToggle?: boolean;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: string;
 }
 
 export const ControlledInput = <T extends FieldValues>({
   name,
   label,
+  labelAddon,
   control,
   placeholder,
   error,
@@ -47,6 +50,7 @@ export const ControlledInput = <T extends FieldValues>({
   labelClassName,
   showPasswordToggle = false,
   inputMode,
+  autoComplete,
 }: ControlledInputProps<T>) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -67,12 +71,15 @@ export const ControlledInput = <T extends FieldValues>({
   return (
     <div className="grid gap-2">
       {label && (
-        <Label
-          htmlFor={name}
-          className={error ? "text-destructive" : (labelClassName ?? "")}
-        >
-          {label}
-        </Label>
+        <div className={labelAddon ? "flex items-center justify-between" : undefined}>
+          <Label
+            htmlFor={name}
+            className={error ? "text-destructive" : (labelClassName ?? "")}
+          >
+            {label}
+          </Label>
+          {labelAddon}
+        </div>
       )}
       <div className="relative">
         <Controller
@@ -99,6 +106,7 @@ export const ControlledInput = <T extends FieldValues>({
               step={step}
               disabled={disabled}
               inputMode={inputMode}
+              autoComplete={autoComplete}
               className={inputClassName}
             />
           )}
@@ -107,7 +115,7 @@ export const ControlledInput = <T extends FieldValues>({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             tabIndex={-1}
           >
             {showPassword ? (

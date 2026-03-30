@@ -1,4 +1,6 @@
-import { motion, type Variants } from "framer-motion";
+"use client";
+
+import { motion } from "framer-motion";
 import {
   Users,
   FolderKanban,
@@ -7,48 +9,25 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useMotionStagger } from "@/hooks/use-home-motion";
 import type { DashboardContext } from "@/core/dashboard/entity";
 import { formatRevenue } from "@/core/dashboard/entity";
 
-// ─── KPI skeleton ─────────────────────────────────────────────────────────────
+export function DashboardStats({ data }: { data: DashboardContext }) {
+  const motionStagger = useMotionStagger({ step: 0.06, initialY: 12, duration: 0.35 });
 
-function KpiSkeleton() {
-  return (
-    <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-3.5 w-28" />
-        <Skeleton className="h-4 w-4 rounded" />
-      </div>
-      <Skeleton className="mt-3 h-7 w-16" />
-      <Skeleton className="mt-2 h-3 w-32" />
-    </div>
-  );
-}
-
-// ─── DashboardStats ───────────────────────────────────────────────────────────
-
-export function DashboardStats({
-  data,
-  isLoading,
-  motionStagger,
-}: {
-  data: DashboardContext | undefined;
-  isLoading: boolean;
-  motionStagger: { container: Variants; item: Variants };
-}) {
   const kpis = [
     {
       label: "Active Clients",
-      value: String(data?.kpis.activeClients ?? 0),
-      change: `+${data?.kpis.newClientsThisMonth ?? 0} this month`,
+      value: String(data.kpis.activeClients),
+      change: `+${data.kpis.newClientsThisMonth} this month`,
       icon: Users,
       trend: "up" as const,
     },
     {
       label: "Projects",
-      value: String(data?.kpis.projectsInProgress ?? 0),
-      change: data?.kpis.projectsDueThisWeek
+      value: String(data.kpis.projectsInProgress),
+      change: data.kpis.projectsDueThisWeek
         ? `${data.kpis.projectsDueThisWeek} due this week`
         : "None due this week",
       icon: FolderKanban,
@@ -56,33 +35,21 @@ export function DashboardStats({
     },
     {
       label: "Open Tasks",
-      value: String(data?.kpis.openTasks ?? 0),
-      change: data?.kpis.overdueTasks
+      value: String(data.kpis.openTasks),
+      change: data.kpis.overdueTasks
         ? `${data.kpis.overdueTasks} overdue`
         : "None overdue",
       icon: CheckSquare,
-      trend: (data?.kpis.overdueTasks ?? 0) > 0
-        ? ("warning" as const)
-        : ("up" as const),
+      trend: data.kpis.overdueTasks > 0 ? ("warning" as const) : ("up" as const),
     },
     {
       label: "Revenue This Month",
-      value: formatRevenue(data?.kpis.monthlyRevenueCents ?? 0),
+      value: formatRevenue(data.kpis.monthlyRevenueCents),
       change: "From paid invoices",
       icon: CreditCard,
       trend: "up" as const,
     },
   ];
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <KpiSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <motion.div

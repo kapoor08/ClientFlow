@@ -1,14 +1,16 @@
 import type { ReactNode } from "react";
-import { Search } from "lucide-react";
-import { Kbd } from "@/components/ui/kbd";
 import type { User } from "@/lib/auth";
 import { getUserInitials } from "@/core/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { TrialBanner } from "@/components/layout/TrialBanner";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import AppSidebar from "./AppSidebar";
 import { OrgSwitcher, type OrgOption } from "./OrgSwitcher";
-import type { RolePermissionsConfig, MemberPermissionOverrides } from "@/config/role-permissions";
+import type {
+  RolePermissionsConfig,
+  MemberPermissionOverrides,
+} from "@/config/role-permissions";
 
 type AppShellProps = {
   children: ReactNode;
@@ -25,14 +27,44 @@ type AppShellProps = {
   memberPermissionOverrides?: MemberPermissionOverrides | null;
 };
 
-const AppShell = ({ children, user, planCode, daysLeftInTrial, roleKey, orgName, logoUrl, brandColor, orgs, activeOrgId, rolePermissions, memberPermissionOverrides }: AppShellProps) => {
+const AppShell = ({
+  children,
+  user,
+  planCode,
+  daysLeftInTrial,
+  roleKey,
+  orgName,
+  logoUrl,
+  brandColor,
+  orgs,
+  activeOrgId,
+  rolePermissions,
+  memberPermissionOverrides,
+}: AppShellProps) => {
   const isClient = roleKey === "client";
   return (
     <div className="flex min-h-screen bg-background">
-      {isClient
-        ? <AppSidebar mode="portal" logoUrl={logoUrl} brandColor={brandColor} orgName={orgName} rolePermissions={rolePermissions} memberPermissionOverrides={memberPermissionOverrides} />
-        : <AppSidebar mode="admin" planCode={planCode} roleKey={roleKey} logoUrl={logoUrl} orgName={orgName} brandColor={brandColor} rolePermissions={rolePermissions} memberPermissionOverrides={memberPermissionOverrides} />
-      }
+      {isClient ? (
+        <AppSidebar
+          mode="portal"
+          logoUrl={logoUrl}
+          brandColor={brandColor}
+          orgName={orgName}
+          rolePermissions={rolePermissions}
+          memberPermissionOverrides={memberPermissionOverrides}
+        />
+      ) : (
+        <AppSidebar
+          mode="admin"
+          planCode={planCode}
+          roleKey={roleKey}
+          logoUrl={logoUrl}
+          orgName={orgName}
+          brandColor={brandColor}
+          rolePermissions={rolePermissions}
+          memberPermissionOverrides={memberPermissionOverrides}
+        />
+      )}
       <div className="flex flex-1 flex-col min-w-0">
         {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
@@ -40,15 +72,7 @@ const AppShell = ({ children, user, planCode, daysLeftInTrial, roleKey, orgName,
             {orgs && orgs.length > 1 && activeOrgId && (
               <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
             )}
-            <div className="flex w-52 items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Search size={14} />
-                <span className="hidden sm:inline">Search...</span>
-              </div>
-              <Kbd className="hidden bg-background border border-cf-neutral-500 px-2 py-2! sm:inline-flex">
-                Ctrl+K
-              </Kbd>
-            </div>
+            <GlobalSearch />
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell />

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, ilike, or, count } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, or, count } from "drizzle-orm";
 import { auditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
@@ -54,6 +54,8 @@ type ListAuditLogsOptions = {
   query?: string;
   page?: number;
   pageSize?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
 };
 
 export async function listAuditLogsForUser(
@@ -69,7 +71,7 @@ export async function listAuditLogsForUser(
   // Only owner and admin can view audit logs
   if (context.roleKey !== "owner" && context.roleKey !== "admin") return null;
 
-  const { query = "", page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
+  const { query = "", page = 1, pageSize = DEFAULT_PAGE_SIZE, dateFrom, dateTo } = options;
   const trimmed = query.trim();
 
   const whereClause = and(
@@ -82,6 +84,8 @@ export async function listAuditLogsForUser(
           ilike(user.email, `%${trimmed}%`),
         )
       : undefined,
+    dateFrom ? gte(auditLogs.createdAt, dateFrom) : undefined,
+    dateTo ? lte(auditLogs.createdAt, dateTo) : undefined,
   );
 
   const [totalResult, rows] = await Promise.all([

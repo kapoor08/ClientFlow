@@ -1,4 +1,4 @@
-import SignInPage from "../signin";
+import SignInPage from ".";
 
 export const metadata = {
   title: "ClientFlow - Sign In",

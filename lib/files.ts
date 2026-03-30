@@ -1,7 +1,7 @@
 import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
-import { and, asc, count, desc, eq, ilike } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
 import { clients, projectFiles, projects } from "@/db/schema";
 import {
   DEFAULT_PAGE_SIZE,
@@ -106,9 +106,35 @@ export async function listFilesForProject(
   return { access, files: rows };
 }
 
+const SORTABLE_FILE_COLUMNS = {
+  fileName: projectFiles.fileName,
+  sizeBytes: projectFiles.sizeBytes,
+  createdAt: projectFiles.createdAt,
+} as const;
+
+type FileSortKey = keyof typeof SORTABLE_FILE_COLUMNS;
+
+function resolveFileSort(sort: string | undefined, order: "asc" | "desc") {
+  const col =
+    SORTABLE_FILE_COLUMNS[
+      (sort as FileSortKey) in SORTABLE_FILE_COLUMNS
+        ? (sort as FileSortKey)
+        : "createdAt"
+    ];
+  return order === "asc" ? asc(col) : desc(col);
+}
+
 export async function listAllFilesForUser(
   userId: string,
-  options: { query?: string; page?: number; pageSize?: number } = {},
+  options: {
+    query?: string;
+    page?: number;
+    pageSize?: number;
+    sort?: string;
+    order?: "asc" | "desc";
+    dateFrom?: Date;
+    dateTo?: Date;
+  } = {},
 ): Promise<{
   access: FilesModuleAccess | null;
   files: OrgFileListItem[];
@@ -118,12 +144,22 @@ export async function listAllFilesForUser(
   const emptyPagination = buildPaginationMeta(0, 1, DEFAULT_PAGE_SIZE);
   if (!access) return { access: null, files: [], pagination: emptyPagination };
 
-  const { query = "", page = 1, pageSize = DEFAULT_PAGE_SIZE } = options;
+  const {
+    query = "",
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    sort,
+    order = "desc",
+    dateFrom,
+    dateTo,
+  } = options;
   const trimmedQuery = query.trim();
 
   const whereClause = and(
     eq(projectFiles.organizationId, access.organizationId),
     trimmedQuery ? ilike(projectFiles.fileName, `%${trimmedQuery}%`) : undefined,
+    dateFrom ? gte(projectFiles.createdAt, dateFrom) : undefined,
+    dateTo ? lte(projectFiles.createdAt, dateTo) : undefined,
   );
 
   const [{ total }] = await db
@@ -148,7 +184,7 @@ export async function listAllFilesForUser(
     .innerJoin(projects, eq(projectFiles.projectId, projects.id))
     .leftJoin(clients, eq(projects.clientId, clients.id))
     .where(whereClause)
-    .orderBy(desc(projectFiles.createdAt))
+    .orderBy(resolveFileSort(sort, order))
     .limit(pageSize)
     .offset(paginationOffset(page, pageSize));
 

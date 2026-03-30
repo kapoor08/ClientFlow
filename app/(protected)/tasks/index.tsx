@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQueryState } from "nuqs";
+import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import {
   DndContext,
   DragOverlay,
@@ -431,6 +432,7 @@ const TasksPage = ({
   initialColumns,
   currentUserId,
 }: TasksPageProps) => {
+  const dndId = useId();
   const [localColumns, setLocalColumns] = useState<BoardColumn[]>(
     initialColumns?.columns ?? [],
   );
@@ -664,21 +666,11 @@ const TasksPage = ({
   const isLoading = !columnsData && !tasksData;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Page header */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">
-            My Tasks
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isLoading
-              ? "Loading…"
-              : `${localColumns.length} columns · ${localTasks.length} tasks`}
-          </p>
-        </div>
-      </div>
-
+    <ListPageLayout
+      title="My Tasks"
+      description={`${localColumns.length} columns · ${localTasks.length} tasks`}
+    >
+      <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-48 max-w-64">
@@ -737,6 +729,7 @@ const TasksPage = ({
         </div>
       ) : (
         <DndContext
+          id={dndId}
           sensors={sensors}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
@@ -878,6 +871,7 @@ const TasksPage = ({
         onClose={() => setMoveTask(null)}
       />
     </div>
+    </ListPageLayout>
   );
 };
 

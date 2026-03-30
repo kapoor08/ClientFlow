@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const { userId } = await requireAuth();
     const data = await listInvoicesForUser(userId);
-    return NextResponse.json(data ?? []);
+    return NextResponse.json(data?.invoices ?? []);
   } catch (err) {
     return apiErrorResponse(err);
   }

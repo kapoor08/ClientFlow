@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { DashboardActivity } from "@/core/dashboard/entity";
 import { formatActivity, formatTimeAgo } from "@/core/dashboard/entity";
 
@@ -31,13 +30,7 @@ function ActivityItem({ item }: { item: DashboardActivity }) {
 
 // ─── RecentActivityList ───────────────────────────────────────────────────────
 
-export function RecentActivityList({
-  recentActivity,
-  isLoading,
-}: {
-  recentActivity: DashboardActivity[];
-  isLoading: boolean;
-}) {
+export function RecentActivityList({ recentActivity }: { recentActivity: DashboardActivity[] }) {
   return (
     <div className="lg:col-span-2">
       <div className="mb-4 flex items-center justify-between">
@@ -53,17 +46,7 @@ export function RecentActivityList({
       </div>
 
       <div className="rounded-card border border-border bg-card shadow-cf-1 px-4 py-1">
-        {isLoading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">
-              <Skeleton className="h-7 w-7 rounded-full shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <Skeleton className="h-3.5 w-full" />
-                <Skeleton className="mt-1.5 h-3 w-16" />
-              </div>
-            </div>
-          ))
-        ) : recentActivity.length === 0 ? (
+        {recentActivity.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">No recent activity.</p>
         ) : (
           recentActivity.map((item) => <ActivityItem key={item.id} item={item} />)

@@ -9,21 +9,23 @@ import {
   FileSpreadsheet,
   FileText,
   FileVideo,
-  Loader2,
-  Search,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { RowActions } from "@/components/data-table";
-import { useAllFiles, useDeleteFile } from "@/core/files/useCase";
+import {
+  DataTable,
+  DateRangeFilter,
+  RowActions,
+  type ColumnDef,
+} from "@/components/data-table";
 import { toast } from "sonner";
+import { useDeleteFile } from "@/core/files/useCase";
 import type { OrgFileListItem } from "@/core/files/entity";
 import {
   FilePreviewModal,
   type PreviewFile,
 } from "@/components/files/FilePreviewModal";
-import { cn } from "@/lib/utils";
+import type { PaginationMeta } from "@/lib/pagination";
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return File;
@@ -82,33 +84,19 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-// ─── Row ──────────────────────────────────────────────────────────────────
+// ─── Column definitions ───────────────────────────────────────────────────────
 
-function FileRow({
-  file,
-  canDelete,
-  onDelete,
-  isDeleting,
-  onPreview,
-}: {
-  file: OrgFileListItem;
-  canDelete: boolean;
-  onDelete: (id: string) => void;
-  isDeleting: boolean;
-  onPreview: (file: PreviewFile) => void;
-}) {
-  const Icon = getFileIcon(file.mimeType);
-  const iconBg = getIconBg(file.mimeType);
-
-  return (
-    <tr
-      className={cn(
-        "border-b border-border last:border-0 transition-colors hover:bg-secondary/30",
-        isDeleting && "opacity-50",
-      )}
-    >
-      {/* Actions — first column */}
-      <td className="px-4 py-3">
+function buildColumns(
+  canDelete: boolean,
+  deletingId: string | null,
+  onDelete: (id: string) => void,
+  onPreview: (file: PreviewFile) => void,
+): ColumnDef<OrgFileListItem>[] {
+  return [
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (file) => (
         <RowActions
           onPreview={() =>
             onPreview({
@@ -120,41 +108,54 @@ function FileRow({
           downloadHref={file.storageUrl}
           downloadFileName={file.fileName}
           onDelete={canDelete ? () => onDelete(file.id) : undefined}
-          isDeleting={isDeleting}
+          isDeleting={deletingId === file.id}
           deleteLabel={file.fileName}
         />
-      </td>
-
-      {/* File name */}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
-          >
-            <Icon size={15} />
+      ),
+    },
+    {
+      key: "fileName",
+      header: "File",
+      sortable: true,
+      cell: (file) => {
+        const Icon = getFileIcon(file.mimeType);
+        const iconBg = getIconBg(file.mimeType);
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
+            >
+              <Icon size={15} />
+            </div>
+            <span
+              className="max-w-55 truncate text-sm font-medium text-foreground"
+              title={file.fileName}
+            >
+              {file.fileName}
+            </span>
           </div>
-          <span
-            className="max-w-55 truncate text-sm font-medium text-foreground"
-            title={file.fileName}
-          >
-            {file.fileName}
-          </span>
-        </div>
-      </td>
-
-      {/* Project */}
-      <td className="hidden px-4 py-3 sm:table-cell">
+        );
+      },
+    },
+    {
+      key: "projectName",
+      header: "Project",
+      hideOnMobile: true,
+      cell: (file) => (
         <Link
           href={`/projects/${file.projectId}`}
           className="text-sm text-muted-foreground hover:text-primary"
         >
           {file.projectName}
         </Link>
-      </td>
-
-      {/* Client */}
-      <td className="hidden px-4 py-3 md:table-cell">
-        {file.clientId ? (
+      ),
+    },
+    {
+      key: "clientName",
+      header: "Client",
+      hideOnTablet: true,
+      cell: (file) =>
+        file.clientId ? (
           <Link
             href={`/clients/${file.clientId}`}
             className="text-sm text-muted-foreground hover:text-primary"
@@ -163,35 +164,47 @@ function FileRow({
           </Link>
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
-        )}
-      </td>
-
-      {/* Size */}
-      <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
-        {formatBytes(file.sizeBytes)}
-      </td>
-
-      {/* Date */}
-      <td className="px-4 py-3 text-xs text-muted-foreground">
-        {formatDate(file.createdAt)}
-      </td>
-    </tr>
-  );
+        ),
+    },
+    {
+      key: "sizeBytes",
+      header: "Size",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (file) => (
+        <span className="text-sm text-muted-foreground">
+          {formatBytes(file.sizeBytes)}
+        </span>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Uploaded",
+      sortable: true,
+      cell: (file) => (
+        <span className="text-xs text-muted-foreground">
+          {formatDate(file.createdAt)}
+        </span>
+      ),
+    },
+  ];
 }
 
-// ─── Table ────────────────────────────────────────────────────────────────
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 type FilesTableProps = {
   initialFiles: OrgFileListItem[];
+  pagination: PaginationMeta;
   canWrite: boolean;
 };
 
-export function FilesTable({ initialFiles, canWrite }: FilesTableProps) {
-  const [search, setSearch] = useState("");
+export function FilesTable({
+  initialFiles,
+  pagination,
+  canWrite,
+}: FilesTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<PreviewFile | null>(null);
-
-  const { data: files = initialFiles, isLoading } = useAllFiles({ q: search });
   const deleteFile = useDeleteFile();
 
   const handleDelete = async (fileId: string) => {
@@ -200,93 +213,28 @@ export function FilesTable({ initialFiles, canWrite }: FilesTableProps) {
       await deleteFile.mutateAsync({ fileId });
       toast.success("File deleted.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete file.");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete file.",
+      );
     } finally {
       setDeletingId(null);
     }
   };
 
+  const columns = buildColumns(canWrite, deletingId, handleDelete, setPreviewFile);
+
   return (
     <>
-      <div className="space-y-4">
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            placeholder="Search files…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white"
-          />
-        </div>
-
-        {/* Table */}
-        <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
-          {isLoading && search ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2
-                size={20}
-                className="animate-spin text-muted-foreground"
-              />
-            </div>
-          ) : files.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <File size={28} className="text-muted-foreground/30" />
-              <p className="text-sm font-medium text-muted-foreground">
-                {search
-                  ? "No files match your search."
-                  : "No files uploaded yet."}
-              </p>
-              {!search && (
-                <p className="text-xs text-muted-foreground/70">
-                  Upload files from the project detail page.
-                </p>
-              )}
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-secondary/40">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
-                    Actions
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
-                    File
-                  </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground sm:table-cell">
-                    Project
-                  </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
-                    Client
-                  </th>
-                  <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground lg:table-cell">
-                    Size
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
-                    Uploaded
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {files.map((file) => (
-                  <FileRow
-                    key={file.id}
-                    file={file}
-                    canDelete={canWrite}
-                    onDelete={handleDelete}
-                    isDeleting={deletingId === file.id}
-                    onPreview={setPreviewFile}
-                  />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
+      <DataTable
+        data={initialFiles}
+        columns={columns}
+        getRowKey={(f) => f.id}
+        searchPlaceholder="Search files…"
+        searchExtra={<DateRangeFilter />}
+        pagination={pagination}
+        emptyTitle="No files found."
+        emptyDescription="Try a different search term or upload files from the project detail page."
+      />
       <FilePreviewModal
         file={previewFile}
         onClose={() => setPreviewFile(null)}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { DashboardProject } from "@/core/dashboard/entity";
 import {
   PROJECT_STATUS_LABELS,
@@ -52,13 +51,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
 
 // ─── RecentProjectsTable ──────────────────────────────────────────────────────
 
-export function RecentProjectsTable({
-  recentProjects,
-  isLoading,
-}: {
-  recentProjects: DashboardProject[];
-  isLoading: boolean;
-}) {
+export function RecentProjectsTable({ recentProjects }: { recentProjects: DashboardProject[] }) {
   return (
     <div className="lg:col-span-3">
       <div className="mb-4 flex items-center justify-between">
@@ -84,17 +77,7 @@ export function RecentProjectsTable({
             </tr>
           </thead>
           <tbody>
-            {isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3"><Skeleton className="h-3.5 w-40" /></td>
-                  <td className="hidden px-4 py-3 sm:table-cell"><Skeleton className="h-3.5 w-24" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                  <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-5 w-14 rounded-full" /></td>
-                  <td className="hidden px-4 py-3 lg:table-cell"><Skeleton className="h-3.5 w-16" /></td>
-                </tr>
-              ))
-            ) : recentProjects.length === 0 ? (
+            {recentProjects.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No active projects yet.

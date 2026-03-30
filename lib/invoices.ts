@@ -1,11 +1,17 @@
 import "server-only";
 
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { invoices, clients } from "@/db/schema";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import type { InvoiceLineItem } from "@/db/schemas/billing";
 import { writeAuditLog } from "@/lib/audit";
+import {
+  DEFAULT_PAGE_SIZE,
+  buildPaginationMeta,
+  paginationOffset,
+  type PaginationMeta,
+} from "@/lib/pagination";
 
 export type { InvoiceLineItem };
 
@@ -43,11 +49,77 @@ function calcAmountDue(items: InvoiceLineItem[]): number {
   return items.reduce((sum, li) => sum + li.quantity * li.unitPriceCents, 0);
 }
 
+// ─── List ─────────────────────────────────────────────────────────────────────
+
+const SORTABLE_INVOICE_COLUMNS = {
+  number: invoices.number,
+  amountDueCents: invoices.amountDueCents,
+  createdAt: invoices.createdAt,
+  dueAt: invoices.dueAt,
+} as const;
+
+type InvoiceSortKey = keyof typeof SORTABLE_INVOICE_COLUMNS;
+
+function resolveInvoiceSort(sort: string | undefined, order: "asc" | "desc") {
+  const col =
+    SORTABLE_INVOICE_COLUMNS[
+      (sort as InvoiceSortKey) in SORTABLE_INVOICE_COLUMNS
+        ? (sort as InvoiceSortKey)
+        : "createdAt"
+    ];
+  return order === "asc" ? asc(col) : desc(col);
+}
+
+export type ListInvoicesOptions = {
+  page?: number;
+  pageSize?: number;
+  query?: string;
+  status?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
 export async function listInvoicesForUser(
   userId: string,
-): Promise<InvoiceItem[] | null> {
+  options: ListInvoicesOptions = {},
+): Promise<{ invoices: InvoiceItem[]; pagination: PaginationMeta } | null> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) return null;
+
+  const {
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    query = "",
+    status,
+    sort,
+    order = "desc",
+    dateFrom,
+    dateTo,
+  } = options;
+
+  const trimmedQuery = query.trim();
+
+  const whereClause = and(
+    eq(invoices.organizationId, ctx.organizationId),
+    trimmedQuery
+      ? or(
+          ilike(invoices.number, `%${trimmedQuery}%`),
+          ilike(invoices.title, `%${trimmedQuery}%`),
+          ilike(clients.name, `%${trimmedQuery}%`),
+        )
+      : undefined,
+    status ? eq(invoices.status, status) : undefined,
+    dateFrom ? gte(invoices.createdAt, dateFrom) : undefined,
+    dateTo ? lte(invoices.createdAt, dateTo) : undefined,
+  );
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(invoices)
+    .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .where(whereClause);
 
   const rows = await db
     .select({
@@ -71,13 +143,18 @@ export async function listInvoicesForUser(
     })
     .from(invoices)
     .leftJoin(clients, eq(invoices.clientId, clients.id))
-    .where(eq(invoices.organizationId, ctx.organizationId))
-    .orderBy(desc(invoices.createdAt));
+    .where(whereClause)
+    .orderBy(resolveInvoiceSort(sort, order as "asc" | "desc"))
+    .limit(pageSize)
+    .offset(paginationOffset(page, pageSize));
 
-  return rows.map((r) => ({
-    ...r,
-    lineItems: (r.lineItems as InvoiceLineItem[] | null) ?? null,
-  }));
+  return {
+    invoices: rows.map((r) => ({
+      ...r,
+      lineItems: (r.lineItems as InvoiceLineItem[] | null) ?? null,
+    })),
+    pagination: buildPaginationMeta(total, page, pageSize),
+  };
 }
 
 export async function getInvoiceForUser(

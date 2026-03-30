@@ -1,5 +1,4 @@
 import { Users, FolderOpen, Briefcase } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import type { BillingContext } from "@/core/billing/entity";
 import { usagePercent } from "@/core/billing/entity";
 
@@ -57,48 +56,31 @@ function UsageCard({
 
 // ─── UsageSection ─────────────────────────────────────────────────────────────
 
-export function UsageSection({
-  usage,
-  isLoading,
-}: {
-  usage: BillingContext["usage"] | undefined;
-  isLoading: boolean;
-}) {
+export function UsageSection({ usage }: { usage: BillingContext["usage"] }) {
   return (
     <>
       <h2 className="mb-3 font-display text-lg font-semibold text-foreground">
         Usage
       </h2>
       <div className="mb-8 grid gap-3 sm:grid-cols-3">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-border bg-card p-4">
-              <Skeleton className="h-3 w-24 mb-2" />
-              <Skeleton className="h-7 w-16" />
-            </div>
-          ))
-        ) : (
-          <>
-            <UsageCard
-              icon={Users}
-              label="Team Members"
-              used={usage?.members.used ?? 0}
-              limit={usage?.members.limit ?? null}
-            />
-            <UsageCard
-              icon={FolderOpen}
-              label="Projects"
-              used={usage?.projects.used ?? 0}
-              limit={usage?.projects.limit ?? null}
-            />
-            <UsageCard
-              icon={Briefcase}
-              label="Clients"
-              used={usage?.clients.used ?? 0}
-              limit={usage?.clients.limit ?? null}
-            />
-          </>
-        )}
+        <UsageCard
+          icon={Users}
+          label="Team Members"
+          used={usage.members.used}
+          limit={usage.members.limit}
+        />
+        <UsageCard
+          icon={FolderOpen}
+          label="Projects"
+          used={usage.projects.used}
+          limit={usage.projects.limit}
+        />
+        <UsageCard
+          icon={Briefcase}
+          label="Clients"
+          used={usage.clients.used}
+          limit={usage.clients.limit}
+        />
       </div>
     </>
   );

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ControlledInput, ControlledSelect } from "@/components/form";
 import type { ProjectTemplateTask } from "@/lib/project-templates";
 
 type TemplateItem = {
@@ -40,12 +36,23 @@ const STATUS_OPTIONS = [
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: "", label: "No priority" },
+  { value: "none", label: "No priority" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
   { value: "urgent", label: "Urgent" },
 ];
+
+const templateFormSchema = z.object({
+  name: z.string().min(1, "Template name is required."),
+  description: z.string().optional(),
+  defaultStatus: z.enum(["planning", "active", "on_hold"]),
+  defaultPriority: z.enum(["none", "low", "medium", "high", "urgent"]),
+  tasks: z.array(z.object({ title: z.string() })),
+  newTaskTitle: z.string().optional(),
+});
+
+type TemplateFormValues = z.infer<typeof templateFormSchema>;
 
 export type TemplateFormProps = {
   open: boolean;
@@ -56,29 +63,89 @@ export type TemplateFormProps = {
   error: string | null;
 };
 
-export function TemplateFormDialog({ open, initial, onClose, onSave, saving, error }: TemplateFormProps) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [defaultStatus, setDefaultStatus] = useState(initial?.defaultStatus ?? "planning");
-  const [defaultPriority, setDefaultPriority] = useState(initial?.defaultPriority ?? "");
-  const [taskDrafts, setTaskDrafts] = useState<ProjectTemplateTask[]>(initial?.tasks ?? []);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
+export function TemplateFormDialog({
+  open,
+  initial,
+  onClose,
+  onSave,
+  saving,
+  error,
+}: TemplateFormProps) {
+  const {
+    control,
+    handleSubmit,
+    register,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<TemplateFormValues>({
+    resolver: zodResolver(templateFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      defaultStatus: "planning",
+      defaultPriority: "none",
+      tasks: [],
+      newTaskTitle: "",
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "tasks",
+  });
+
+  // Sync form state when dialog opens or initial value changes
+  useEffect(() => {
+    if (open) {
+      reset({
+        name: initial?.name ?? "",
+        description: initial?.description ?? "",
+        defaultStatus:
+          (initial?.defaultStatus as TemplateFormValues["defaultStatus"]) ??
+          "planning",
+        defaultPriority:
+          (initial?.defaultPriority as TemplateFormValues["defaultPriority"]) ||
+          "none",
+        tasks: initial?.tasks ?? [],
+        newTaskTitle: "",
+      });
+    }
+  }, [open, initial, reset]);
+
+  const newTaskTitle = watch("newTaskTitle") ?? "";
 
   function addTask() {
-    if (!newTaskTitle.trim()) return;
-    setTaskDrafts((prev) => [...prev, { title: newTaskTitle.trim() }]);
-    setNewTaskTitle("");
+    const trimmed = newTaskTitle.trim();
+    if (!trimmed) return;
+    append({ title: trimmed });
+    setValue("newTaskTitle", "");
   }
 
-  function removeTask(index: number) {
-    setTaskDrafts((prev) => prev.filter((_, i) => i !== index));
+  function onSubmit(values: TemplateFormValues) {
+    onSave({
+      name: values.name,
+      description: values.description || null,
+      defaultStatus: values.defaultStatus,
+      defaultPriority:
+        values.defaultPriority === "none" ? null : values.defaultPriority,
+      tasks: values.tasks,
+    });
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initial ? "Edit Template" : "Create Template"}</DialogTitle>
+          <DialogTitle>
+            {initial ? "Edit Template" : "Create Template"}
+          </DialogTitle>
           <DialogDescription>
             Define a reusable project structure with predefined tasks.
           </DialogDescription>
@@ -90,51 +157,62 @@ export function TemplateFormDialog({ open, initial, onClose, onSave, saving, err
           </div>
         )}
 
-        <div className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="tpl-name">Template Name</Label>
-            <Input id="tpl-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Website Redesign" autoFocus />
-          </div>
+        <form
+          id="template-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4 py-2"
+        >
+          <ControlledInput
+            name="name"
+            label="Template Name*"
+            control={control}
+            error={errors.name}
+            placeholder="e.g. Website Redesign"
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="tpl-desc">Description (optional)</Label>
-            <Input id="tpl-desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description" />
-          </div>
+          <ControlledInput
+            name="description"
+            label="Description (optional)"
+            control={control}
+            error={errors.description}
+            placeholder="Brief description"
+          />
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Default Status</Label>
-              <Select value={defaultStatus} onValueChange={setDefaultStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Default Priority</Label>
-              <Select value={defaultPriority} onValueChange={setDefaultPriority}>
-                <SelectTrigger><SelectValue placeholder="No priority" /></SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <ControlledSelect
+              name="defaultStatus"
+              label="Default Status*"
+              control={control}
+              options={STATUS_OPTIONS}
+              error={errors.defaultStatus}
+            />
+            <ControlledSelect
+              name="defaultPriority"
+              label="Default Priority*"
+              control={control}
+              options={PRIORITY_OPTIONS}
+              error={errors.defaultPriority}
+            />
           </div>
 
           {/* Task list */}
           <div className="space-y-2">
-            <Label>Tasks ({taskDrafts.length})</Label>
-            {taskDrafts.length > 0 && (
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {taskDrafts.map((task, i) => (
-                  <div key={i} className="flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-2">
-                    <span className="flex-1 text-xs text-foreground">{task.title}</span>
-                    <button onClick={() => removeTask(i)} className="text-muted-foreground hover:text-danger">
+            <p className="text-sm font-medium">Tasks ({fields.length})</p>
+            {fields.length > 0 && (
+              <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
+                {fields.map((field, i) => (
+                  <div
+                    key={field.id}
+                    className="flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-2"
+                  >
+                    <span className="flex-1 text-xs text-foreground">
+                      {field.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => remove(i)}
+                      className="cursor-pointer text-muted-foreground hover:text-danger"
+                    >
                       <Trash2 size={12} />
                     </button>
                   </div>
@@ -143,26 +221,48 @@ export function TemplateFormDialog({ open, initial, onClose, onSave, saving, err
             )}
             <div className="flex gap-2">
               <Input
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addTask()}
+                {...register("newTaskTitle")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTask();
+                  }
+                }}
                 placeholder="Add a task..."
                 className="flex-1"
               />
-              <Button variant="outline" size="sm" onClick={addTask} disabled={!newTaskTitle.trim()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="cursor-pointer"
+                onClick={addTask}
+                disabled={!newTaskTitle.trim()}
+              >
                 Add
               </Button>
             </div>
           </div>
-        </div>
+        </form>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
-            onClick={() => onSave({ name, description: description || null, defaultStatus, defaultPriority: defaultPriority || null, tasks: taskDrafts })}
-            disabled={!name.trim() || saving}
+            variant="outline"
+            className="cursor-pointer"
+            onClick={onClose}
           >
-            {saving ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…</> : initial ? "Save Changes" : "Create Template"}
+            Cancel
+          </Button>
+          <Button type="submit" form="template-form" disabled={saving}>
+            {saving ? (
+              <>
+                <Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…
+              </>
+            ) : initial ? (
+              "Save Changes"
+            ) : (
+              "Create Template"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

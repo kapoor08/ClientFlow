@@ -1,12 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { FolderKanban, Mail, Phone, User } from "lucide-react";
-import { DataTable, RowActions, type ColumnDef } from "@/components/data-table";
+import { parseAsString, useQueryState } from "nuqs";
+import {
+  DataTable,
+  DateRangeFilter,
+  FiltersPopover,
+  RowActions,
+  type ColumnDef,
+} from "@/components/data-table";
 import { toast } from "sonner";
 import { getUserInitials } from "@/core/auth";
 import { useDeleteClient } from "@/core/clients/useCase";
+import { CLIENT_STATUS_OPTIONS } from "@/lib/clients-shared";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ClientListItem } from "@/lib/clients";
 
@@ -72,7 +80,10 @@ function buildColumns(
       header: "Client",
       sortable: true,
       cell: (client) => (
-        <Link href={`/clients/${client.id}`} className="flex items-center gap-3">
+        <Link
+          href={`/clients/${client.id}`}
+          className="flex items-center gap-3"
+        >
           <ClientAvatar name={client.name} email={client.contactEmail} />
           <div>
             <span className="font-medium text-foreground hover:text-primary">
@@ -100,7 +111,9 @@ function buildColumns(
       hideOnMobile: true,
       cell: (client) => (
         <div>
-          <p className="text-sm">{client.contactName || "No primary contact"}</p>
+          <p className="text-sm">
+            {client.contactName || "No primary contact"}
+          </p>
           <p className="text-xs text-muted-foreground">
             {client.contactEmail || client.contactPhone || "—"}
           </p>
@@ -239,13 +252,23 @@ export function ClientsTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteClient = useDeleteClient();
 
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useQueryState(
+    "status",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
+
   const handleDelete = async (clientId: string) => {
     setDeletingId(clientId);
     try {
       await deleteClient.mutateAsync({ clientId });
       toast.success("Client deleted.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete client.");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete client.",
+      );
     } finally {
       setDeletingId(null);
     }
@@ -253,12 +276,33 @@ export function ClientsTable({
 
   const columns = buildColumns(canWrite, deletingId, handleDelete);
 
+  const searchExtra = (
+    <>
+      <DateRangeFilter />
+      <FiltersPopover
+        filters={[
+          {
+            key: "status",
+            label: "Status",
+            options: CLIENT_STATUS_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+            })),
+            value: status,
+            onChange: (val) => setStatus(val || null),
+          },
+        ]}
+      />
+    </>
+  );
+
   return (
     <DataTable
       data={clients}
       columns={columns}
       getRowKey={(c) => c.id}
       searchPlaceholder="Search clients…"
+      searchExtra={searchExtra}
       pagination={pagination}
       gridCard={(client) => <ClientGridCard client={client} />}
       gridCols={3}

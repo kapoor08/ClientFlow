@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description:
     "ClientFlow is the ultimate platform for agencies to manage clients, projects, and billing in one place. Streamline your workflow and grow your business with ease.",
   icons: {
-    icon: "/favicon.png",
+    icon: "/favicon.ico",
   },
 };
 
