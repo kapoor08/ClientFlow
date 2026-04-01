@@ -170,7 +170,7 @@ function buildColumns(
     {
       key: "number",
       header: "Invoice",
-      sortKey: "number",
+      sortable: true,
       cell: (inv) => (
         <div>
           <div className="text-sm font-medium text-foreground">
@@ -194,7 +194,7 @@ function buildColumns(
     {
       key: "amountDueCents",
       header: "Amount",
-      sortKey: "amountDueCents",
+      sortable: true,
       cell: (inv) => (
         <span className="text-sm font-medium text-foreground">
           {formatCents(
@@ -225,7 +225,7 @@ function buildColumns(
     {
       key: "dueAt",
       header: "Date",
-      sortKey: "dueAt",
+      sortable: true,
       cell: (inv) => (
         <span className="text-xs text-muted-foreground">
           {inv.status === "paid" ? formatDate(inv.paidAt) : formatDate(inv.dueAt)}
@@ -235,7 +235,8 @@ function buildColumns(
     {
       key: "actions",
       header: "",
-      align: "right",
+      className: "text-right",
+      headerClassName: "text-right",
       cell: (inv) => (
         <InvoiceActionsCell invoice={inv} onAction={onAction} busyId={busyId} />
       ),
