@@ -1,8 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { sendTransactionalEmailViaEmailJs } from "@/lib/emailjs";
+import { sendTransactionalEmailViaResend } from "@/lib/resend-email";
 
-// ─── EmailJS core ─────────────────────────────────────────────────────────────
+// ─── Provider routing ─────────────────────────────────────────────────────────
+//
+// If EMAILJS_PUBLIC_KEY is set → use EmailJS.
+// Otherwise → use Resend (requires RESEND_API_KEY + EMAIL_FROM).
 
 type SendEmailInput = {
   to: string;
@@ -14,7 +18,14 @@ type SendEmailInput = {
 };
 
 async function sendEmail(input: SendEmailInput) {
-  return sendTransactionalEmailViaEmailJs({
+  if (process.env.EMAILJS_PUBLIC_KEY) {
+    return sendTransactionalEmailViaEmailJs({
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+    });
+  }
+  return sendTransactionalEmailViaResend({
     to: input.to,
     subject: input.subject,
     html: input.html,

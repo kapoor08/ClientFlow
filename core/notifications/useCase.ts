@@ -47,20 +47,45 @@ export function useNotificationStream(): void {
   const qc = useQueryClient();
 
   useEffect(() => {
-    const es = new EventSource("/api/notifications/stream");
+    // SSE doesn't work reliably through the Next.js dev-server proxy.
+    // In development, the 30s polling interval in useNotifications is sufficient.
+    if (process.env.NODE_ENV === "development") return;
 
-    es.onmessage = (e: MessageEvent) => {
-      try {
-        const data = JSON.parse(e.data as string) as { type: string };
-        if (data.type === "new_notification") {
-          void qc.invalidateQueries({ queryKey: notificationKeys.list() });
+    let es: EventSource;
+    let retryTimeout: ReturnType<typeof setTimeout>;
+    let retryDelay = 3_000;
+
+    const connect = () => {
+      es = new EventSource("/api/notifications/stream");
+
+      es.onmessage = (e: MessageEvent) => {
+        try {
+          const data = JSON.parse(e.data as string) as { type: string };
+          if (data.type === "new_notification") {
+            void qc.invalidateQueries({ queryKey: notificationKeys.list() });
+          }
+          // Reset backoff on successful message
+          retryDelay = 3_000;
+        } catch {
+          // Ignore malformed events
         }
-      } catch {
-        // Ignore malformed events
-      }
+      };
+
+      es.onerror = () => {
+        es.close();
+        retryTimeout = setTimeout(() => {
+          retryDelay = Math.min(retryDelay * 2, 60_000);
+          connect();
+        }, retryDelay);
+      };
     };
 
-    return () => es.close();
+    connect();
+
+    return () => {
+      clearTimeout(retryTimeout);
+      es?.close();
+    };
   }, [qc]);
 }
 

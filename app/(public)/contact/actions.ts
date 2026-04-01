@@ -55,10 +55,8 @@ export async function submitContactFormAction(
   }
 
   try {
-    await Promise.all([
-      // EmailJS — primary delivery via dashboard template
-      sendContactEmailViaEmailJs({ name, email, company, subject, message }),
-      // Resend — branded HTML template (internal alert + visitor acknowledgement)
+    const tasks: Promise<unknown>[] = [
+      // Branded HTML templates (internal alert + visitor acknowledgement)
       onContactFormSubmitted({
         name,
         email,
@@ -68,7 +66,16 @@ export async function submitContactFormAction(
         internalRecipient: process.env.RESEND_REPLY_TO_EMAIL ?? "",
         orgName: "ClientFlow",
       }),
-    ]);
+    ];
+
+    // EmailJS contact template — only when EmailJS is the configured provider
+    if (process.env.EMAILJS_PUBLIC_KEY) {
+      tasks.push(
+        sendContactEmailViaEmailJs({ name, email, company, subject, message }),
+      );
+    }
+
+    await Promise.all(tasks);
 
     return {
       status: "success",

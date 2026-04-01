@@ -1,378 +1,354 @@
-# 🚀 ClientFlow
+# ClientFlow
 
-### Advanced Multi-Tenant SaaS Platform for Agencies & Service-Based Businesses
-
----
-
-## 🧩 Overview
-
-ClientFlow is a production-grade, multi-tenant SaaS platform designed for agencies, consultants, and service-based teams to manage clients, projects, tasks, billing, analytics, and collaboration within a single unified system.
-
-The platform is architected with scalability, strict tenant isolation, subscription-based monetization, event-driven processing, and modular service separation in mind.
-
-It demonstrates real-world SaaS engineering principles, including:
-
-- Multi-tenant architecture
-- Role-based access control (RBAC)
-- Service modularization
-- Event-driven workflows
-- Background job processing
-- Subscription billing
-- Real-time notifications
-- Advanced analytics aggregation
-
-This project emphasizes system design, scalability strategy, and production-readiness — not just feature development.
+### Production-Grade Multi-Tenant SaaS Platform for Agencies & Service-Based Businesses
 
 ---
 
-## 🎯 Problem Statement
+## Overview
 
-Agencies and service-based businesses often manage clients, tasks, billing, and reporting across disconnected tools. This results in:
+ClientFlow is a fully-featured, multi-tenant SaaS platform built for agencies, consultants, and service teams to manage clients, projects, tasks, billing, files, and collaboration from a single system.
 
-- Fragmented workflows
-- Poor visibility
-- Weak access control
-- Manual billing processes
-- Lack of real-time updates
-- Limited analytics
+The platform is built to production standards — not as a demo. It demonstrates real-world SaaS engineering: strict tenant isolation, subscription monetization, event-driven processing, multi-channel notifications, external integrations, and a white-label client portal.
 
-ClientFlow solves this by providing a centralized, secure, scalable SaaS platform with modular architecture and real-time operational visibility.
+**Live:** [client-flow.in](https://client-flow.in)
 
 ---
 
-# 🏢 Multi-Tenant Architecture
-
-ClientFlow uses a shared-database, tenant-scoped architecture.
-
-### Core Principles
-
-- Logical data isolation per organization
-- Users can belong to multiple organizations
-- All queries are tenant-scoped
-- Authorization enforced at API and service level
-
----
-
-## 🔒 Tenant Isolation Strategy
-
-Each primary table includes an `organization_id`.
-
-All queries are automatically scoped via middleware that injects tenant context.
-
-Indexes created on:
-
-- `organization_id`
-- Composite indexes (`organization_id + created_at`, etc.)
-
-This provides:
-
-- Strong logical isolation
-- Cost efficiency
-- Scalable growth
-- Predictable performance
-
----
-
-# 🔐 Role-Based Access Control (RBAC)
-
-Predefined roles:
-
-- Owner
-- Admin
-- Manager
-- Member
-- Client
-
-Authorization enforced via:
-
-- API middleware
-- Service-layer policy checks
-- UI-level visibility controls
-
-Permissions are granular and extensible.
-
----
-
-# 💳 Modular Billing Service (Extracted Module)
-
-The billing system is implemented as a logically separated service module within the monolith, designed for future independent extraction.
-
-### Responsibilities:
-
-- Subscription lifecycle management
-- Stripe integration
-- Plan validation
-- Webhook handling
-- Feature gating
-- Usage tracking
-
-Billing logic is isolated from core business modules, allowing eventual extraction into a standalone microservice.
-
----
-
-# ⚡ Event-Driven Architecture
-
-ClientFlow implements an internal event-driven workflow model.
-
-When important actions occur, domain events are emitted:
-
-Examples:
-
-- `TASK_CREATED`
-- `PROJECT_UPDATED`
-- `USER_INVITED`
-- `SUBSCRIPTION_UPDATED`
-
-Events are:
-
-- Pushed into Redis-based queue
-- Processed asynchronously by worker services
-- Used to trigger notifications, analytics updates, and billing checks
-
-This reduces coupling between modules and improves scalability.
-
----
-
-# 🔔 Real-Time Notifications
-
-The system supports real-time updates for:
-
-- Task assignments
-- Status changes
-- Mentions
-- Billing updates
-- Team invitations
-
-Implemented using:
-
-- WebSocket-based notification layer
-- Redis pub/sub for cross-instance communication
-- Optimistic UI updates
-
-This enhances user experience and responsiveness.
-
----
-
-# 📊 Advanced Analytics Dashboard
-
-ClientFlow includes an aggregated analytics engine.
-
-Tracked metrics:
-
-- Projects per organization
-- Task completion rates
-- User activity frequency
-- Revenue per tenant
-- Subscription growth
-
-Analytics architecture:
-
-- Events captured asynchronously
-- Aggregated via background workers
-- Stored in optimized reporting tables
-- Cached for dashboard performance
-
-This demonstrates data aggregation and reporting pipeline design.
-
----
-
-# 💼 Core Features
-
-### 1. Organization & Team Management
-
-- Multi-organization support
-- Role assignment
-- Team invitation workflow
-- Client access portal
-
----
-
-### 2. Client & Project Management
-
-- Client-based project grouping
-- Task assignment
-- Deadline tracking
-- Activity logs
-
----
-
-### 3. Task Workflow System
-
-- Status pipeline
-- Comments
-- Attachments
-- Priority flags
-- Audit tracking
-
----
-
-### 4. Plan-Based Feature Gating
-
-Features enforced via middleware using:
-
-- Plan metadata
-- Usage counters
-- Organization limits
-
-Examples:
-
-- Project limits
-- Team size caps
-- Advanced analytics access
-
----
-
-# 🧠 API Architecture
-
-Backend implemented using Next.js Route Handlers with structured service layering:
-
-- Route Layer → Input validation
-- Service Layer → Business logic
-- Data Layer → Drizzle ORM
-
-Clear separation ensures maintainability and testability.
-
----
-
-# 🧠 System Design Considerations
-
-## 1. Database Design
-
-- PostgreSQL (Neon)
-- Drizzle ORM
-- Composite indexes
-- Soft deletes
-- Optimized reporting tables
-
----
-
-## 2. Performance Optimization
-
-- Tenant-scoped indexing
-- Cursor-based pagination
-- Redis caching
-- Async processing
-- Minimal blocking operations
-
----
-
-## 3. Scalability Strategy
-
-- Stateless API design
-- Redis pub/sub
-- Horizontal scaling ready
-- Worker processes separated from API layer
-
----
-
-## 4. Security
-
-- JWT authentication
-- Role-based authorization
-- Rate limiting
-- Stripe webhook signature verification
-- Environment isolation
-
----
-
-# 🏗 Architecture Overview
-
-ClientFlow follows a modular monolithic architecture with semi-decoupled services:
-
-Core Modules:
-
-- Authentication Service
-- Organization & Tenant Module
-- Project & Task Module
-- Billing Service
-- Analytics Service
-- Notification Service
-- Background Worker Layer
-
-The architecture supports future service extraction without major refactoring.
-
----
-
-# 🚀 Deployment Strategy
-
-- Next.js (Frontend + API)
-- PostgreSQL via Neon
-- Redis (managed provider)
-- Background workers as separate process
-- Dockerized configuration
-- CI/CD ready
-
-Designed for horizontal scaling and production-grade deployment.
-
----
-
-# 🛠 Technology Stack
+## Tech Stack
 
 ### Frontend
 
-- Next.js (App Router)
-- Tailwind CSS
-- TanStack Query
+| Layer       | Technology                        |
+| ----------- | --------------------------------- |
+| Framework   | Next.js 16 (App Router)           |
+| Language    | TypeScript 5                      |
+| Styling     | Tailwind CSS v4 + shadcn/ui       |
+| State       | TanStack Query v5                 |
+| URL State   | nuqs v2                           |
+| Forms       | React Hook Form + Zod v4          |
+| Rich Text   | Tiptap v3 (mentions, attachments) |
+| Drag & Drop | dnd-kit                           |
+| Charts      | Recharts                          |
+| Animations  | Framer Motion                     |
 
 ### Backend
 
-- Next.js Route Handlers
-- PostgreSQL (Neon)
-- Drizzle ORM
-- Redis
-- Stripe
-
-### Infrastructure
-
-- Docker
-- Managed cloud deployment
-- CI/CD pipeline
-
----
-
-# 📊 Engineering Tradeoffs
-
-- Used modular monolith to balance scalability and development speed.
-- Extracted billing logic logically without full microservice overhead.
-- Implemented event-driven internal architecture to reduce tight coupling.
-- Chose shared-database multi-tenancy for cost efficiency.
-- Used async processing to reduce API latency.
+| Layer              | Technology                          |
+| ------------------ | ----------------------------------- |
+| API                | Next.js Route Handlers              |
+| Auth               | BetterAuth v1.5                     |
+| Database           | PostgreSQL (Neon serverless)        |
+| ORM                | Drizzle ORM                         |
+| Cache / Pub-Sub    | Upstash Redis (REST + ioredis TCP)  |
+| Rate Limiting      | @upstash/ratelimit (sliding window) |
+| Payments           | Stripe v20                          |
+| Email              | Resend / EmailJS (dual-provider)    |
+| File Storage       | Cloudinary                          |
+| Push Notifications | Web Push (VAPID)                    |
+| Real-Time          | Server-Sent Events (SSE)            |
 
 ---
 
-# 🚀 Why This Project Matters
+## Architecture
 
-ClientFlow demonstrates:
+ClientFlow uses a **modular monolith** with a shared-database, tenant-scoped multi-tenancy model. Every primary table carries an `organization_id`. All queries are tenant-scoped at the service layer — there is no cross-tenant data leakage.
 
-- Advanced SaaS architecture
-- Multi-tenant data modeling
-- Modular service design
-- Event-driven backend systems
-- Real-time notification systems
-- Analytics aggregation pipelines
-- Scalable production infrastructure
+```
+app/
+├── (public)/          # Marketing, pricing, legal, docs
+├── (protected)/       # Authenticated workspace + client portal
+├── (onboarding)/      # New-user onboarding flow
+├── auth/              # Auth pages (sign-in, sign-up, MFA, SSO)
+├── api/               # Route handlers
+│
+core/                  # Use-cases per domain (framework-agnostic)
+lib/                   # Shared utilities, service functions
+db/
+├── schemas/           # Drizzle schema files per domain
+│   ├── access.ts      # Orgs, roles, memberships, permissions
+│   ├── work.ts        # Clients, projects, tasks, time entries
+│   ├── billing.ts     # Plans, subscriptions, invoices, usage
+│   └── platform.ts    # Events, jobs, notifications
+emails/templates/      # 43 HTML email templates
+```
 
-This project reflects the ability to design and implement a commercially viable SaaS platform with architectural foresight and scalability in mind.
+---
+
+## Features
+
+### Authentication & Security
+
+- **Email / Password** authentication via BetterAuth
+- **Google OAuth** (configurable)
+- **Two-Factor Authentication (TOTP)** with backup code regeneration
+- **Single Sign-On (SSO)** — OIDC/SAML, Google Workspace, Azure AD, Okta
+- **SSO enforcement** per organization (blocks non-SSO logins when enabled)
+- **Session management** — configurable timeout, per-session revocation, revoke-all
+- **IP allowlist** enforcement at middleware level
+- **Risky sign-in detection** with email alerts
+- **Rate limiting** — 10 req/10s on auth endpoints, 120 req/60s on all API routes (Upstash sliding window)
 
 ---
 
-# Database Hardening Updates (V2)
+### Multi-Tenant Organization System
 
-To strengthen production safety and align with the latest schema design:
-
-- Composite tenant safety constraints:
-- Child records use tenant-scoped composite foreign keys (for example, `(organization_id, project_id)`) to block cross-tenant references at the database level.
-- Normalized RBAC:
-- Added `roles`, `permissions`, and `role_permissions` for extensible authorization mapping.
-- Clear invitation lifecycle:
-- Invitations now carry explicit states (`pending`, `accepted`, `revoked`, `expired`) with role linkage.
-- Billing lifecycle modeling:
-- `subscriptions` stores full history, while `organization_current_subscriptions` points to the active record.
-- Webhook traceability:
-- Billing webhook events can be associated with `organization_id` after event resolution.
-- API idempotency:
-- Added idempotency key storage to prevent duplicate side effects on retried write operations.
-- Security hardening:
-- Added persistent rate-limit buckets to support route-level throttling and abuse control.
+- Users can belong to multiple organizations with independent roles
+- **Organization switcher** in the app header
+- Per-organization **settings**: logo, brand color, timezone, currency, session timeout, SSO config, IP allowlist
+- **White-label branding** — brand color propagates across the full UI (buttons, badges, sidebar, backgrounds, gradients) via server-injected CSS variable overrides
+- **Custom role permissions** — per-role feature access configurable by org admins
+- **Member permission overrides** — individual permission exceptions per member
 
 ---
+
+### Role-Based Access Control (RBAC)
+
+Five predefined roles with granular permission flags:
+
+| Role    | Description                        |
+| ------- | ---------------------------------- |
+| Owner   | Full access, billing, org deletion |
+| Admin   | Team management, settings          |
+| Manager | Project & task management          |
+| Member  | Standard workspace access          |
+| Client  | Read-only client portal access     |
+
+Permissions enforced at API layer, service layer, and UI visibility level.
+
+---
+
+### Project & Client Management
+
+- Full **CRUD for clients** with detail pages and project associations
+- Full **CRUD for projects** with budget tracking, status, and member access
+- **Project templates** — create reusable project blueprints with pre-defined tasks
+- **Project-level membership** — control who sees each project
+- **Time entries** per project and task
+- **File uploads** (Cloudinary) attached to projects and tasks
+
+---
+
+### Task Management (Kanban)
+
+- **Kanban board** with drag-and-drop columns and cards (dnd-kit)
+- Custom board columns with color coding and ordering
+- Per-task: title, description, status, priority, due date, assignees, estimates
+- **Subtasks** with individual completion tracking
+- **Task comments** with rich text (Tiptap) and @mention notifications
+- **File attachments** per task with signed URL delivery
+- **Task activity log** — full change history with old/new values
+- **Comment limit enforcement** per plan
+
+---
+
+### Billing & Subscriptions (Stripe)
+
+- **Multi-plan support** (Starter, Professional) with feature flags and usage limits
+- Stripe **Checkout** and **Customer Portal** integration
+- **Trial period** management
+- **Cancel-at-period-end** support
+- **Usage counters** — members, projects, clients, tasks, comments, files tracked monthly
+- **Plan limit enforcement** — 402 errors with upgrade prompts at quota boundaries
+- **Invoice management** — Stripe automated invoices + manual invoices with line items
+- **Stripe webhook processing** with idempotency key storage and event logging
+- **Billing email notifications** — payment failures, expiring cards, plan changes, overdue reminders
+
+---
+
+### Notifications (Multi-Channel)
+
+| Channel   | Implementation                               |
+| --------- | -------------------------------------------- |
+| In-App    | `notifications` table, unread badge, popover |
+| Email     | 43 HTML templates via Resend or EmailJS      |
+| Web Push  | VAPID-signed push subscriptions              |
+| Real-Time | SSE stream via Upstash Redis pub/sub         |
+
+- **Per-event preferences** — users control in-app and email per notification type
+- **Bulk preference updates**
+- **30s polling fallback** when SSE is unavailable
+- **Exponential backoff** reconnection for SSE in production
+
+---
+
+### Outbound Webhooks
+
+- Organization-scoped webhook endpoints
+- **12 event types**: `project.created/updated/deleted`, `task.created/updated/completed`, `client.created/updated`, `invoice.paid/overdue`, `team.member_added/removed`
+- **HMAC-SHA256** signed payloads (`X-ClientFlow-Signature` header)
+- **3 retry attempts** with exponential backoff (1s, 2s, 4s delays)
+- **Test delivery** button in the UI — sends live signed ping to endpoint
+- Concurrent delivery via `Promise.allSettled`
+
+---
+
+### API Keys & Developer Access
+
+- Organization-scoped API key generation
+- SHA-256 hashed storage (key shown once at creation)
+- Key prefix display for identification
+- Expiration options (30 days / 90 days / 1 year / no expiry)
+- Per-key revocation and deletion
+- Last-used timestamp tracking
+- **In-app API reference docs** at `/developer`
+
+---
+
+### Client Portal
+
+A separate, role-gated interface for external clients:
+
+- `/client-portal` — Summary dashboard
+- `/client-portal/projects` — Read-only project list and details
+- `/client-portal/tasks` — Read-only task list
+- `/client-portal/files` — Access to shared project files
+- `/client-portal/invoices` — View and download invoices
+
+Portal inherits org branding (logo, brand color).
+
+---
+
+### Audit & Activity Logs
+
+- **Audit logs** — actor, action, entity type/ID, IP, user agent, metadata — admin-only
+- **Task audit logs** — field-level change history (oldValues / newValues)
+- **Activity logs** — broader activity feed accessible to team members
+- Date range filtering, search by action and entity
+- **CSV export** for both audit and activity logs
+
+---
+
+### Analytics Dashboard
+
+- Total clients, active projects, completed projects, files, revenue
+- Projects by status breakdown
+- Monthly project creation trend
+- Monthly revenue trend (currency-aware)
+- Recent project activity feed
+- Client-scoped filtering
+
+---
+
+### Email System
+
+Dual-provider routing: **EmailJS** when `EMAILJS_PUBLIC_KEY` is set, otherwise **Resend**.
+
+43 HTML templates across categories:
+
+| Category       | Templates                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth           | Verify email, password reset, invite, invite expired/revoked, suspicious login, membership suspended                                   |
+| Organization   | Role changed, account status changed, ownership transfer                                                                               |
+| Tasks          | Assigned, status changed, comment added, mentioned, due soon, overdue, attachment added                                                |
+| Billing        | Subscription changed, invoice available/overdue, payment failed/method expiring/changed, usage warning, quota reached, upgrade request |
+| Security       | Session activity notice, forced logout notice                                                                                          |
+| Operations     | Export ready, webhook failures, API key exposure, rate limit abuse, event/billing delays                                               |
+| Files & Portal | Shared file uploaded, client portal enabled                                                                                            |
+| Public         | Contact form acknowledgement, internal submission                                                                                      |
+
+---
+
+### Global Search
+
+- Unified search across clients, projects, tasks
+- Command palette UI (cmdk)
+- Results grouped by entity type
+
+---
+
+## Database Schema
+
+PostgreSQL via Neon. Managed with Drizzle ORM.
+
+**Tenant safety:** child records use composite tenant-scoped foreign keys (e.g. `(organization_id, project_id)`) to block cross-tenant references at the database level.
+
+**Schema domains:**
+
+| Domain   | Key Tables                                                                                                                                                                                              |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access   | `organizations`, `organization_settings`, `organization_memberships`, `organization_invitations`, `roles`, `permissions`, `role_permissions`, `api_keys`, `outbound_webhooks`                           |
+| Work     | `clients`, `projects`, `project_files`, `project_members`, `project_templates`, `task_board_columns`, `tasks`, `task_comments`, `task_attachments`, `task_audit_logs`, `task_assignees`, `time_entries` |
+| Billing  | `plans`, `plan_feature_flags`, `plan_feature_limits`, `subscriptions`, `organization_current_subscriptions`, `invoices`, `usage_counters`, `billing_webhook_events`, `api_idempotency_keys`             |
+| Platform | `domain_events`, `job_queue`, `notifications`, `notification_deliveries`, `notification_preferences`, `push_subscriptions`                                                                              |
+
+---
+
+## Environment Variables
+
+```bash
+# App
+NEXT_PUBLIC_APP_URL=
+
+# Auth
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=
+
+# Database
+DATABASE_URL=
+
+# Google OAuth (optional)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Email — Resend (primary when EMAILJS keys are absent)
+RESEND_API_KEY=
+EMAIL_FROM=
+
+# Email — EmailJS (optional, takes priority over Resend when set)
+EMAILJS_PUBLIC_KEY=
+EMAILJS_PRIVATE_KEY=
+EMAILJS_SERVICE_ID=
+EMAILJS_TEMPLATE_ID=
+EMAILJS_TRANSACTIONAL_TEMPLATE_ID=
+RESEND_REPLY_TO_EMAIL=
+
+# Web Push
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_PRICE_ID_STARTER=
+STRIPE_PRICE_ID_PROFESSIONAL=
+STRIPE_WEBHOOK_SECRET=
+
+# Upstash Redis
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+UPSTASH_REDIS_URL=
+```
+
+---
+
+## Deployment
+
+**Platform:** Vercel (serverless)
+**Database:** Neon PostgreSQL
+**Cache / Pub-Sub:** Upstash Redis
+**File Storage:** Cloudinary
+**Domain:** client-flow.in (GoDaddy → Vercel DNS)
+
+The app is stateless by design — all session state, pub/sub, and rate limit state live in Upstash Redis. Horizontal scaling requires no additional configuration.
+
+---
+
+## System Design Notes
+
+**Multi-tenancy:** Shared database, tenant-scoped queries. Cost-efficient, predictable performance with composite indexes on `(organization_id, created_at)` and similar patterns.
+
+**Event-driven internals:** Domain events table captures business events. A job queue handles asynchronous work (notification delivery, webhook dispatch) with deduplication, scheduling, and distributed locking.
+
+**Billing isolation:** Billing logic is contained in its own schema domain and service files, structurally ready for extraction into an independent service.
+
+**Email provider flexibility:** A single `sendEmail()` function routes to EmailJS or Resend based on environment configuration — no call sites need to change when switching providers.
+
+**SSE + polling:** Real-time notification delivery via SSE with Redis pub/sub in production. A 30-second polling fallback in `useNotifications` ensures notifications are never missed if SSE is unavailable.
+
+**Security layers:** Rate limiting at middleware, RBAC at service layer, tenant scoping at query layer, HMAC signing on webhooks, hashed storage for API keys, composite FK constraints at database layer.
