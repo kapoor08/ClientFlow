@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, count, desc, eq, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, lte } from "drizzle-orm";
 import {
   plans,
   planFeatureLimits,
@@ -10,9 +10,11 @@ import {
   clients,
   projects,
   organizationMemberships,
+  usageCounters,
 } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { getPlanLimits } from "@/config/plan-limits";
 
 export type BillingInvoiceItem = {
   id: string;
@@ -48,6 +50,9 @@ export type BillingContext = {
     members: BillingUsageStat;
     projects: BillingUsageStat;
     clients: BillingUsageStat;
+    tasksThisMonth: BillingUsageStat;
+    commentsThisMonth: BillingUsageStat;
+    fileUploadsThisMonth: BillingUsageStat;
   };
   invoices: BillingInvoiceItem[];
 };
@@ -103,8 +108,17 @@ export async function getBillingContextForUser(
     }
   }
 
-  // Real usage counts + invoices — run in parallel
-  const [memberCountRows, projectCountRows, clientCountRows, orgInvoices] =
+  // Monthly quota limits from plan config
+  const planCode = subRow?.planCode ?? "free";
+  const planLimits = getPlanLimits(planCode);
+
+  // Current month bounds for usage counters
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  // Real usage counts + monthly quotas + invoices — run in parallel
+  const [memberCountRows, projectCountRows, clientCountRows, orgInvoices, monthlyUsageRows] =
     await Promise.all([
       db
         .select({ value: count(organizationMemberships.id) })
@@ -152,6 +166,17 @@ export async function getBillingContextForUser(
         .where(eq(invoices.organizationId, orgId))
         .orderBy(desc(invoices.createdAt))
         .limit(20),
+
+      db
+        .select({ featureKey: usageCounters.featureKey, usedValue: usageCounters.usedValue })
+        .from(usageCounters)
+        .where(
+          and(
+            eq(usageCounters.organizationId, orgId),
+            gte(usageCounters.periodStart, monthStart),
+            lte(usageCounters.periodStart, monthEnd),
+          ),
+        ),
     ]);
 
   return {
@@ -171,6 +196,18 @@ export async function getBillingContextForUser(
       members: { used: memberCountRows[0]?.value ?? 0, limit: memberLimit },
       projects: { used: projectCountRows[0]?.value ?? 0, limit: projectLimit },
       clients: { used: clientCountRows[0]?.value ?? 0, limit: clientLimit },
+      tasksThisMonth: {
+        used: monthlyUsageRows.find((r) => r.featureKey === "tasks_created")?.usedValue ?? 0,
+        limit: planLimits.tasksPerMonth,
+      },
+      commentsThisMonth: {
+        used: monthlyUsageRows.find((r) => r.featureKey === "comments_created")?.usedValue ?? 0,
+        limit: planLimits.commentsPerMonth,
+      },
+      fileUploadsThisMonth: {
+        used: monthlyUsageRows.find((r) => r.featureKey === "files_uploaded")?.usedValue ?? 0,
+        limit: planLimits.fileUploadsPerMonth,
+      },
     },
     invoices: orgInvoices,
   };

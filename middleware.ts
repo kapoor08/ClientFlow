@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authRatelimit, apiRatelimit } from "@/lib/rate-limit";
 
 /**
  * BetterAuth sets "better-auth.session_token" in development (HTTP).
@@ -46,8 +47,71 @@ const PUBLIC_PREFIXES = [
   "/logo",
 ];
 
-export function middleware(request: NextRequest) {
+/**
+ * Auth API routes that get the stricter rate limit.
+ */
+const AUTH_API_PREFIXES = [
+  "/api/auth/sign-in",
+  "/api/auth/sign-up",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/send-verification-email",
+  "/api/auth/verify-email",
+];
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown"
+  );
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const ip = getClientIp(request);
+
+  // Rate limit auth endpoints (stricter)
+  if (AUTH_API_PREFIXES.some((p) => pathname.startsWith(p))) {
+    const { success, limit, remaining, reset } = await authRatelimit.limit(ip);
+    if (!success) {
+      return new NextResponse(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(reset),
+            "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // Rate limit all other API routes (general)
+  if (pathname.startsWith("/api/")) {
+    const { success, limit, remaining, reset } = await apiRatelimit.limit(ip);
+    if (!success) {
+      return new NextResponse(
+        JSON.stringify({ error: "Too many requests. Please try again later." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": String(remaining),
+            "X-RateLimit-Reset": String(reset),
+            "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+    return NextResponse.next();
+  }
 
   // Always allow public paths
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {

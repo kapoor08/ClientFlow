@@ -53,6 +53,7 @@ export const notifications = pgTable("notifications", {
   type: text("type").notNull(),
   title: text("title").notNull(),
   body: text("body"),
+  actionUrl: text("action_url"),
   data: jsonb("data"),
   isRead: boolean("is_read").default(false).notNull(),
   readAt: timestamp("read_at"),

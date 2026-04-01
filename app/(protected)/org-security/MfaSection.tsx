@@ -44,12 +44,15 @@ function CopyButton({ text }: { text: string }) {
 export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
   const [enableOpen, setEnableOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [step, setStep] = useState<"password" | "verify" | "backup">("password");
   const [password, setPassword] = useState("");
   const [totpUri, setTotpUri] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [newBackupCodes, setNewBackupCodes] = useState<string[]>([]);
   const [code, setCode] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
+  const [regenPassword, setRegenPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,6 +123,33 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setError(null);
   }
 
+  async function handleRegenerate() {
+    if (!regenPassword) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await authClient.twoFactor.generateBackupCodes({ password: regenPassword });
+      if (res.error) throw new Error(res.error.message ?? "Failed to regenerate backup codes.");
+      const codes = (res.data as { backupCodes: string[] }).backupCodes;
+      setNewBackupCodes(codes);
+      setRegenPassword("");
+      toast.success("Backup codes regenerated. Old codes are now invalid.");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to regenerate backup codes.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleRegenerateClose() {
+    setRegenerateOpen(false);
+    setRegenPassword("");
+    setNewBackupCodes([]);
+    setError(null);
+  }
+
   return (
     <>
       <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
@@ -150,6 +180,27 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           )}
         </div>
       </div>
+
+      {/* Backup codes card — shown when MFA is enabled */}
+      {mfaEnabled && (
+        <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Backup Codes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Regenerate your one-time backup codes if you lose access to your authenticator app.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setRegenerateOpen(true); setError(null); setNewBackupCodes([]); }}
+            >
+              Regenerate
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Enable MFA dialog */}
       <Dialog open={enableOpen} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -245,6 +296,66 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
               </div>
               <DialogFooter>
                 <Button onClick={handleClose}>Done</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate backup codes dialog */}
+      <Dialog open={regenerateOpen} onOpenChange={(v) => { if (!v) handleRegenerateClose(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Regenerate Backup Codes</DialogTitle>
+            <DialogDescription>
+              {newBackupCodes.length === 0
+                ? "This will invalidate your existing backup codes. Enter your password to continue."
+                : "Save these codes securely. Your old backup codes are now invalid."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {error && (
+            <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+              {error}
+            </div>
+          )}
+
+          {newBackupCodes.length === 0 ? (
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="regen-password">Current password</Label>
+                <Input
+                  id="regen-password"
+                  type="password"
+                  value={regenPassword}
+                  onChange={(e) => setRegenPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleRegenerate()}
+                  autoFocus
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleRegenerateClose}>Cancel</Button>
+                <Button onClick={handleRegenerate} disabled={!regenPassword || loading}>
+                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                  Regenerate
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
+                <p className="text-xs text-warning">Save these codes now. Each can be used once if you lose your authenticator.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {newBackupCodes.map((c) => (
+                  <div key={c} className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5">
+                    <span className="font-mono text-xs text-foreground">{c}</span>
+                    <CopyButton text={c} />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button onClick={handleRegenerateClose}>Done</Button>
               </DialogFooter>
             </div>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -945,8 +946,9 @@ export function TaskDetailSheet({
   const qc = useQueryClient();
   const [commentHtml, setCommentHtml] = useState("");
   const [commentKey, setCommentKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<"comments" | "logs" | "files">(
-    "comments",
+  const [activeTab, setActiveTab] = useQueryState(
+    "tab",
+    parseAsStringLiteral(["comments", "logs", "files"] as const).withDefault("comments"),
   );
   const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [reporterOpen, setReporterOpen] = useState(false);
@@ -1217,7 +1219,7 @@ export function TaskDetailSheet({
   }, [feed.length]);
 
   return (
-    <Dialog open={!!taskId} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={!!taskId} onOpenChange={(v) => { if (!v) { setActiveTab(null); onClose(); } }}>
       <DialogContent
         className="w-[90vw] max-w-275! p-0 gap-0 overflow-visible"
         showCloseButton={false}

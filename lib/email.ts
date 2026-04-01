@@ -1004,3 +1004,37 @@ export async function sendResetPasswordEmailViaResend({
     support_email: process.env.RESEND_REPLY_TO_EMAIL ?? "",
   });
 }
+
+// ─── Generic notification email ───────────────────────────────────────────────
+
+type GenericNotificationVars = {
+  recipient_name: string;
+  title: string;
+  body?: string;
+  action_url?: string;
+};
+
+export async function sendGenericNotification(
+  to: string,
+  vars: GenericNotificationVars,
+) {
+  const bodyParagraph = vars.body
+    ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#6b7280;">${vars.body}</p>`
+    : "";
+  const actionButton = vars.action_url
+    ? `<div style="margin:20px 0;"><a href="${vars.action_url}" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:14px;letter-spacing:-0.1px;">View Details</a></div>`
+    : "";
+
+  return sendEmail({
+    to,
+    subject: vars.title,
+    html: fillTemplate(loadTemplate("notifications.generic"), {
+      recipient_name: vars.recipient_name,
+      title: vars.title,
+      body_paragraph: bodyParagraph,
+      action_button: actionButton,
+    }),
+    text: `${vars.title}\n\n${vars.body ?? ""}${vars.action_url ? `\n\n${vars.action_url}` : ""}`,
+    tags: [{ name: "module", value: "notifications" }],
+  });
+}

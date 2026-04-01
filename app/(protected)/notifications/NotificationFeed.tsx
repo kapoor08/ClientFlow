@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Check,
@@ -12,6 +13,7 @@ import {
   FileUp,
   Users,
   Settings2,
+  ArrowUpRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -58,6 +60,7 @@ export function NotificationFeed() {
   const { data, isLoading } = useNotifications();
   const markRead = useMarkRead();
   const markAllRead = useMarkAllRead();
+  const router = useRouter();
 
   const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
@@ -143,7 +146,7 @@ export function NotificationFeed() {
               return (
                 <div
                   key={n.id}
-                  className={`flex cursor-pointer items-start gap-3 p-4 transition-colors hover:bg-secondary/30 ${!n.isRead ? "bg-brand-100/20" : ""}`}
+                  className={`group flex cursor-pointer items-start gap-3 p-4 transition-colors hover:bg-secondary/30 ${!n.isRead ? "bg-brand-100/20" : ""}`}
                   onClick={() => {
                     if (!n.isRead)
                       markRead.mutate(
@@ -157,6 +160,7 @@ export function NotificationFeed() {
                             ),
                         },
                       );
+                    if (n.actionUrl) router.push(n.actionUrl);
                   }}
                 >
                   <div
@@ -181,9 +185,17 @@ export function NotificationFeed() {
                       })}
                     </p>
                   </div>
-                  {!n.isRead && (
-                    <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                  )}
+                  <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                    {n.actionUrl && (
+                      <ArrowUpRight
+                        size={14}
+                        className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      />
+                    )}
+                    {!n.isRead && (
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                    )}
+                  </div>
                 </div>
               );
             })}

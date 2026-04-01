@@ -11,6 +11,7 @@ import type {
   RolePermissionsConfig,
   MemberPermissionOverrides,
 } from "@/config/role-permissions";
+import { hexToHslString, isHexDark, generateBrandPalette } from "@/lib/color-utils";
 
 type AppShellProps = {
   children: ReactNode;
@@ -42,7 +43,35 @@ const AppShell = ({
   memberPermissionOverrides,
 }: AppShellProps) => {
   const isClient = roleKey === "client";
+
+  // Compute brand color CSS override once on the server
+  const brandHsl = brandColor ? hexToHslString(brandColor) : null;
+  const brandPalette = brandColor ? generateBrandPalette(brandColor) : null;
+  const foregroundHsl = brandColor && isHexDark(brandColor) ? "0 0% 100%" : "0 0% 0%";
+  const brandStyle =
+    brandHsl && brandPalette
+      ? `:root {
+        --primary: ${brandHsl};
+        --primary-foreground: ${foregroundHsl};
+        --ring: ${brandHsl};
+        --sidebar-primary: ${brandHsl};
+        --sidebar-primary-foreground: ${foregroundHsl};
+        --sidebar-accent: ${brandPalette["100"]};
+        --sidebar-accent-foreground: ${brandPalette["900"]};
+        --sidebar-ring: ${brandHsl};
+        --cf-brand-900: ${brandPalette["900"]};
+        --cf-brand-700: ${brandPalette["700"]};
+        --cf-brand-500: ${brandPalette["500"]};
+        --cf-brand-300: ${brandPalette["300"]};
+        --cf-brand-100: ${brandPalette["100"]};
+      }`
+      : null;
+
   return (
+    <>
+      {brandStyle && (
+        <style dangerouslySetInnerHTML={{ __html: brandStyle }} />
+      )}
     <div className="flex min-h-screen bg-background">
       {isClient ? (
         <AppSidebar
@@ -93,6 +122,7 @@ const AppShell = ({
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
+    </>
   );
 };
 

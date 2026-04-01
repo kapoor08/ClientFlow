@@ -6,6 +6,7 @@ import {
   type RolePermissionsConfig,
 } from "@/config/role-permissions";
 import { getOrganizationSettingsContextForUser } from "./organization-settings";
+import { writeAuditLog } from "@/lib/audit";
 
 function createId() {
   return crypto.randomUUID();
@@ -46,4 +47,12 @@ export async function updateRolePermissionsForUser(
       target: organizationSettings.organizationId,
       set: { rolePermissionsConfig: config, updatedAt: new Date() },
     });
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "role_permissions.updated",
+    entityType: "organization",
+    entityId: ctx.organizationId,
+  }).catch(console.error);
 }

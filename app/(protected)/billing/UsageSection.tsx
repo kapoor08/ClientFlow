@@ -1,4 +1,4 @@
-import { Users, FolderOpen, Briefcase } from "lucide-react";
+import { Users, FolderOpen, Briefcase, CheckSquare, MessageSquare, Upload } from "lucide-react";
 import type { BillingContext } from "@/core/billing/entity";
 import { usagePercent } from "@/core/billing/entity";
 
@@ -62,7 +62,7 @@ export function UsageSection({ usage }: { usage: BillingContext["usage"] }) {
       <h2 className="mb-3 font-display text-lg font-semibold text-foreground">
         Usage
       </h2>
-      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <UsageCard
           icon={Users}
           label="Team Members"
@@ -80,6 +80,30 @@ export function UsageSection({ usage }: { usage: BillingContext["usage"] }) {
           label="Clients"
           used={usage.clients.used}
           limit={usage.clients.limit}
+        />
+      </div>
+
+      <h2 className="mb-3 font-display text-lg font-semibold text-foreground">
+        This Month&apos;s Activity
+      </h2>
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        <UsageCard
+          icon={CheckSquare}
+          label="Tasks Created"
+          used={usage.tasksThisMonth.used}
+          limit={usage.tasksThisMonth.limit}
+        />
+        <UsageCard
+          icon={MessageSquare}
+          label="Comments"
+          used={usage.commentsThisMonth.used}
+          limit={usage.commentsThisMonth.limit}
+        />
+        <UsageCard
+          icon={Upload}
+          label="File Uploads"
+          used={usage.fileUploadsThisMonth.used}
+          limit={usage.fileUploadsThisMonth.limit}
         />
       </div>
     </>

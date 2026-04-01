@@ -204,7 +204,7 @@ export async function createTaskForUser(
       eventKey: "task_assigned",
       title: "Task assigned to you",
       body: title,
-      url: "/tasks",
+      url: `/tasks?task=${refNumber}`,
     }).catch(console.error);
 
     // Email trigger
@@ -255,6 +255,7 @@ export async function updateTaskForUser(
       estimateMinutes: tasks.estimateMinutes,
       description: tasks.description,
       tags: tasks.tags,
+      refNumber: tasks.refNumber,
     })
     .from(tasks)
     .leftJoin(assigneeUser, eq(tasks.assigneeUserId, assigneeUser.id))
@@ -436,7 +437,7 @@ export async function updateTaskForUser(
       eventKey: "task_assigned",
       title: "Task assigned to you",
       body: taskTitle,
-      url: "/tasks",
+      url: `/tasks?task=${existing.refNumber ?? taskId}`,
     }).catch(console.error);
   }
 
@@ -453,7 +454,7 @@ export async function updateTaskForUser(
       eventKey: "task_status_changed",
       title: `Task status changed: ${formatStatusLabel(input.status)}`,
       body: taskTitle,
-      url: "/tasks",
+      url: `/tasks?task=${existing.refNumber ?? taskId}`,
     }).catch(console.error);
   }
 

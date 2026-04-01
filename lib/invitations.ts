@@ -1,6 +1,7 @@
 import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
+import { enforceMemberCap } from "@/lib/plan-enforcement";
 import { createHash } from "crypto";
 import { and, asc, desc, eq, gte, ilike, lt, lte, count } from "drizzle-orm";
 import {
@@ -284,6 +285,9 @@ export async function sendInvitationForUser(
     .limit(1);
 
   if (member) throw new Error("This user is already a member of your organization.");
+
+  // Enforce member cap before proceeding
+  await enforceMemberCap(access.organizationId);
 
   // Get inviter details
   const [inviter] = await db

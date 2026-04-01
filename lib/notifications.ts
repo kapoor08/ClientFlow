@@ -2,14 +2,17 @@ import "server-only";
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { emitNotificationEvent } from "@/lib/notification-stream";
 import {
   notifications,
   notificationPreferences,
   organizationMemberships,
   pushSubscriptions,
 } from "@/db/schema";
+import { user as userTable } from "@/db/auth-schema";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { sendPushToSubscription, type PushPayload } from "@/lib/push";
+import { sendGenericNotification } from "@/lib/email";
 import {
   ALL_EVENT_KEYS,
   type NotificationEventKey,
@@ -365,6 +368,7 @@ export async function dispatchNotification(opts: {
     .select({
       userId: notificationPreferences.userId,
       inAppEnabled: notificationPreferences.inAppEnabled,
+      emailEnabled: notificationPreferences.emailEnabled,
     })
     .from(notificationPreferences)
     .where(
@@ -375,11 +379,16 @@ export async function dispatchNotification(opts: {
       ),
     );
 
-  const prefMap = new Map(savedPrefs.map((p) => [p.userId, p.inAppEnabled]));
+  const prefMap = new Map(savedPrefs.map((p) => [p.userId, p]));
 
   // Determine who gets in-app notifications (default true if no saved pref)
   const inAppRecipients = opts.recipientUserIds.filter(
-    (id) => prefMap.get(id) !== false,
+    (id) => prefMap.get(id)?.inAppEnabled !== false,
+  );
+
+  // Determine who gets email notifications (default true if no saved pref)
+  const emailRecipientIds = opts.recipientUserIds.filter(
+    (id) => prefMap.get(id)?.emailEnabled !== false,
   );
 
   // Bulk insert in-app notifications
@@ -392,10 +401,14 @@ export async function dispatchNotification(opts: {
         type: opts.eventKey,
         title: opts.title,
         body: opts.body ?? null,
+        actionUrl: opts.url ?? null,
         data: opts.data ?? null,
         isRead: false,
       })),
     );
+
+    // Push SSE event to all connected recipients so their UI updates instantly
+    emitNotificationEvent(inAppRecipients);
   }
 
   // Send push to all recipients who have subscriptions (regardless of inApp pref)
@@ -416,6 +429,32 @@ export async function dispatchNotification(opts: {
           title: opts.title,
           body: opts.body ?? "",
           url: opts.url ?? "/notifications",
+        }),
+      ),
+    );
+  }
+
+  // Send email notifications to email-enabled recipients
+  if (emailRecipientIds.length > 0) {
+    const emailUsers = await db
+      .select({ id: userTable.id, name: userTable.name, email: userTable.email })
+      .from(userTable)
+      .where(inArray(userTable.id, emailRecipientIds));
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const actionUrl = opts.url
+      ? opts.url.startsWith("http")
+        ? opts.url
+        : `${appUrl}${opts.url}`
+      : undefined;
+
+    await Promise.allSettled(
+      emailUsers.map((u) =>
+        sendGenericNotification(u.email, {
+          recipient_name: u.name,
+          title: opts.title,
+          body: opts.body,
+          action_url: actionUrl,
         }),
       ),
     );

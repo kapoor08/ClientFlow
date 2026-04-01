@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Code2, Key } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
 import { API_SECTIONS } from "./api-docs-data";
 import { ApiDocsSidebar } from "./ApiDocsSidebar";
@@ -10,7 +10,10 @@ import { ApiSection } from "./ApiSection";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const ApiDocsPage = () => {
-  const [activeSection, setActiveSection] = useState("authentication");
+  const [activeSection, setActiveSection] = useQueryState(
+    "section",
+    parseAsString.withDefault("authentication"),
+  );
 
   return (
     <div className="flex gap-8">

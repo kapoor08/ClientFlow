@@ -27,6 +27,19 @@ export async function signInWithEmail(input: SignInInput) {
     throw new Error(result.error.message || "Unable to sign in.");
   }
 
+  // BetterAuth sets twoFactorRedirect when the account has 2FA enabled
+  if ((result.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
+    return { twoFactorRequired: true as const };
+  }
+
+  return result.data;
+}
+
+export async function verifyTwoFactorCode(code: string) {
+  const result = await authClient.twoFactor.verifyTotp({ code });
+  if (result.error) {
+    throw new Error(result.error.message || "Invalid verification code.");
+  }
   return result.data;
 }
 

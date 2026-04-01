@@ -39,7 +39,10 @@ export function PushEnableButton() {
         await unsubscribeFromPushAndRemove();
         setSubscribed(false);
       } else {
-        const endpoint = await requestPushPermissionAndSubscribe();
+        // Must call requestPermission synchronously within the user gesture
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") return;
+        const endpoint = await requestPushPermissionAndSubscribe(true);
         setSubscribed(!!endpoint);
       }
     } catch (err) {

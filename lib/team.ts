@@ -5,6 +5,7 @@ import { user } from "@/db/auth-schema";
 import { organizationMemberships, projectMembers, roles } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { writeAuditLog } from "@/lib/audit";
 import type { MemberPermissionOverrides } from "@/config/role-permissions";
 
 export type TeamModuleAccess = {
@@ -147,6 +148,15 @@ export async function updateMemberRoleForUser(
     .update(organizationMemberships)
     .set({ roleId: role.id, updatedAt: new Date() })
     .where(eq(organizationMemberships.id, targetMembershipId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "member.role_changed",
+    entityType: "membership",
+    entityId: targetMembershipId,
+    metadata: { newRole: newRoleKey },
+  }).catch(console.error);
 }
 
 export async function updateMemberStatusForUser(
@@ -204,6 +214,15 @@ export async function updateMemberPermissionOverridesForUser(
     .update(organizationMemberships)
     .set({ permissionOverrides: overrides, updatedAt: new Date() })
     .where(eq(organizationMemberships.id, targetMembershipId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "member.permissions_updated",
+    entityType: "membership",
+    entityId: targetMembershipId,
+    metadata: { overrides },
+  }).catch(console.error);
 }
 
 export async function removeMemberForUser(

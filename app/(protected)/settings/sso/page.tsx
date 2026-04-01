@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Shield, Loader2, Check, ExternalLink, Info,
-} from "lucide-react";
+import { Shield, Loader2, Check, ExternalLink, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,10 +99,13 @@ export default function SsoPage() {
         <div className="flex items-start gap-3">
           <Info size={15} className="mt-0.5 shrink-0 text-info" />
           <div>
-            <p className="text-sm font-medium text-foreground">Enterprise Feature</p>
+            <p className="text-sm font-medium text-foreground">
+              Enterprise Feature
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              SSO enforcement requires server-side middleware configuration. Save your
-              settings here and contact support to activate enforcement on your domain.
+              SSO enforcement requires server-side middleware configuration.
+              Save your settings here and contact support to activate
+              enforcement on your domain.
             </p>
           </div>
         </div>
@@ -120,7 +121,9 @@ export default function SsoPage() {
       <div className="rounded-card border border-border bg-card p-6 shadow-cf-1 space-y-5">
         <div className="flex items-center gap-2 mb-2">
           <Shield size={16} className="text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">SSO Configuration</h2>
+          <h2 className="text-sm font-semibold text-foreground">
+            SSO Configuration
+          </h2>
         </div>
 
         {/* Enable toggle */}
@@ -149,7 +152,7 @@ export default function SsoPage() {
             value={config.providerType}
             onValueChange={(v) => update("providerType", v)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="cursor-pointer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -162,7 +165,10 @@ export default function SsoPage() {
           </Select>
         </div>
 
-        {config.providerType === "oidc" || config.providerType === "google" || config.providerType === "azure" || config.providerType === "okta" ? (
+        {config.providerType === "oidc" ||
+        config.providerType === "google" ||
+        config.providerType === "azure" ||
+        config.providerType === "okta" ? (
           <>
             <div className="space-y-2">
               <Label htmlFor="discovery-url">Discovery / Well-Known URL</Label>
@@ -224,7 +230,9 @@ export default function SsoPage() {
           <Label>Callback URL (for your Identity Provider)</Label>
           <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-2 font-mono text-xs text-muted-foreground">
             <span className="flex-1 truncate">
-              {typeof window !== "undefined" ? window.location.origin : "https://your-app.com"}
+              {typeof window !== "undefined"
+                ? window.location.origin
+                : "https://your-app.com"}
               /api/auth/callback/sso
             </span>
             <ExternalLink size={12} />
@@ -235,11 +243,16 @@ export default function SsoPage() {
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
+            className="cursor-pointer"
           >
             {saveMutation.isPending ? (
-              <><Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…</>
+              <>
+                <Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…
+              </>
             ) : saved ? (
-              <><Check size={14} className="mr-1.5" /> Saved</>
+              <>
+                <Check size={14} className="mr-1.5" /> Saved
+              </>
             ) : (
               "Save Configuration"
             )}
@@ -262,7 +275,8 @@ export default function SsoPage() {
           <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2">
             <span className="h-2 w-2 rounded-full bg-success" />
             <span className="text-xs text-success font-medium">
-              SSO enforcement active — members will be redirected to your IdP on sign-in
+              SSO enforcement active — members will be redirected to your IdP on
+              sign-in
             </span>
           </div>
         )}

@@ -24,9 +24,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DatePicker } from "@/components/form/DatePicker";
 import { useCreateTask } from "@/core/tasks/useCase";
 import { http } from "@/core/infrastructure";
-import { CalendarDays, ChevronDown, User } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 
 type CreateTaskDialogProps = {
   open: boolean;
@@ -64,11 +65,10 @@ export function CreateTaskDialog({
   const [projectId, setProjectId] = useState<string>(defaultProjectId ?? "");
   const [assigneeUserId, setAssigneeUserId] = useState<string | null>(null);
   const [assigneeName, setAssigneeName] = useState<string | null>(null);
-  const [dueDate, setDueDate] = useState<string>("");
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [priority, setPriority] = useState<string | null>(null);
   const [memberSearch, setMemberSearch] = useState("");
   const [assigneeOpen, setAssigneeOpen] = useState(false);
-  const [dueDateOpen, setDueDateOpen] = useState(false);
   const [priorityOpen, setPriorityOpen] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -109,7 +109,7 @@ export function CreateTaskDialog({
     setProjectId(defaultProjectId ?? "");
     setAssigneeUserId(null);
     setAssigneeName(null);
-    setDueDate("");
+    setDueDate(undefined);
     setPriority(null);
     setMemberSearch("");
     onClose();
@@ -137,7 +137,7 @@ export function CreateTaskDialog({
         status: "todo",
         priority: priority ?? undefined,
         assigneeUserId: assigneeUserId ?? undefined,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+        dueDate: dueDate ? dueDate.toISOString() : null,
         columnId: defaultColumnId ?? null,
         parentTaskId: parentTaskId ?? null,
       },
@@ -171,7 +171,7 @@ export function CreateTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <DialogTitle>Create a new task</DialogTitle>
@@ -200,7 +200,7 @@ export function CreateTaskDialog({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add a description (optional)…"
-            rows={3}
+            rows={4}
             className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
           />
 
@@ -208,12 +208,12 @@ export function CreateTaskDialog({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* Project select */}
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-8 w-auto min-w-32 text-xs cursor-pointer">
+              <SelectTrigger className="h-8 w-auto min-w-32 cursor-pointer text-xs">
                 <SelectValue placeholder="Select project…" />
               </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="text-xs">
+                  <SelectItem key={p.id} value={p.id} className="cursor-pointer text-xs">
                     {p.name}
                   </SelectItem>
                 ))}
@@ -222,18 +222,18 @@ export function CreateTaskDialog({
 
             {/* Assignee */}
             <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
-              <PopoverTrigger asChild className="cursor-pointer">
+              <PopoverTrigger asChild>
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
+                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
                     assigneeUserId
                       ? "text-foreground font-medium"
                       : "text-muted-foreground",
                   )}
                 >
                   {assigneeInitials ? (
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary cursor-pointer">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
                       {assigneeInitials}
                     </div>
                   ) : (
@@ -260,7 +260,7 @@ export function CreateTaskDialog({
                         setAssigneeName(null);
                         setAssigneeOpen(false);
                       }}
-                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
+                      className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
                     >
                       <User size={14} /> Unassign
                     </button>
@@ -282,7 +282,7 @@ export function CreateTaskDialog({
                           setAssigneeOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
+                          "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
                           assigneeUserId === m.userId
                             ? "bg-secondary text-foreground font-medium"
                             : "hover:bg-secondary/50 text-muted-foreground",
@@ -305,55 +305,13 @@ export function CreateTaskDialog({
             </Popover>
 
             {/* Due Date */}
-            <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
-                    dueDate
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  <CalendarDays size={13} />
-                  <span>
-                    {dueDate
-                      ? new Date(dueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "Due date"}
-                  </span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-3" align="start">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  Due date
-                </p>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => {
-                    setDueDate(e.target.value);
-                    setDueDateOpen(false);
-                  }}
-                  className="block rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                {dueDate && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDueDate("");
-                      setDueDateOpen(false);
-                    }}
-                    className="mt-2 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear date
-                  </button>
-                )}
-              </PopoverContent>
-            </Popover>
+            <div className="w-44">
+              <DatePicker
+                value={dueDate}
+                onChange={setDueDate}
+                placeholder="Due date"
+              />
+            </div>
 
             {/* Priority */}
             <Popover open={priorityOpen} onOpenChange={setPriorityOpen}>
@@ -361,7 +319,7 @@ export function CreateTaskDialog({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
+                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
                     priority
                       ? "text-foreground font-medium"
                       : "text-muted-foreground",
@@ -387,7 +345,7 @@ export function CreateTaskDialog({
                       setPriority(null);
                       setPriorityOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
                   >
                     <span className="h-2 w-2 rounded-full border border-muted-foreground" />
                     None
@@ -402,7 +360,7 @@ export function CreateTaskDialog({
                       setPriorityOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
+                      "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
                       priority === opt.value
                         ? "bg-secondary text-foreground font-medium"
                         : "hover:bg-secondary/50 text-muted-foreground",
@@ -424,11 +382,12 @@ export function CreateTaskDialog({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="cursor-pointer"
                 onClick={handleClose}
               >
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={createTask.isPending}>
+              <Button type="submit" size="sm" className="cursor-pointer" disabled={createTask.isPending}>
                 {createTask.isPending ? "Creating…" : "Create Task"}
               </Button>
             </div>

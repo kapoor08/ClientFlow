@@ -5,6 +5,7 @@ import {
   type UseQueryResult,
   type UseMutationResult,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { HttpError } from "@/core/infrastructure";
 import {
   fetchNotifications,
@@ -32,9 +33,35 @@ export function useNotifications(): UseQueryResult<NotificationListResponse, Htt
   return useQuery({
     queryKey: notificationKeys.list(),
     queryFn: fetchNotifications,
-    refetchInterval: 10_000, // poll every 10s
-    refetchIntervalInBackground: false, // pause polling when tab is not focused
+    refetchInterval: 30_000, // fallback poll every 30s (SSE handles real-time)
+    refetchIntervalInBackground: false,
   });
+}
+
+/**
+ * Opens a persistent SSE connection to /api/notifications/stream.
+ * Invalidates the notifications query instantly when a new notification arrives.
+ * Falls back gracefully if the connection drops — the polling interval acts as backup.
+ */
+export function useNotificationStream(): void {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const es = new EventSource("/api/notifications/stream");
+
+    es.onmessage = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data as string) as { type: string };
+        if (data.type === "new_notification") {
+          void qc.invalidateQueries({ queryKey: notificationKeys.list() });
+        }
+      } catch {
+        // Ignore malformed events
+      }
+    };
+
+    return () => es.close();
+  }, [qc]);
 }
 
 export function useMarkRead(): UseMutationResult<
@@ -102,11 +129,17 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-export async function requestPushPermissionAndSubscribe(): Promise<string | null> {
+export async function requestPushPermissionAndSubscribe(
+  permissionAlreadyGranted = false,
+): Promise<string | null> {
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
 
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") return null;
+  if (!permissionAlreadyGranted) {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return null;
+  } else if (Notification.permission !== "granted") {
+    return null;
+  }
 
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidKey) return null;

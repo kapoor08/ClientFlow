@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, Check, CheckSquare, MessageSquare, GitBranch, CreditCard, UserPlus, FileUp, Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -9,7 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { useNotifications, useMarkRead, useMarkAllRead } from "@/core/notifications/useCase";
+import { useNotifications, useMarkRead, useMarkAllRead, useNotificationStream } from "@/core/notifications/useCase";
 
 const typeIcon: Record<string, React.ElementType> = {
   task_assigned: CheckSquare,
@@ -29,6 +30,8 @@ export function NotificationBell() {
   const { data } = useNotifications();
   const markRead = useMarkRead();
   const markAllRead = useMarkAllRead();
+  const router = useRouter();
+  useNotificationStream();
 
   const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
@@ -84,6 +87,10 @@ export function NotificationBell() {
                   key={n.id}
                   onClick={() => {
                     if (!n.isRead) markRead.mutate({ id: n.id, isRead: true });
+                    if (n.actionUrl) {
+                      setOpen(false);
+                      router.push(n.actionUrl);
+                    }
                   }}
                   className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50 border-b border-border last:border-0 cursor-pointer ${!n.isRead ? "bg-brand-100/20" : ""}`}
                 >

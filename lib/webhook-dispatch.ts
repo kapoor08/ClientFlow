@@ -46,27 +46,44 @@ export async function dispatchWebhookEvent(
   await Promise.allSettled(
     hooks.map(async (hook) => {
       const sig = createHmac("sha256", hook.secret).update(body).digest("hex");
+      const headers = {
+        "Content-Type": "application/json",
+        "X-ClientFlow-Signature": `sha256=${sig}`,
+        "X-ClientFlow-Event": event,
+      };
 
-      try {
-        await fetch(hook.url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-ClientFlow-Signature": `sha256=${sig}`,
-            "X-ClientFlow-Event": event,
-          },
-          body,
-          signal: AbortSignal.timeout(10_000),
-        });
-      } catch {
-        // Delivery failures are intentionally swallowed (fire-and-forget)
+      // Retry up to 3 times with exponential backoff (1s, 2s, 4s)
+      const MAX_ATTEMPTS = 3;
+      let delivered = false;
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 1_000 * Math.pow(2, attempt - 1)));
+        }
+        try {
+          const res = await fetch(hook.url, {
+            method: "POST",
+            headers,
+            body,
+            signal: AbortSignal.timeout(10_000),
+          });
+          if (res.ok || (res.status >= 200 && res.status < 300)) {
+            delivered = true;
+            break;
+          }
+          // 4xx errors are permanent failures — no point retrying
+          if (res.status >= 400 && res.status < 500) break;
+        } catch {
+          // Network/timeout error — retry if attempts remain
+        }
       }
 
-      // Record delivery time regardless of HTTP response code
-      await db
-        .update(outboundWebhooks)
-        .set({ lastTriggeredAt: new Date() })
-        .where(eq(outboundWebhooks.id, hook.id));
+      // Record delivery time on success or after exhausting retries
+      if (delivered) {
+        await db
+          .update(outboundWebhooks)
+          .set({ lastTriggeredAt: new Date() })
+          .where(eq(outboundWebhooks.id, hook.id));
+      }
     }),
   );
 }

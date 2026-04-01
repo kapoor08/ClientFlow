@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import {
-  Trash2, Copy, Check, Eye, EyeOff, ToggleLeft, ToggleRight,
+  Trash2, Copy, Check, Eye, EyeOff, ToggleLeft, ToggleRight, Zap, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 export type WebhookItem = {
   id: string;
@@ -58,6 +59,29 @@ export function WebhookCard({
   onToggle: (id: string, isActive: boolean) => void;
   onDelete: (webhook: WebhookItem) => void;
 }) {
+  const [testing, setTesting] = useState(false);
+
+  async function handleTest() {
+    setTesting(true);
+    try {
+      const res = await fetch(`/api/webhooks/${webhook.id}/test`, { method: "POST" });
+      const json = await res.json() as { success: boolean; statusCode: number; error: string | null };
+      if (json.success) {
+        toast.success(`Test ping delivered (HTTP ${json.statusCode}).`);
+      } else {
+        toast.error(
+          json.error
+            ? `Delivery failed: ${json.error}`
+            : `Endpoint returned HTTP ${json.statusCode}.`,
+        );
+      }
+    } catch {
+      toast.error("Failed to send test ping.");
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
       <div className="flex items-start justify-between gap-4">
@@ -84,6 +108,18 @@ export function WebhookCard({
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            title="Send test ping"
+            onClick={handleTest}
+            disabled={testing}
+          >
+            {testing
+              ? <Loader2 size={13} className="animate-spin" />
+              : <Zap size={13} className="text-muted-foreground" />}
+          </Button>
           <Button
             variant="ghost"
             size="icon"

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { dispatchNotification } from "@/lib/notifications";
 import { onTaskCommentAdded, onTaskMentioned } from "@/lib/email-triggers";
+import { enforceCommentLimit } from "@/lib/plan-enforcement";
 
 export type TaskComment = {
   id: string;
@@ -30,12 +31,12 @@ export type TaskActivityEntry = {
 async function verifyTaskAccess(
   userId: string,
   taskId: string,
-): Promise<{ organizationId: string; assigneeUserId: string | null; title: string; projectId: string | null } | null> {
+): Promise<{ organizationId: string; assigneeUserId: string | null; title: string; projectId: string | null; refNumber: string | null } | null> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
 
   const [task] = await db
-    .select({ id: tasks.id, assigneeUserId: tasks.assigneeUserId, title: tasks.title, projectId: tasks.projectId })
+    .select({ id: tasks.id, assigneeUserId: tasks.assigneeUserId, title: tasks.title, projectId: tasks.projectId, refNumber: tasks.refNumber })
     .from(tasks)
     .where(
       and(
@@ -52,6 +53,7 @@ async function verifyTaskAccess(
     assigneeUserId: task.assigneeUserId,
     title: task.title,
     projectId: task.projectId ?? null,
+    refNumber: task.refNumber ?? null,
   };
 }
 
@@ -89,6 +91,8 @@ export async function createTaskComment(
   const access = await verifyTaskAccess(userId, taskId);
   if (!access) throw new Error("Task not found.");
 
+  await enforceCommentLimit(access.organizationId);
+
   const commentId = crypto.randomUUID();
 
   await db.insert(taskComments).values({
@@ -118,7 +122,7 @@ export async function createTaskComment(
       eventKey: "task_comment_added",
       title: "New comment on your task",
       body: access.title,
-      url: "/tasks",
+      url: `/tasks?task=${access.refNumber ?? taskId}`,
     }).catch(console.error);
   }
 

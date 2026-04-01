@@ -63,7 +63,9 @@ const EXPORTS: ExportItem[] = [
 ];
 
 function ExportRow({ item }: { item: ExportItem }) {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [state, setState] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
 
   async function handleExport() {
     setState("loading");
@@ -103,16 +105,22 @@ function ExportRow({ item }: { item: ExportItem }) {
         size="sm"
         onClick={handleExport}
         disabled={state === "loading"}
-        className={state === "error" ? "border-danger/50 text-danger" : ""}
+        className={state === "error" ? "border-danger/50 text-danger cursor-pointer" : "cursor-pointer"}
       >
         {state === "loading" ? (
-          <><Loader2 size={13} className="mr-1.5 animate-spin" /> Exporting…</>
+          <>
+            <Loader2 size={13} className="mr-1.5 animate-spin" /> Exporting…
+          </>
         ) : state === "done" ? (
-          <><Check size={13} className="mr-1.5 text-success" /> Downloaded</>
+          <>
+            <Check size={13} className="mr-1.5 text-success" /> Downloaded
+          </>
         ) : state === "error" ? (
           "Error"
         ) : (
-          <><Download size={13} className="mr-1.5" /> Export CSV</>
+          <>
+            <Download size={13} className="mr-1.5" /> Export CSV
+          </>
         )}
       </Button>
     </div>
@@ -153,9 +161,10 @@ export default function DataPage() {
               Data Retention &amp; GDPR
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Exported files contain personal data. Handle them in accordance with your
-              data protection obligations. For account deletion or data erasure requests,
-              contact your administrator or reach out to our support team.
+              Exported files contain personal data. Handle them in accordance
+              with your data protection obligations. For account deletion or
+              data erasure requests, contact your administrator or reach out to
+              our support team.
             </p>
           </div>
         </div>

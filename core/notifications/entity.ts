@@ -10,6 +10,7 @@ export type NotificationItem = {
   type: string;
   title: string;
   body: string | null;
+  actionUrl: string | null;
   data: Record<string, unknown> | null;
   isRead: boolean;
   readAt: string | null;

@@ -23,6 +23,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_params: "Invalid SSO response. Please try again.",
 };
 
+const REASON_MESSAGES: Record<string, string> = {
+  sso_required: "Your organization requires SSO. Please sign in through your identity provider.",
+};
+
 const ssoSchema = z.object({
   email: z.string().email({ message: "Enter a valid work email address." }),
 });
@@ -32,6 +36,7 @@ type SsoFormValues = z.infer<typeof ssoSchema>;
 const SsoPage = () => {
   const searchParams = useSearchParams();
   const errorKey = searchParams.get("error");
+  const reasonKey = searchParams.get("reason");
   const prefillEmail = searchParams.get("email") ?? "";
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +63,9 @@ const SsoPage = () => {
       panelDescription="Access your ClientFlow workspace securely through your organization's identity provider."
     >
       <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
+        {reasonKey && REASON_MESSAGES[reasonKey] && (
+          <AuthNotice tone="info" message={REASON_MESSAGES[reasonKey]} />
+        )}
         {errorKey && (
           <AuthNotice
             tone="error"

@@ -32,6 +32,9 @@ export type BillingContext = {
     members: BillingUsageStat;
     projects: BillingUsageStat;
     clients: BillingUsageStat;
+    tasksThisMonth: BillingUsageStat;
+    commentsThisMonth: BillingUsageStat;
+    fileUploadsThisMonth: BillingUsageStat;
   };
   invoices: BillingInvoiceItem[];
 };

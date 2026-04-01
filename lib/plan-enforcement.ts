@@ -6,6 +6,7 @@ import {
   clients,
   projects,
   projectFiles,
+  organizationMemberships,
   plans,
   subscriptions,
   organizationCurrentSubscriptions,
@@ -99,6 +100,28 @@ export async function enforceFilesPerProjectCap(
   if (total >= limit) {
     throw new PlanLimitError(
       `This project has reached the ${limit}-file limit on your current plan. Upgrade to upload more files.`,
+    );
+  }
+}
+
+export async function enforceMemberCap(organizationId: string): Promise<void> {
+  const planCode = await getOrgPlanCode(organizationId);
+  const limit = getPlanLimits(planCode).teamMembers;
+  if (limit === null) return;
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.status, "active"),
+      ),
+    );
+
+  if (total >= limit) {
+    throw new PlanLimitError(
+      `You've reached the ${limit}-member limit on your current plan. Upgrade to add more team members.`,
     );
   }
 }
