@@ -2,6 +2,7 @@ import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { FilesTable } from "@/components/tables/FilesTable";
 import { getServerSession } from "@/lib/get-session";
 import { listAllFilesForUser } from "@/lib/files";
+import { listProjectsForUser } from "@/lib/projects";
 import { filesSearchParamsCache } from "@/core/files/searchParams";
 
 type FilesPageProps = {
@@ -10,12 +11,11 @@ type FilesPageProps = {
 
 export default async function FilesPage({ searchParams }: FilesPageProps) {
   const session = await getServerSession();
-  const { q, page, pageSize, sort, order, dateFrom, dateTo } =
+  const { q, page, pageSize, sort, order, dateFrom, dateTo, projectId } =
     filesSearchParamsCache.parse(await searchParams);
 
-  const { access, files, pagination } = await listAllFilesForUser(
-    session!.user.id,
-    {
+  const [{ access, files, pagination }, { projects }] = await Promise.all([
+    listAllFilesForUser(session!.user.id, {
       query: q,
       page,
       pageSize,
@@ -23,8 +23,10 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
       order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
       dateFrom: dateFrom ? new Date(dateFrom) : undefined,
       dateTo: dateTo ? new Date(dateTo) : undefined,
-    },
-  );
+      projectId: projectId || undefined,
+    }),
+    listProjectsForUser(session!.user.id, { pageSize: 200 }),
+  ]);
 
   if (!access) {
     return (
@@ -49,6 +51,7 @@ export default async function FilesPage({ searchParams }: FilesPageProps) {
         initialFiles={initialFiles}
         pagination={pagination}
         canWrite={access.canWrite}
+        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
       />
     </ListPageLayout>
   );

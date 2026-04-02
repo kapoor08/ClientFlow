@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,13 +38,20 @@ const EMPTY_LINE_ITEM: InvoiceLineItem = {
   unitPriceCents: 0,
 };
 
-export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props) {
+export function CreateInvoiceDialog({
+  open,
+  onClose,
+  onCreated,
+  clients,
+}: Props) {
   const [clientId, setClientId] = useState("");
   const [title, setTitle] = useState("");
   const [number, setNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [dueAt, setDueAt] = useState("");
-  const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([{ ...EMPTY_LINE_ITEM }]);
+  const [dueAt, setDueAt] = useState<Date | undefined>(undefined);
+  const [lineItems, setLineItems] = useState<InvoiceLineItem[]>([
+    { ...EMPTY_LINE_ITEM },
+  ]);
   const [saving, setSaving] = useState(false);
 
   function addLine() {
@@ -83,14 +91,20 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
     setTitle("");
     setNumber("");
     setNotes("");
-    setDueAt("");
+    setDueAt(undefined);
     setLineItems([{ ...EMPTY_LINE_ITEM }]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!clientId) { toast.error("Select a client."); return; }
-    if (!title.trim()) { toast.error("Title is required."); return; }
+    if (!clientId) {
+      toast.error("Select a client.");
+      return;
+    }
+    if (!title.trim()) {
+      toast.error("Title is required.");
+      return;
+    }
     if (lineItems.some((li) => !li.description.trim())) {
       toast.error("All line items need a description.");
       return;
@@ -106,7 +120,7 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
           title: title.trim(),
           number: number.trim() || undefined,
           notes: notes.trim() || undefined,
-          dueAt: dueAt || undefined,
+          dueAt: dueAt?.toISOString(),
           lineItems,
         }),
       });
@@ -121,7 +135,9 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
       onCreated();
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create invoice.");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create invoice.",
+      );
     } finally {
       setSaving(false);
     }
@@ -129,18 +145,21 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-x-hidden overflow-y-auto p-6 sm:max-w-3xl lg:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create Invoice</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-1">
           {/* Client + Title row */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="inv-client">Client *</Label>
               <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger id="inv-client">
+                <SelectTrigger
+                  className="w-full cursor-pointer"
+                  id="inv-client"
+                >
                   <SelectValue placeholder="Select client…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,6 +179,18 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
                 placeholder="INV-0001"
                 value={number}
                 onChange={(e) => setNumber(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Due date + Notes */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-due">Due Date</Label>
+              <DatePicker
+                value={dueAt}
+                onChange={setDueAt}
+                placeholder="Select due date"
               />
             </div>
           </div>
@@ -203,12 +234,17 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
                 </thead>
                 <tbody>
                   {lineItems.map((li, idx) => (
-                    <tr key={idx} className="border-b border-border last:border-0">
+                    <tr
+                      key={idx}
+                      className="border-b border-border last:border-0"
+                    >
                       <td className="px-3 py-2">
                         <Input
                           placeholder="Service description"
                           value={li.description}
-                          onChange={(e) => updateLine(idx, "description", e.target.value)}
+                          onChange={(e) =>
+                            updateLine(idx, "description", e.target.value)
+                          }
                           className="h-8"
                         />
                       </td>
@@ -218,7 +254,11 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
                           min="1"
                           value={li.quantity}
                           onChange={(e) =>
-                            updateLine(idx, "quantity", Math.max(1, parseInt(e.target.value) || 1))
+                            updateLine(
+                              idx,
+                              "quantity",
+                              Math.max(1, parseInt(e.target.value) || 1),
+                            )
                           }
                           className="h-8 w-20"
                         />
@@ -234,7 +274,9 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
                             updateLine(
                               idx,
                               "unitPriceCents",
-                              Math.round(parseFloat(e.target.value || "0") * 100),
+                              Math.round(
+                                parseFloat(e.target.value || "0") * 100,
+                              ),
                             )
                           }
                           className="h-8 w-28"
@@ -262,19 +304,6 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
             </div>
           </div>
 
-          {/* Due date + Notes */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="inv-due">Due Date</Label>
-              <Input
-                id="inv-due"
-                type="date"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-              />
-            </div>
-          </div>
-
           <div className="space-y-1.5">
             <Label htmlFor="inv-notes">Notes</Label>
             <Textarea
@@ -287,10 +316,16 @@ export function CreateInvoiceDialog({ open, onClose, onCreated, clients }: Props
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={saving}
+              className="cursor-pointer"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" className="cursor-pointer" disabled={saving}>
               {saving ? "Creating…" : "Create Invoice"}
             </Button>
           </div>

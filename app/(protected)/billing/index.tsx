@@ -1,6 +1,7 @@
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { getServerSession } from "@/lib/get-session";
 import { getBillingContextForUser } from "@/lib/billing";
+import { billingSearchParamsCache } from "@/core/billing/searchParams";
 import { BillingContent } from "./BillingContent";
 
 type BillingPageProps = {
@@ -10,8 +11,15 @@ type BillingPageProps = {
 const BillingPage = async ({ searchParams }: BillingPageProps) => {
   const session = await getServerSession();
   const params = await searchParams;
+  const { dateFrom, dateTo, page, pageSize } =
+    billingSearchParamsCache.parse(params);
 
-  const billing = await getBillingContextForUser(session!.user.id);
+  const billing = await getBillingContextForUser(session!.user.id, {
+    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+    dateTo: dateTo ? new Date(dateTo) : undefined,
+    page,
+    pageSize,
+  });
 
   if (!billing) {
     return (
@@ -40,6 +48,7 @@ const BillingPage = async ({ searchParams }: BillingPageProps) => {
       createdAt:
         inv.createdAt instanceof Date ? inv.createdAt.toISOString() : String(inv.createdAt),
     })),
+    invoicePagination: billing.invoicePagination,
   };
 
   const showSuccess = params["success"] === "1";

@@ -5,23 +5,17 @@ import {
   MonthlyChart,
   StatusDistribution,
 } from "./ChartCard";
-import {
-  DATE_PRESET_OPTIONS,
-  type AnalyticsSummary,
-} from "@/core/analytics/entity";
+import { type AnalyticsSummary } from "@/core/analytics/entity";
 
 export function ChartsRow({
   summary,
   totalProjects,
-  datePreset,
+  dateLabel,
 }: {
   summary: AnalyticsSummary;
   totalProjects: number;
-  datePreset: string;
+  dateLabel: string;
 }) {
-  const dateLabel =
-    DATE_PRESET_OPTIONS.find((o) => o.value === datePreset)?.label ?? "";
-
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Monthly Projects Chart */}

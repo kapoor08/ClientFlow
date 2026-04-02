@@ -134,6 +134,7 @@ export async function listAllFilesForUser(
     order?: "asc" | "desc";
     dateFrom?: Date;
     dateTo?: Date;
+    projectId?: string;
   } = {},
 ): Promise<{
   access: FilesModuleAccess | null;
@@ -152,6 +153,7 @@ export async function listAllFilesForUser(
     order = "desc",
     dateFrom,
     dateTo,
+    projectId,
   } = options;
   const trimmedQuery = query.trim();
 
@@ -160,6 +162,7 @@ export async function listAllFilesForUser(
     trimmedQuery ? ilike(projectFiles.fileName, `%${trimmedQuery}%`) : undefined,
     dateFrom ? gte(projectFiles.createdAt, dateFrom) : undefined,
     dateTo ? lte(projectFiles.createdAt, dateTo) : undefined,
+    projectId ? eq(projectFiles.projectId, projectId) : undefined,
   );
 
   const [{ total }] = await db

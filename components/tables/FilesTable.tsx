@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -13,10 +13,12 @@ import {
 import {
   DataTable,
   DateRangeFilter,
+  FiltersPopover,
   RowActions,
   type ColumnDef,
 } from "@/components/data-table";
 import { toast } from "sonner";
+import { parseAsString, useQueryState } from "nuqs";
 import { useDeleteFile } from "@/core/files/useCase";
 import type { OrgFileListItem } from "@/core/files/entity";
 import {
@@ -192,20 +194,32 @@ function buildColumns(
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
+type ProjectOption = { id: string; name: string };
+
 type FilesTableProps = {
   initialFiles: OrgFileListItem[];
   pagination: PaginationMeta;
   canWrite: boolean;
+  projects: ProjectOption[];
 };
 
 export function FilesTable({
   initialFiles,
   pagination,
   canWrite,
+  projects,
 }: FilesTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<PreviewFile | null>(null);
   const deleteFile = useDeleteFile();
+
+  const [, startTransition] = useTransition();
+  const [projectId, setProjectId] = useQueryState(
+    "projectId",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
 
   const handleDelete = async (fileId: string) => {
     setDeletingId(fileId);
@@ -223,6 +237,23 @@ export function FilesTable({
 
   const columns = buildColumns(canWrite, deletingId, handleDelete, setPreviewFile);
 
+  const searchExtra = (
+    <>
+      <DateRangeFilter />
+      <FiltersPopover
+        filters={[
+          {
+            key: "projectId",
+            label: "Project",
+            options: projects.map((p) => ({ value: p.id, label: p.name })),
+            value: projectId,
+            onChange: (val) => setProjectId(val || null),
+          },
+        ]}
+      />
+    </>
+  );
+
   return (
     <>
       <DataTable
@@ -230,7 +261,7 @@ export function FilesTable({
         columns={columns}
         getRowKey={(f) => f.id}
         searchPlaceholder="Search files…"
-        searchExtra={<DateRangeFilter />}
+        searchExtra={searchExtra}
         pagination={pagination}
         emptyTitle="No files found."
         emptyDescription="Try a different search term or upload files from the project detail page."

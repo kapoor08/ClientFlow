@@ -4,7 +4,11 @@ import { useTransition } from "react";
 import { Activity, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { Button } from "@/components/ui/button";
-import { DateRangeFilter, FiltersPopover, type FilterGroupConfig } from "@/components/data-table";
+import {
+  DateRangeFilter,
+  FiltersPopover,
+  type FilterGroupConfig,
+} from "@/components/data-table";
 import { ENTITY_TYPE_OPTIONS } from "@/core/activity/entity";
 import type { ActivityEntry } from "@/core/activity/entity";
 import type { PaginationMeta } from "@/lib/pagination";
@@ -68,8 +72,8 @@ export function ActivityFeed({ entries, pagination }: ActivityFeedProps) {
         <DateRangeFilter />
         <FiltersPopover filters={filters} />
         <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download size={14} className="mr-1.5" />
+          <Button variant="default" className="cursor-pointer" size="lg" onClick={handleExport}>
+            <Download size={14} className="mr-1" />
             Export CSV
           </Button>
         </div>

@@ -12,6 +12,7 @@ export const filesSearchParamsCache = createSearchParamsCache({
   order: parseAsString.withDefault("asc"),
   dateFrom: parseAsString.withDefault(""),
   dateTo: parseAsString.withDefault(""),
+  projectId: parseAsString.withDefault(""),
 });
 
 export type FilesSearchParams = Awaited<

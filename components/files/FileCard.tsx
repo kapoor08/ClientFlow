@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import type { ProjectFile } from "@/core/files/entity";
 import { FilePreviewModal } from "./FilePreviewModal";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return File;
@@ -113,35 +119,51 @@ export function FileCard({
         </div>
 
         {/* Actions */}
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            onClick={() => setPreviewing(true)}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            title="Preview"
-          >
-            <Eye size={13} />
-          </button>
-          <a
-            href={file.storageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            download={file.fileName}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            title="Download"
-          >
-            <Download size={13} />
-          </a>
-          {canDelete && (
-            <button
-              onClick={() => onDelete(file.id)}
-              disabled={isDeleting}
-              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40"
-              title="Delete"
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex shrink-0 items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setPreviewing(true)}
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Eye size={13} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>View</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={file.storageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={file.fileName}
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Download size={13} />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Download</TooltipContent>
+            </Tooltip>
+
+            {canDelete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onDelete(file.id)}
+                    disabled={isDeleting}
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-40"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+        </TooltipProvider>
       </div>
 
       <FilePreviewModal

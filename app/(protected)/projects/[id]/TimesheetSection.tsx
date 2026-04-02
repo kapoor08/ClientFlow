@@ -42,7 +42,9 @@ function TimeEntryRow({ entry, onDeleted }: RowProps) {
   async function handleDelete() {
     setBusy(true);
     try {
-      const res = await fetch(`/api/time-entries/${entry.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/time-entries/${entry.id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const json = await res.json();
         throw new Error(json.error ?? "Delete failed.");
@@ -65,7 +67,9 @@ function TimeEntryRow({ entry, onDeleted }: RowProps) {
         {entry.userName}
       </td>
       <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
-        {entry.taskTitle ?? <span className="italic text-muted-foreground/60">No task</span>}
+        {entry.taskTitle ?? (
+          <span className="italic text-muted-foreground/60">No task</span>
+        )}
       </td>
       <td className="px-4 py-3 text-sm font-mono font-medium text-foreground">
         {formatMinutes(entry.minutes)}
@@ -113,15 +117,22 @@ export function ProjectTimesheetSection({ projectId }: Props) {
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div className="flex items-center gap-2">
           <Clock size={15} className="text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">Time Tracking</span>
+          <span className="text-sm font-semibold text-foreground">
+            Time Tracking
+          </span>
           {totalMinutes > 0 && (
             <span className="rounded-pill bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
               {formatMinutes(totalMinutes)} total
             </span>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={() => setLogOpen(true)}>
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
+        <Button
+          size="sm"
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => setLogOpen(true)}
+        >
+          <Plus className="h-3.5 w-3.5" />
           Log Time
         </Button>
       </div>
@@ -152,17 +163,30 @@ export function ProjectTimesheetSection({ projectId }: Props) {
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3"><Skeleton className="h-3 w-20" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-3 w-24" /></td>
-                  <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-3 w-28" /></td>
-                  <td className="px-4 py-3"><Skeleton className="h-3 w-12" /></td>
-                  <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-3 w-32" /></td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-3 w-20" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-3 w-24" />
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <Skeleton className="h-3 w-28" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Skeleton className="h-3 w-12" />
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    <Skeleton className="h-3 w-32" />
+                  </td>
                   <td className="px-4 py-3" />
                 </tr>
               ))
             ) : !data?.entries.length ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-sm text-muted-foreground"
+                >
                   No time logged yet.{" "}
                   <button
                     className="text-primary hover:underline"

@@ -1,9 +1,8 @@
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { getServerSession } from "@/lib/get-session";
 import { getAnalyticsSummaryForUser } from "@/lib/analytics";
+import { listClientsForUser } from "@/lib/clients";
 import { analyticsSearchParamsCache } from "@/core/analytics/searchParams";
-import { resolveDateRange } from "@/core/analytics/entity";
-import type { DatePreset } from "@/core/analytics/entity";
 import { FilterBar } from "./FilterBar";
 import { KpiGrid } from "./KpiGrid";
 import { ChartsRow } from "./ChartsRow";
@@ -13,18 +12,41 @@ type AnalyticsPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;
 };
 
+function formatDateLabel(dateFrom: string, dateTo: string) {
+  if (!dateFrom && !dateTo) return "All time";
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  if (dateFrom && dateTo) {
+    return `${formatter.format(new Date(dateFrom))} - ${formatter.format(new Date(dateTo))}`;
+  }
+
+  if (dateFrom) {
+    return `From ${formatter.format(new Date(dateFrom))}`;
+  }
+
+  return `Until ${formatter.format(new Date(dateTo))}`;
+}
+
 const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
   const session = await getServerSession();
-  const { datePreset, clientId } =
-    analyticsSearchParamsCache.parse(await searchParams);
+  const { dateFrom, dateTo, clientId } = analyticsSearchParamsCache.parse(
+    await searchParams,
+  );
+  const userId = session!.user.id;
 
-  const { dateFrom, dateTo } = resolveDateRange(datePreset as DatePreset);
-
-  const serverSummary = await getAnalyticsSummaryForUser(session!.user.id, {
-    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
-    dateTo: dateTo ? new Date(dateTo) : undefined,
-    clientId: clientId || undefined,
-  });
+  const [serverSummary, clientsResult] = await Promise.all([
+    getAnalyticsSummaryForUser(userId, {
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+      clientId: clientId || undefined,
+    }),
+    listClientsForUser(userId, { pageSize: 500 }),
+  ]);
 
   if (!serverSummary) {
     return (
@@ -56,15 +78,18 @@ const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
     <ListPageLayout
       title="Analytics"
       description="Organizational performance overview"
+      action={
+        <div className="flex justify-end">
+          <FilterBar clients={clientsResult.clients} />
+        </div>
+      }
     >
-      <FilterBar />
-
       <KpiGrid summary={summary} />
 
       <ChartsRow
         summary={summary}
         totalProjects={totalProjects}
-        datePreset={datePreset}
+        dateLabel={formatDateLabel(dateFrom, dateTo)}
       />
 
       <RecentProjectsSection

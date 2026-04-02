@@ -1,10 +1,15 @@
+import type { PaginationMeta } from "@/lib/pagination";
+
 export type BillingInvoiceItem = {
   id: string;
+  number: string | null;
+  externalInvoiceId: string | null;
   status: string;
   amountDueCents: number | null;
   amountPaidCents: number | null;
   currencyCode: string | null;
   invoiceUrl: string | null;
+  invoicePdfUrl: string | null;
   dueAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -37,6 +42,7 @@ export type BillingContext = {
     fileUploadsThisMonth: BillingUsageStat;
   };
   invoices: BillingInvoiceItem[];
+  invoicePagination: PaginationMeta;
 };
 
 // ─── Formatting helpers ────────────────────────────────────────────────────────

@@ -14,8 +14,8 @@ export function CreateInvoiceButton({ clients }: { clients: ClientOption[] }) {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
-        <Plus className="mr-2 h-4 w-4" />
+      <Button className="cursor-pointer" onClick={() => setOpen(true)}>
+        <Plus className="h-4 w-4" />
         New Invoice
       </Button>
       <CreateInvoiceDialog

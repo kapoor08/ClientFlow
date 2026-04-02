@@ -63,7 +63,10 @@ export function BillingContent({ billing, showSuccess, showCanceled }: Props) {
 
       <UsageSection usage={billing.usage} />
 
-      <InvoicesList invoices={billing.invoices} />
+      <InvoicesList
+        invoices={billing.invoices}
+        pagination={billing.invoicePagination}
+      />
     </>
   );
 }

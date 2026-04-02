@@ -61,7 +61,7 @@ export function ProjectTasksSection({ projectId, canWrite }: Props) {
               className="cursor-pointer"
               onClick={openCreate}
             >
-              <Plus size={13} className="mr-1.5" />
+              <Plus size={13} />
               New Task
             </Button>
           )}
@@ -81,7 +81,8 @@ export function ProjectTasksSection({ projectId, canWrite }: Props) {
             </p>
             {canWrite && (
               <p className="text-xs text-muted-foreground/70">
-                Click &quot;New Task&quot; to add the first task to this project.
+                Click &quot;New Task&quot; to add the first task to this
+                project.
               </p>
             )}
           </div>

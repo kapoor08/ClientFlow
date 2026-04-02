@@ -10,7 +10,11 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ActivityEntry } from "@/core/activity/entity";
-import { getActionLabel, getEntityName, getEntityBadgeStyle } from "@/core/activity/entity";
+import {
+  getActionLabel,
+  getEntityName,
+  getEntityBadgeStyle,
+} from "@/core/activity/entity";
 
 // ─── Entity meta ──────────────────────────────────────────────────────────────
 
@@ -105,7 +109,7 @@ export function ActivityItem({ entry, isLast }: ActivityItemProps) {
     <div className="relative flex gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors">
       {/* Timeline line — connects to next item */}
       {!isLast && (
-        <div className="absolute left-[2.625rem] top-[3.25rem] bottom-0 w-px bg-border" />
+        <div className="absolute left-[2.325rem] top-13 bottom-0 w-px bg-border" />
       )}
 
       {/* Entity icon */}
@@ -148,7 +152,9 @@ export function ActivityItem({ entry, isLast }: ActivityItemProps) {
             <ActorAvatar name={entry.actorName} />
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays size={11} />
-              <span className="whitespace-nowrap">{timeAgo(entry.createdAt)}</span>
+              <span className="whitespace-nowrap">
+                {timeAgo(entry.createdAt)}
+              </span>
             </div>
           </div>
         </div>
@@ -163,7 +169,7 @@ export function SkeletonItem({ isLast }: { isLast: boolean }) {
   return (
     <div className="relative flex gap-4 px-5 py-4">
       {!isLast && (
-        <div className="absolute left-[2.625rem] top-[3.25rem] bottom-0 w-px bg-border" />
+        <div className="absolute left-[2.325rem] top-13 bottom-0 w-px bg-border" />
       )}
       <Skeleton className="relative z-10 mt-0.5 h-9 w-9 shrink-0 rounded-full" />
       <div className="flex flex-1 items-start justify-between gap-3">

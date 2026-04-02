@@ -57,12 +57,7 @@ export async function getAnalyticsSummaryForUser(
   const orgId = context.organizationId;
   const { dateFrom, dateTo, clientId } = options;
 
-  // Default chart window: 6 months back from dateFrom (or now)
-  const chartStart = dateFrom ?? new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() - 5,
-    1,
-  );
+  const chartStart = dateFrom;
 
   // Shared project filter predicates
   const projectBase = and(
@@ -84,7 +79,7 @@ export async function getAnalyticsSummaryForUser(
     totalRevenueResult,
     monthlyRevenueResult,
   ] = await Promise.all([
-    // Total active clients — org-wide snapshot (no date/client filter)
+    // Total active clients — snapshot, scoped by client filter when selected
     db
       .select({ total: count() })
       .from(clients)
@@ -93,6 +88,7 @@ export async function getAnalyticsSummaryForUser(
           eq(clients.organizationId, orgId),
           eq(clients.status, "active"),
           isNull(clients.deletedAt),
+          clientId ? eq(clients.id, clientId) : undefined,
         ),
       ),
 
@@ -153,7 +149,7 @@ export async function getAnalyticsSummaryForUser(
           eq(projects.organizationId, orgId),
           isNull(projects.deletedAt),
           clientId ? eq(projects.clientId, clientId) : undefined,
-          gte(projects.createdAt, chartStart),
+          chartStart ? gte(projects.createdAt, chartStart) : undefined,
           dateTo ? lte(projects.createdAt, dateTo) : undefined,
         ),
       )
@@ -189,6 +185,7 @@ export async function getAnalyticsSummaryForUser(
         and(
           eq(invoices.organizationId, orgId),
           eq(invoices.status, "paid"),
+          clientId ? eq(invoices.clientId, clientId) : undefined,
           dateFrom ? gte(invoices.paidAt, dateFrom) : undefined,
           dateTo ? lte(invoices.paidAt, dateTo) : undefined,
         ),
@@ -206,7 +203,8 @@ export async function getAnalyticsSummaryForUser(
         and(
           eq(invoices.organizationId, orgId),
           eq(invoices.status, "paid"),
-          gte(invoices.paidAt, chartStart),
+          clientId ? eq(invoices.clientId, clientId) : undefined,
+          chartStart ? gte(invoices.paidAt, chartStart) : undefined,
           dateTo ? lte(invoices.paidAt, dateTo) : undefined,
         ),
       )

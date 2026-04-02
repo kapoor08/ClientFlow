@@ -4,7 +4,8 @@ import {
 } from "nuqs/server";
 
 export const analyticsSearchParamsCache = createSearchParamsCache({
-  datePreset: parseAsString.withDefault("6m"),
+  dateFrom: parseAsString.withDefault(""),
+  dateTo: parseAsString.withDefault(""),
   clientId: parseAsString.withDefault(""),
 });
 

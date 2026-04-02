@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePicker } from "@/components/form/DatePicker";
 
 type Props = {
   open: boolean;
@@ -65,9 +66,7 @@ export function LogTimeDialog({
 }: Props) {
   const [durationRaw, setDurationRaw] = useState("");
   const [description, setDescription] = useState("");
-  const [loggedAt, setLoggedAt] = useState(
-    () => new Date().toISOString().slice(0, 10),
-  );
+  const [loggedAt, setLoggedAt] = useState<Date | undefined>(() => new Date());
   const [saving, setSaving] = useState(false);
   const [parseError, setParseError] = useState(false);
 
@@ -81,7 +80,7 @@ export function LogTimeDialog({
   function reset() {
     setDurationRaw("");
     setDescription("");
-    setLoggedAt(new Date().toISOString().slice(0, 10));
+    setLoggedAt(new Date());
     setParseError(false);
   }
 
@@ -103,7 +102,7 @@ export function LogTimeDialog({
           taskId: taskId ?? null,
           minutes: parsedMinutes,
           description: description.trim() || undefined,
-          loggedAt: new Date(loggedAt).toISOString(),
+          loggedAt: (loggedAt ?? new Date()).toISOString(),
         }),
       });
 
@@ -163,13 +162,8 @@ export function LogTimeDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="lt-date">Date</Label>
-            <Input
-              id="lt-date"
-              type="date"
-              value={loggedAt}
-              onChange={(e) => setLoggedAt(e.target.value)}
-            />
+            <Label>Date</Label>
+            <DatePicker value={loggedAt} onChange={setLoggedAt} />
           </div>
 
           <div className="space-y-1.5">
@@ -189,10 +183,11 @@ export function LogTimeDialog({
               variant="outline"
               onClick={onClose}
               disabled={saving}
+              className="cursor-pointer"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} className="cursor-pointer">
               {saving ? "Saving…" : "Log Time"}
             </Button>
           </div>
