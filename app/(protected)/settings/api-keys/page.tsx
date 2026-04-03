@@ -42,6 +42,12 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type ApiKeyItem = {
   id: string;
@@ -272,28 +278,38 @@ export default function ApiKeysPage() {
                       : "Never"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {k.isActive && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-warning"
-                          title="Revoke"
-                          onClick={() => setRevokeTarget(k)}
-                        >
-                          <Ban size={13} />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-danger"
-                        title="Delete"
-                        onClick={() => setDeleteTarget(k)}
-                      >
-                        <Trash2 size={13} />
-                      </Button>
-                    </div>
+                    <TooltipProvider delayDuration={300}>
+                      <div className="flex items-center justify-end gap-1">
+                        {k.isActive && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-warning"
+                                onClick={() => setRevokeTarget(k)}
+                              >
+                                <Ban size={13} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Revoke</TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-danger"
+                              onClick={() => setDeleteTarget(k)}
+                            >
+                              <Trash2 size={13} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                   </td>
                 </tr>
               ))

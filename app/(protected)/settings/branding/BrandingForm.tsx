@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveBrandingAction } from "./actions";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 const PRESET_COLORS = [
   "#6366f1",
@@ -222,7 +223,7 @@ export default function BrandingForm({
                 type="button"
                 onClick={() => canManage && setBrandColor(color)}
                 disabled={!canManage}
-                className="relative h-8 w-8 rounded-full transition-transform enabled:hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50"
+                className="relative h-8 w-8 rounded-full transition-transform enabled:hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
                 style={{ backgroundColor: color }}
                 title={color}
               >
@@ -237,27 +238,11 @@ export default function BrandingForm({
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={brandColor}
-              onChange={(e) => setBrandColor(e.target.value)}
-              disabled={!canManage}
-              className="h-9 w-9 cursor-pointer rounded-lg border border-border bg-transparent p-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <Input
-              value={brandColor}
-              onChange={(e) => setBrandColor(e.target.value)}
-              placeholder="#6366f1"
-              className="w-36 font-mono text-sm"
-              maxLength={7}
-              disabled={!canManage}
-            />
-            <div
-              className="h-9 w-9 rounded-lg border border-border"
-              style={{ backgroundColor: brandColor }}
-            />
-          </div>
+          <ColorPicker
+            value={brandColor}
+            onChange={setBrandColor}
+            disabled={!canManage}
+          />
         </div>
       </div>
 

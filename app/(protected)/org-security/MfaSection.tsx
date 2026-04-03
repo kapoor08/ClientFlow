@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Loader2, ShieldCheck, ShieldOff, Copy, Check,
-} from "lucide-react";
+import { Loader2, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,11 +30,19 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
       className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
       title="Copy"
     >
-      {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
+      {copied ? (
+        <Check size={13} className="text-success" />
+      ) : (
+        <Copy size={13} />
+      )}
     </button>
   );
 }
@@ -45,7 +51,9 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
   const [enableOpen, setEnableOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
-  const [step, setStep] = useState<"password" | "verify" | "backup">("password");
+  const [step, setStep] = useState<"password" | "verify" | "backup">(
+    "password",
+  );
   const [password, setPassword] = useState("");
   const [totpUri, setTotpUri] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -62,14 +70,18 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setError(null);
     try {
       const res = await authClient.twoFactor.enable({ password });
-      if (res.error) throw new Error(res.error.message ?? "Failed to enable MFA.");
-      const uri = (res.data as { totpURI: string; backupCodes: string[] }).totpURI;
-      const codes = (res.data as { totpURI: string; backupCodes: string[] }).backupCodes;
+      if (res.error)
+        throw new Error(res.error.message ?? "Failed to enable MFA.");
+      const uri = (res.data as { totpURI: string; backupCodes: string[] })
+        .totpURI;
+      const codes = (res.data as { totpURI: string; backupCodes: string[] })
+        .backupCodes;
       setTotpUri(uri);
       setBackupCodes(codes);
       setStep("verify");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to start MFA setup.";
+      const message =
+        e instanceof Error ? e.message : "Failed to start MFA setup.";
       setError(message);
       toast.error(message);
     } finally {
@@ -99,8 +111,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await authClient.twoFactor.disable({ password: disablePassword });
-      if (res.error) throw new Error(res.error.message ?? "Failed to disable MFA.");
+      const res = await authClient.twoFactor.disable({
+        password: disablePassword,
+      });
+      if (res.error)
+        throw new Error(res.error.message ?? "Failed to disable MFA.");
       setDisableOpen(false);
       setDisablePassword("");
       toast.success("Two-factor authentication disabled.");
@@ -128,14 +143,20 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await authClient.twoFactor.generateBackupCodes({ password: regenPassword });
-      if (res.error) throw new Error(res.error.message ?? "Failed to regenerate backup codes.");
+      const res = await authClient.twoFactor.generateBackupCodes({
+        password: regenPassword,
+      });
+      if (res.error)
+        throw new Error(
+          res.error.message ?? "Failed to regenerate backup codes.",
+        );
       const codes = (res.data as { backupCodes: string[] }).backupCodes;
       setNewBackupCodes(codes);
       setRegenPassword("");
       toast.success("Backup codes regenerated. Old codes are now invalid.");
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to regenerate backup codes.";
+      const message =
+        e instanceof Error ? e.message : "Failed to regenerate backup codes.";
       setError(message);
       toast.error(message);
     } finally {
@@ -155,26 +176,48 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${mfaEnabled ? "bg-success/10" : "bg-secondary"}`}>
-              {mfaEnabled
-                ? <ShieldCheck size={20} className="text-success" />
-                : <ShieldOff size={20} className="text-muted-foreground" />}
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-lg ${mfaEnabled ? "bg-success/10" : "bg-secondary"}`}
+            >
+              {mfaEnabled ? (
+                <ShieldCheck size={20} className="text-success" />
+              ) : (
+                <ShieldOff size={20} className="text-muted-foreground" />
+              )}
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">
                 Two-Factor Authentication
               </p>
               <p className="text-xs text-muted-foreground">
-                {mfaEnabled ? "Enabled — your account is protected with TOTP." : "Not enabled — add an extra layer of security."}
+                {mfaEnabled
+                  ? "Enabled — your account is protected with TOTP."
+                  : "Not enabled — add an extra layer of security."}
               </p>
             </div>
           </div>
           {mfaEnabled ? (
-            <Button variant="outline" size="sm" onClick={() => { setDisableOpen(true); setError(null); }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDisableOpen(true);
+                setError(null);
+              }}
+              className="cursor-pointer"
+            >
               Disable
             </Button>
           ) : (
-            <Button size="sm" onClick={() => { setEnableOpen(true); setError(null); setStep("password"); }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEnableOpen(true);
+                setError(null);
+                setStep("password");
+              }}
+              className="cursor-pointer"
+            >
               Enable
             </Button>
           )}
@@ -186,15 +229,23 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
         <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">Backup Codes</p>
+              <p className="text-sm font-medium text-foreground">
+                Backup Codes
+              </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Regenerate your one-time backup codes if you lose access to your authenticator app.
+                Regenerate your one-time backup codes if you lose access to your
+                authenticator app.
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setRegenerateOpen(true); setError(null); setNewBackupCodes([]); }}
+              onClick={() => {
+                setRegenerateOpen(true);
+                setError(null);
+                setNewBackupCodes([]);
+              }}
+              className="cursor-pointer"
             >
               Regenerate
             </Button>
@@ -203,13 +254,20 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       )}
 
       {/* Enable MFA dialog */}
-      <Dialog open={enableOpen} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <Dialog
+        open={enableOpen}
+        onOpenChange={(v) => {
+          if (!v) handleClose();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              {step === "password" && "Confirm your password to generate a QR code."}
-              {step === "verify" && "Scan the QR code with your authenticator app, then enter the 6-digit code."}
+              {step === "password" &&
+                "Confirm your password to generate a QR code."}
+              {step === "verify" &&
+                "Scan the QR code with your authenticator app, then enter the 6-digit code."}
               {step === "backup" && "Save your backup codes somewhere safe."}
             </DialogDescription>
           </DialogHeader>
@@ -234,9 +292,16 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleClose}>Cancel</Button>
-                <Button onClick={handleStartEnable} disabled={!password || loading}>
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button variant="outline" onClick={handleClose}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleStartEnable}
+                  disabled={!password || loading}
+                >
+                  {loading ? (
+                    <Loader2 size={14} className="animate-spin mr-1.5" />
+                  ) : null}
                   Continue
                 </Button>
               </DialogFooter>
@@ -263,7 +328,9 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 <Input
                   id="totp-code"
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) =>
+                    setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   onKeyDown={(e) => e.key === "Enter" && handleVerify()}
                   placeholder="000000"
                   maxLength={6}
@@ -272,9 +339,16 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleClose}>Cancel</Button>
-                <Button onClick={handleVerify} disabled={code.length < 6 || loading}>
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button variant="outline" onClick={handleClose}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleVerify}
+                  disabled={code.length < 6 || loading}
+                >
+                  {loading ? (
+                    <Loader2 size={14} className="animate-spin mr-1.5" />
+                  ) : null}
                   Verify
                 </Button>
               </DialogFooter>
@@ -284,12 +358,20 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           {step === "backup" && (
             <div className="space-y-4 py-2">
               <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs text-warning">Save these backup codes. Each can be used once if you lose your authenticator.</p>
+                <p className="text-xs text-warning">
+                  Save these backup codes. Each can be used once if you lose
+                  your authenticator.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {backupCodes.map((c) => (
-                  <div key={c} className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5">
-                    <span className="font-mono text-xs text-foreground">{c}</span>
+                  <div
+                    key={c}
+                    className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
+                  >
+                    <span className="font-mono text-xs text-foreground">
+                      {c}
+                    </span>
                     <CopyButton text={c} />
                   </div>
                 ))}
@@ -303,7 +385,12 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       </Dialog>
 
       {/* Regenerate backup codes dialog */}
-      <Dialog open={regenerateOpen} onOpenChange={(v) => { if (!v) handleRegenerateClose(); }}>
+      <Dialog
+        open={regenerateOpen}
+        onOpenChange={(v) => {
+          if (!v) handleRegenerateClose();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Regenerate Backup Codes</DialogTitle>
@@ -334,9 +421,16 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleRegenerateClose}>Cancel</Button>
-                <Button onClick={handleRegenerate} disabled={!regenPassword || loading}>
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button variant="outline" onClick={handleRegenerateClose}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={!regenPassword || loading}
+                >
+                  {loading ? (
+                    <Loader2 size={14} className="animate-spin mr-1.5" />
+                  ) : null}
                   Regenerate
                 </Button>
               </DialogFooter>
@@ -344,12 +438,20 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           ) : (
             <div className="space-y-4 py-2">
               <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs text-warning">Save these codes now. Each can be used once if you lose your authenticator.</p>
+                <p className="text-xs text-warning">
+                  Save these codes now. Each can be used once if you lose your
+                  authenticator.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {newBackupCodes.map((c) => (
-                  <div key={c} className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5">
-                    <span className="font-mono text-xs text-foreground">{c}</span>
+                  <div
+                    key={c}
+                    className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
+                  >
+                    <span className="font-mono text-xs text-foreground">
+                      {c}
+                    </span>
                     <CopyButton text={c} />
                   </div>
                 ))}
@@ -363,12 +465,24 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       </Dialog>
 
       {/* Disable MFA dialog */}
-      <AlertDialog open={disableOpen} onOpenChange={(v) => { if (!v) { setDisableOpen(false); setDisablePassword(""); setError(null); } }}>
+      <AlertDialog
+        open={disableOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setDisableOpen(false);
+            setDisablePassword("");
+            setError(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disable Two-Factor Authentication?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Disable Two-Factor Authentication?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove TOTP protection from your account. Enter your password to confirm.
+              This will remove TOTP protection from your account. Enter your
+              password to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && (
@@ -387,13 +501,22 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setDisablePassword(""); setError(null); }}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setDisablePassword("");
+                setError(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-white hover:bg-danger/90"
               onClick={handleDisable}
               disabled={!disablePassword || loading}
             >
-              {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+              {loading ? (
+                <Loader2 size={14} className="animate-spin mr-1.5" />
+              ) : null}
               Disable MFA
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -19,8 +19,13 @@ export function AuditExportButton() {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport}>
-      <Download size={14} className="mr-1.5" />
+    <Button
+      variant="default"
+      size="lg"
+      className="cursor-pointer"
+      onClick={handleExport}
+    >
+      <Download size={14} className="mr-1" />
       Export CSV
     </Button>
   );

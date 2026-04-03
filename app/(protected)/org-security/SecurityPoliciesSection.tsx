@@ -23,12 +23,17 @@ export function SecurityPoliciesSection() {
     ipAllowlist: string[];
   }>({
     queryKey: ["security-policies"],
-    queryFn: () => fetch("/api/settings/security-policies").then((r) => r.json()),
+    queryFn: () =>
+      fetch("/api/settings/security-policies").then((r) => r.json()),
   });
 
   useEffect(() => {
     if (policiesData && !initialized) {
-      setTimeoutHours(policiesData.sessionTimeoutHours ? String(policiesData.sessionTimeoutHours) : "");
+      setTimeoutHours(
+        policiesData.sessionTimeoutHours
+          ? String(policiesData.sessionTimeoutHours)
+          : "",
+      );
       setIpList(policiesData.ipAllowlist ?? []);
       setInitialized(true);
     }
@@ -75,7 +80,9 @@ export function SecurityPoliciesSection() {
     <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
       <div className="mb-4 flex items-center gap-2">
         <Shield size={16} className="text-muted-foreground" />
-        <h2 className="text-sm font-semibold text-foreground">Security Policies</h2>
+        <h2 className="text-sm font-semibold text-foreground">
+          Security Policies
+        </h2>
       </div>
 
       {error && (
@@ -99,7 +106,9 @@ export function SecurityPoliciesSection() {
               placeholder="No timeout"
               className="w-40"
             />
-            <span className="text-xs text-muted-foreground">Leave blank to disable auto sign-out.</span>
+            <span className="text-xs text-muted-foreground">
+              Leave blank to disable auto sign-out.
+            </span>
           </div>
         </div>
 
@@ -107,7 +116,8 @@ export function SecurityPoliciesSection() {
         <div className="space-y-2">
           <Label>IP Allowlist</Label>
           <p className="text-xs text-muted-foreground">
-            Restrict access to these IP addresses or CIDR ranges. Leave empty to allow all IPs.
+            Restrict access to these IP addresses or CIDR ranges. Leave empty to
+            allow all IPs.
           </p>
           <div className="flex gap-2">
             <Input
@@ -117,7 +127,13 @@ export function SecurityPoliciesSection() {
               placeholder="192.168.1.0/24"
               className="flex-1"
             />
-            <Button variant="outline" size="sm" onClick={addIp} disabled={!ipInput.trim()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addIp}
+              disabled={!ipInput.trim()}
+              className="cursor-pointer"
+            >
               Add
             </Button>
           </div>
@@ -130,8 +146,10 @@ export function SecurityPoliciesSection() {
                 >
                   {ip}
                   <button
-                    onClick={() => setIpList((prev) => prev.filter((i) => i !== ip))}
-                    className="ml-1 text-muted-foreground hover:text-danger"
+                    onClick={() =>
+                      setIpList((prev) => prev.filter((i) => i !== ip))
+                    }
+                    className="ml-1 cursor-pointer text-muted-foreground hover:text-danger"
                   >
                     ×
                   </button>
@@ -141,11 +159,20 @@ export function SecurityPoliciesSection() {
           )}
         </div>
 
-        <Button onClick={handleSave} disabled={saving} size="sm">
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="cursor-pointer"
+          size="sm"
+        >
           {saving ? (
-            <><Loader2 size={13} className="mr-1.5 animate-spin" /> Saving…</>
+            <>
+              <Loader2 size={13} className="mr-1.5 animate-spin" /> Saving…
+            </>
           ) : saved ? (
-            <><Check size={13} className="mr-1.5" /> Saved</>
+            <>
+              <Check size={13} className="mr-1.5" /> Saved
+            </>
           ) : (
             "Save Policies"
           )}

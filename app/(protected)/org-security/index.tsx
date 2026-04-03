@@ -10,7 +10,9 @@ import { SessionsSection } from "./SessionsSection";
 const SecurityPage = () => {
   const { data, isLoading } = useSessions();
   const { data: sessionData } = useAuthSession();
-  const mfaEnabled = !!(sessionData?.user as { twoFactorEnabled?: boolean } | undefined)?.twoFactorEnabled;
+  const mfaEnabled = !!(
+    sessionData?.user as { twoFactorEnabled?: boolean } | undefined
+  )?.twoFactorEnabled;
 
   const sessions = data?.sessions ?? [];
 
@@ -49,9 +51,9 @@ const SecurityPage = () => {
               Keep your account safe
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              If you see a session you don't recognize, revoke it immediately and consider
-              changing your password. Each device shows the last known IP address and
-              approximate activity time.
+              If you see a session you don't recognize, revoke it immediately
+              and consider changing your password. Each device shows the last
+              known IP address and approximate activity time.
             </p>
           </div>
         </div>

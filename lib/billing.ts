@@ -361,6 +361,11 @@ export async function getBillingContextForUser(
   const planCode = subRow?.planCode ?? "free";
   const planLimits = getPlanLimits(planCode);
 
+  // Fall back to plan config limits when the DB planFeatureLimits table has no rows
+  if (memberLimit === null) memberLimit = planLimits.teamMembers;
+  if (projectLimit === null) projectLimit = planLimits.projects;
+  if (clientLimit === null) clientLimit = planLimits.clients;
+
   // Current month bounds for usage counters
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

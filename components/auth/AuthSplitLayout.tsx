@@ -48,14 +48,15 @@ export default function AuthSplitLayout({
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">
-                  CF
-                </span>
-              </div>
-              <span className="text-lg font-semibold text-foreground">
-                ClientFlow
-              </span>
+              <Image
+                src="/logo-dark.png"
+                alt="ClientFlow"
+                width={130}
+                height={28}
+                className="h-auto w-auto"
+                priority
+                draggable={false}
+              />
             </Link>
           </div>
 

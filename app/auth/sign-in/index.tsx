@@ -45,6 +45,7 @@ const SignIn = () => {
   const verifyTotp = useMutation({
     mutationFn: () => verifyTwoFactorCode(totpCode),
     onSuccess: () => {
+      // IP was already checked before the MFA screen was shown
       toast.success("Signed in successfully.");
       router.push(redirectTo);
     },
@@ -82,6 +83,21 @@ const SignIn = () => {
         password: values.password,
         callbackURL: redirectTo,
       });
+
+      // Check IP allowlist immediately after credentials are verified —
+      // before MFA screen or dashboard redirect — so a blocked IP never
+      // progresses further in the auth flow.
+      const ipCheck = await fetch(
+        `/api/auth/ip-check?email=${encodeURIComponent(values.email.trim())}`,
+      )
+        .then((r) => r.json())
+        .catch(() => ({ blocked: false })) as { blocked: boolean };
+
+      if (ipCheck.blocked) {
+        router.push("/ip-blocked");
+        return;
+      }
+
       if (result && "twoFactorRequired" in result && result.twoFactorRequired) {
         setTwoFactorRequired(true);
         return;

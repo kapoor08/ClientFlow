@@ -31,7 +31,7 @@ const OrganizationSettingsForm = ({
   );
 
   return (
-    <form action={formAction} className="max-w-3xl space-y-6">
+    <form action={formAction} className="max-w-full space-y-6">
       {state.status !== "idle" && (
         <div
           className={`rounded-card border px-4 py-3 text-sm ${
@@ -50,7 +50,7 @@ const OrganizationSettingsForm = ({
         description="Your organization's public-facing name and URL slug."
       >
         <FormGrid cols={2}>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="name">Organization Name</Label>
             <Input
               id="name"
@@ -60,7 +60,7 @@ const OrganizationSettingsForm = ({
               required
             />
           </div>
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="slug">Slug</Label>
             <Input
               id="slug"

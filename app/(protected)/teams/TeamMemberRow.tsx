@@ -21,6 +21,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   useUpdateMemberRole,
   useSuspendMember,
   useReactivateMember,
@@ -99,14 +105,21 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="rounded-lg p-1 text-muted-foreground hover:bg-secondary transition-colors"
-          disabled={isPending}
-        >
-          <MoreHorizontal size={16} />
-        </button>
-      </DropdownMenuTrigger>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="rounded-lg p-1 text-muted-foreground hover:bg-secondary transition-colors"
+                disabled={isPending}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Member actions</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <DropdownMenuContent align="end" className="w-48">
         {/* Custom permissions */}
         <DropdownMenuItem onClick={onOpenPermissions} className="gap-2">

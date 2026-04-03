@@ -2,9 +2,23 @@
 
 import { useState } from "react";
 import {
-  Trash2, Copy, Check, Eye, EyeOff, ToggleLeft, ToggleRight, Zap, Loader2,
+  Trash2,
+  Copy,
+  Check,
+  Eye,
+  EyeOff,
+  ToggleLeft,
+  ToggleRight,
+  Zap,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -23,11 +37,19 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
       title="Copy"
     >
-      {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
+      {copied ? (
+        <Check size={13} className="text-success" />
+      ) : (
+        <Copy size={13} />
+      )}
     </button>
   );
 }
@@ -41,7 +63,7 @@ function SecretCell({ secret }: { secret: string }) {
       </span>
       <button
         onClick={() => setVisible((v) => !v)}
-        className="rounded p-1 text-muted-foreground hover:bg-secondary transition-colors"
+        className="rounded p-1 text-muted-foreground hover:bg-secondary transition-colors cursor-pointer"
       >
         {visible ? <EyeOff size={12} /> : <Eye size={12} />}
       </button>
@@ -64,8 +86,14 @@ export function WebhookCard({
   async function handleTest() {
     setTesting(true);
     try {
-      const res = await fetch(`/api/webhooks/${webhook.id}/test`, { method: "POST" });
-      const json = await res.json() as { success: boolean; statusCode: number; error: string | null };
+      const res = await fetch(`/api/webhooks/${webhook.id}/test`, {
+        method: "POST",
+      });
+      const json = (await res.json()) as {
+        success: boolean;
+        statusCode: number;
+        error: string | null;
+      };
       if (json.success) {
         toast.success(`Test ping delivered (HTTP ${json.statusCode}).`);
       } else {
@@ -88,59 +116,89 @@ export function WebhookCard({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
             <p className="font-medium text-foreground">{webhook.name}</p>
-            <span className={`inline-flex rounded-pill px-2 py-0.5 text-[10px] font-medium ${webhook.isActive ? "bg-success/10 text-success" : "bg-secondary text-muted-foreground"}`}>
+            <span
+              className={`inline-flex rounded-pill px-2 py-0.5 text-[10px] font-medium ${webhook.isActive ? "bg-success/10 text-success" : "bg-secondary text-muted-foreground"}`}
+            >
               {webhook.isActive ? "Active" : "Inactive"}
             </span>
           </div>
-          <p className="truncate font-mono text-xs text-muted-foreground">{webhook.url}</p>
+          <p className="truncate font-mono text-xs text-muted-foreground">
+            {webhook.url}
+          </p>
           <SecretCell secret={webhook.secret} />
           <div className="flex flex-wrap gap-1">
             {webhook.events.map((e) => (
-              <span key={e} className="rounded-pill bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">
+              <span
+                key={e}
+                className="rounded-pill bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground"
+              >
                 {e}
               </span>
             ))}
           </div>
           {webhook.lastTriggeredAt && (
             <p className="text-[10px] text-muted-foreground">
-              Last triggered {formatDistanceToNow(new Date(webhook.lastTriggeredAt), { addSuffix: true })}
+              Last triggered{" "}
+              {formatDistanceToNow(new Date(webhook.lastTriggeredAt), {
+                addSuffix: true,
+              })}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            title="Send test ping"
-            onClick={handleTest}
-            disabled={testing}
-          >
-            {testing
-              ? <Loader2 size={13} className="animate-spin" />
-              : <Zap size={13} className="text-muted-foreground" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            title={webhook.isActive ? "Deactivate" : "Activate"}
-            onClick={() => onToggle(webhook.id, !webhook.isActive)}
-          >
-            {webhook.isActive
-              ? <ToggleRight size={16} className="text-success" />
-              : <ToggleLeft size={16} className="text-muted-foreground" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-danger"
-            title="Delete"
-            onClick={() => onDelete(webhook)}
-          >
-            <Trash2 size={13} />
-          </Button>
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="flex items-center gap-1 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={handleTest}
+                  disabled={testing}
+                >
+                  {testing ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Zap size={13} className="text-muted-foreground" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Send test ping</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={() => onToggle(webhook.id, !webhook.isActive)}
+                >
+                  {webhook.isActive ? (
+                    <ToggleRight size={16} className="text-success" />
+                  ) : (
+                    <ToggleLeft size={16} className="text-muted-foreground" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {webhook.isActive ? "Deactivate" : "Activate"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-danger cursor-pointer"
+                  onClick={() => onDelete(webhook)}
+                >
+                  <Trash2 size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
     </div>
   );

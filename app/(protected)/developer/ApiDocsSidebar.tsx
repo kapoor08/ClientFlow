@@ -9,7 +9,11 @@ type ApiDocsSidebarProps = {
   onSelect: (id: string) => void;
 };
 
-export function ApiDocsSidebar({ sections, activeSection, onSelect }: ApiDocsSidebarProps) {
+export function ApiDocsSidebar({
+  sections,
+  activeSection,
+  onSelect,
+}: ApiDocsSidebarProps) {
   return (
     <nav className="hidden w-44 shrink-0 md:block">
       <p className="mb-3 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -21,7 +25,7 @@ export function ApiDocsSidebar({ sections, activeSection, onSelect }: ApiDocsSid
             <button
               onClick={() => onSelect(section.id)}
               className={cn(
-                "w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+                "w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors cursor-pointer",
                 activeSection === section.id
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground",

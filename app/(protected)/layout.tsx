@@ -26,15 +26,6 @@ export default async function ProtectedLayout({
     redirect(authRoutes.signIn);
   }
 
-  const requireEmailVerification =
-    process.env.BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION === "true";
-
-  if (requireEmailVerification && !session.user.emailVerified) {
-    redirect(
-      `${authRoutes.verifyEmail}?email=${encodeURIComponent(session.user.email)}`,
-    );
-  }
-
   // Subscription gate
   const [sub, orgCtx, orgs, activeOrgId] = await Promise.all([
     getSubscriptionContextForUser(session.user.id),
@@ -45,6 +36,13 @@ export default async function ProtectedLayout({
 
   if (!sub || !sub.hasAccess) {
     redirect("/plans");
+  }
+
+  // Enforce org-level email verification policy from DB setting
+  if (orgCtx?.requireEmailVerification && !session.user.emailVerified) {
+    redirect(
+      `${authRoutes.verifyEmail}?email=${encodeURIComponent(session.user.email)}`,
+    );
   }
 
   const reqHeaders = await headers();
