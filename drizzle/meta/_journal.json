@@ -99,6 +99,13 @@
       "when": 1775053634039,
       "tag": "0013_quick_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775280053891,
+      "tag": "0014_powerful_hercules",
+      "breakpoints": true
     }
   ]
 }

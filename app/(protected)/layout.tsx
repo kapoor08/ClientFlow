@@ -26,6 +26,11 @@ export default async function ProtectedLayout({
     redirect(authRoutes.signIn);
   }
 
+  // Platform admins belong in /admin, not the workspace UI
+  if (session.user.isPlatformAdmin) {
+    redirect("/admin");
+  }
+
   // Subscription gate
   const [sub, orgCtx, orgs, activeOrgId] = await Promise.all([
     getSubscriptionContextForUser(session.user.id),

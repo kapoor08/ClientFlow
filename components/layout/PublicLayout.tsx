@@ -22,10 +22,12 @@ const PublicLayout = async ({ children }: PublicLayoutProps) => {
     ? {
         name: session.user.name || "ClientFlow User",
         email: session.user.email,
-        roleLabel: getOrganizationRoleLabel(organizationContext?.roleKey ?? null),
-        dashboardHref: getWorkspaceHomeHrefForRole(
-          organizationContext?.roleKey ?? null,
-        ),
+        roleLabel: session.user.isPlatformAdmin
+          ? "Super Admin"
+          : getOrganizationRoleLabel(organizationContext?.roleKey ?? null),
+        dashboardHref: session.user.isPlatformAdmin
+          ? "/admin"
+          : getWorkspaceHomeHrefForRole(organizationContext?.roleKey ?? null),
       }
     : null;
 

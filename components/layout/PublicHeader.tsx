@@ -99,6 +99,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                   type="button"
                   className="flex items-center gap-3 rounded-full border border-border/60 bg-secondary/60 px-3 py-1.5 text-left transition-colors hover:bg-secondary/80 cursor-pointer"
                   aria-label="Open account menu"
+                  suppressHydrationWarning
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {getUserInitials(viewer.name, viewer.email)}{" "}
@@ -249,7 +250,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                     Sign In
                   </Link>
                 </Button>
-                <Button size="sm" asChild className="rounded-full">
+                <Button size="lg" asChild className="rounded-full">
                   <Link
                     href="/auth/sign-up"
                     onClick={() => setMobileOpen(false)}

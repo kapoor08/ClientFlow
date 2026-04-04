@@ -31,6 +31,15 @@ function formatExpiry(ms: number) {
 export const auth = betterAuth({
   baseURL,
   secret: process.env.BETTER_AUTH_SECRET,
+  user: {
+    additionalFields: {
+      isPlatformAdmin: {
+        type: "boolean",
+        defaultValue: false,
+        input: false,
+      },
+    },
+  },
   databaseHooks: {
     user: {
       create: {

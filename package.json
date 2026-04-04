@@ -19,6 +19,7 @@
     "db:seed:auth-users": "node ./scripts/seed-auth-users.mjs",
     "db:seed:roles": "node ./scripts/seed-roles.mjs",
     "db:seed:plans": "node ./scripts/seed-plans.mjs",
+    "db:seed:platform-admin": "node ./scripts/seed-platform-admin.mjs",
     "emails:generate": "node ./scripts/generate-email-html.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
