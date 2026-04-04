@@ -75,7 +75,7 @@ export function formatDueDate(iso: string | null): DueLabel {
 
 export const PROJECT_STATUS_LABELS: Record<string, string> = {
   planning: "Planning",
-  active: "Active",
+  in_progress: "In Progress",
   on_hold: "On Hold",
   completed: "Completed",
   cancelled: "Cancelled",
@@ -83,7 +83,7 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
 
 export const PROJECT_STATUS_STYLES: Record<string, string> = {
   planning: "bg-secondary text-muted-foreground",
-  active: "bg-info/10 text-info",
+  in_progress: "bg-info/10 text-info",
   on_hold: "bg-warning/10 text-warning",
   completed: "bg-success/10 text-success",
   cancelled: "bg-danger/10 text-danger",

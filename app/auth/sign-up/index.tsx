@@ -118,6 +118,12 @@ const SignUp = () => {
           {googleSignIn.isPending ? "Redirecting..." : "Continue with Google"}
         </Button>
 
+        <div className="relative flex items-center gap-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted-foreground">OR</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <ControlledInput
             name="firstName"

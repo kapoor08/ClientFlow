@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DashboardTask } from "@/core/dashboard/entity";
 import {
@@ -17,8 +17,15 @@ function TaskRow({ task }: { task: DashboardTask }) {
     TASK_STATUS_STYLES[task.status] ?? "bg-secondary text-muted-foreground";
 
   return (
-    <tr className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
-      <td className="px-4 py-3 font-medium text-foreground">{task.title}</td>
+    <tr className="group border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+      <td className="px-4 py-3">
+        <Link
+          href="/tasks"
+          className="font-medium text-foreground transition-colors hover:text-primary"
+        >
+          {task.title}
+        </Link>
+      </td>
       <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
         {task.projectName ?? "—"}
       </td>
@@ -36,6 +43,14 @@ function TaskRow({ task }: { task: DashboardTask }) {
           <Clock size={12} />
           {label}
         </span>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Link
+          href="/tasks"
+          className="inline-flex items-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary"
+        >
+          <ArrowRight size={14} />
+        </Link>
       </td>
     </tr>
   );
@@ -73,13 +88,14 @@ export function RecentTasksList({ tasksDueSoon }: { tasksDueSoon: DashboardTask[
               <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
                 Due
               </th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {tasksDueSoon.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-4 py-10 text-center text-sm text-muted-foreground"
                 >
                   No tasks due in the next 7 days.

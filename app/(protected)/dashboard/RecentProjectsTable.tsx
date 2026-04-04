@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock } from "lucide-react";
+import { ArrowUpRight, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DashboardProject } from "@/core/dashboard/entity";
 import {
@@ -16,8 +16,15 @@ function ProjectRow({ project }: { project: DashboardProject }) {
   const priorityStyle = project.priority ? PRIORITY_STYLES[project.priority] : null;
 
   return (
-    <tr className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
-      <td className="px-4 py-3 font-medium text-foreground">{project.name}</td>
+    <tr className="group border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
+      <td className="px-4 py-3">
+        <Link
+          href={`/projects/${project.id}`}
+          className="font-medium text-foreground transition-colors hover:text-primary"
+        >
+          {project.name}
+        </Link>
+      </td>
       <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
         {project.clientName ?? "—"}
       </td>
@@ -44,6 +51,14 @@ function ProjectRow({ project }: { project: DashboardProject }) {
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         )}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Link
+          href={`/projects/${project.id}`}
+          className="inline-flex items-center text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary"
+        >
+          <ArrowRight size={14} />
+        </Link>
       </td>
     </tr>
   );
@@ -74,12 +89,13 @@ export function RecentProjectsTable({ recentProjects }: { recentProjects: Dashbo
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">Status</th>
               <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">Priority</th>
               <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground lg:table-cell">Due</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {recentProjects.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No active projects yet.
                 </td>
               </tr>

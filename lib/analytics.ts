@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, count, desc, eq, gte, inArray, isNull, lte, sql, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, lte, sql, sum } from "drizzle-orm";
 import { clients, invoices, projectFiles, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -92,11 +92,11 @@ export async function getAnalyticsSummaryForUser(
         ),
       ),
 
-    // Active projects (active or in_progress) — respects all filters
+    // Active projects (in_progress) — respects all filters
     db
       .select({ total: count() })
       .from(projects)
-      .where(and(projectBase, inArray(projects.status, ["active", "in_progress"]))),
+      .where(and(projectBase, eq(projects.status, "in_progress"))),
 
     // Completed projects — respects all filters
     db

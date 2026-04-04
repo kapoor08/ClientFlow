@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { getServerSession } from "@/lib/get-session";
 import { getClientDetailForUser } from "@/lib/clients";
+import { getClientNotes } from "@/lib/client-notes";
 import { ClientDetailCard } from "./ClientDetailCard";
 import { ClientLinkedProjects } from "./ClientLinkedProjects";
+import { ClientNotesSection } from "@/components/clients/ClientNotesSection";
 
 type ClientDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -53,6 +55,7 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
 
   if (!result.client) notFound();
   const client = result.client;
+  const notes = await getClientNotes(client.id, result.access.organizationId);
 
   return (
     <div>
@@ -135,14 +138,11 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
           </div>
         </div>
 
-        <div className="mb-8 rounded-card border border-border bg-card p-6 shadow-cf-1">
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            Notes
-          </h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
-            {client.notes || "No notes have been recorded for this client yet."}
-          </p>
-        </div>
+        <ClientNotesSection
+          clientId={client.id}
+          initialNotes={notes}
+          canWrite={result.access.canWrite}
+        />
 
         <div>
           <h2 className="mb-4 font-display text-lg font-semibold text-foreground">

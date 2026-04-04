@@ -26,7 +26,7 @@ const TestimonialsSection = () => {
         <motion.div
           variants={motionFx.stagger.variants.container}
           {...motionFx.stagger.inView}
-          className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3"
+          className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-3"
         >
           {testimonials.map((item) => (
             <motion.div

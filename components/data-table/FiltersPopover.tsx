@@ -8,6 +8,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export type FilterOption = { value: string; label: string };
@@ -55,12 +62,12 @@ export function FiltersPopover({ filters }: FiltersPopoverProps) {
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-52 overflow-hidden p-0"
+        className="w-64 overflow-hidden p-0"
         align="end"
         sideOffset={6}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
           <span className="text-sm font-medium">Filters</span>
           {activeCount > 0 && (
             <button
@@ -75,45 +82,35 @@ export function FiltersPopover({ filters }: FiltersPopoverProps) {
         </div>
 
         {/* Filter groups */}
-        <div className="p-2 space-y-3">
+        <div className="space-y-3 p-3 pt-0">
           {filters.map((filter) => (
-            <div key={filter.key}>
-              <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div key={filter.key} className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {filter.label}
               </p>
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => filter.onChange("")}
-                  className={cn(
-                    "rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
-                    filter.value === ""
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:bg-secondary",
-                  )}
+              <Select
+                value={filter.value || "__all__"}
+                onValueChange={(val) =>
+                  filter.onChange(val === "__all__" ? "" : val)
+                }
+              >
+                <SelectTrigger className="h-8 w-full text-sm cursor-pointer">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  className="p-2"
+                  sideOffset={4}
                 >
-                  All
-                </button>
-                {filter.options.map((opt) => (
-                  <button
-                    type="button"
-                    key={opt.value}
-                    onClick={() =>
-                      filter.onChange(
-                        opt.value === filter.value ? "" : opt.value,
-                      )
-                    }
-                    className={cn(
-                      "rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
-                      filter.value === opt.value
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-secondary",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+                  <SelectItem value="__all__">All</SelectItem>
+                  {filter.options.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           ))}
         </div>

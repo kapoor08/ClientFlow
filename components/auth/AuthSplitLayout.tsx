@@ -49,7 +49,7 @@ export default function AuthSplitLayout({
           <div className="mb-8 lg:hidden">
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="/logo-dark.png"
+                src="/app-logo.png"
                 alt="ClientFlow"
                 width={130}
                 height={28}

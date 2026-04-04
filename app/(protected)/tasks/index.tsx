@@ -22,7 +22,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -31,7 +30,31 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useTasks, useMoveTask, useDeleteTask } from "@/core/tasks/useCase";
+import { useTasks, useMoveTask, useDeleteTask, useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
+import { useQuery } from "@tanstack/react-query";
+import { http } from "@/core/infrastructure";
+import { TimeEstimateInput } from "@/components/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   useBoardColumns,
   useDeleteColumn,
@@ -41,6 +64,7 @@ import {
   getInitials,
   formatDueShort,
   PRIORITY_BADGE,
+  STATUS_BADGE,
 } from "@/core/tasks/entity";
 import type {
   TaskListItem,
@@ -69,6 +93,11 @@ import {
   UserCheck,
   Trash2,
   Pencil,
+  LayoutGrid,
+  List,
+  FolderInput,
+  Check,
+  UserPlus,
 } from "lucide-react";
 
 // ─── Status → ColumnType mapping ──────────────────────────────────────────────
@@ -298,7 +327,7 @@ function SortableColumn({
       ref={setNodeRef}
       style={isDragOverlay ? {} : style}
       className={cn(
-        "flex w-72 shrink-0 flex-col",
+        "flex w-72 shrink-0 flex-col h-full",
         isDragOverlay && "rotate-1 opacity-90",
       )}
     >
@@ -377,7 +406,7 @@ function SortableColumn({
       </div>
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto space-y-2 min-h-16">
+      <div className="scrollbar-thin flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
         <SortableContext
           items={tasks.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
@@ -394,7 +423,7 @@ function SortableColumn({
           ))}
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="rounded-card border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground/60">
+          <div className="rounded-card border border-dashed px-4 py-6 text-center text-xs text-muted-foreground/60 border-cf-neutral-950!">
             No tasks yet
           </div>
         )}
@@ -408,6 +437,498 @@ function SortableColumn({
       >
         <Plus size={12} /> Add Task
       </button>
+    </div>
+  );
+}
+
+// ─── List View ────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  review: "Review",
+  blocked: "Blocked",
+  done: "Done",
+};
+
+const STATUS_OPTIONS = Object.entries(STATUS_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
+
+const PRIORITY_OPTIONS = [
+  { value: "urgent", label: "Urgent" },
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
+
+type MemberOption = { userId: string; name: string; email: string };
+
+function getEstimateColor(task: TaskListItem): string {
+  if (!task.estimateMinutes) return "";
+  if (task.status === "done") return "text-success";
+
+  const now = Date.now();
+  // Use estimateSetAt (when the estimate was last set) as the baseline.
+  // Falls back to createdAt for tasks that predate this field.
+  const baseline = task.estimateSetAt
+    ? new Date(task.estimateSetAt).getTime()
+    : new Date(task.createdAt).getTime();
+  const elapsedMs = now - baseline;
+  const estimateMs = task.estimateMinutes * 60 * 1000;
+
+  if (elapsedMs >= estimateMs) return "text-danger";
+
+  // Orange when 75%+ of the estimate window has elapsed
+  if (elapsedMs >= estimateMs * 0.75) return "text-warning";
+
+  return "";
+}
+
+function TaskListView({
+  tasks,
+  currentUserId,
+  onTaskClick,
+  onDeleteTask,
+  onMoveToProject,
+}: {
+  tasks: TaskListItem[];
+  currentUserId: string;
+  onTaskClick: (task: TaskListItem) => void;
+  onDeleteTask: (task: TaskListItem) => void;
+  onMoveToProject: (task: TaskListItem) => void;
+}) {
+  const updateTask = useUpdateTask();
+  const updateAssignees = useUpdateTaskAssignees();
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [, setTick] = useState(0);
+
+  // Re-render every 30 seconds so estimate colors stay current
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const { data: teamData } = useQuery({
+    queryKey: ["team-task-list"],
+    queryFn: () =>
+      http<{ members: MemberOption[] }>("/api/team").then((r) => ({
+        members: r.members ?? [],
+      })),
+    staleTime: 60 * 1000,
+  });
+  const allMembers = teamData?.members ?? [];
+  const filteredMembers = memberSearch
+    ? allMembers.filter(
+        (m) =>
+          m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+          m.email.toLowerCase().includes(memberSearch.toLowerCase()),
+      )
+    : allMembers;
+
+  function handleNameHoverIn(task: TaskListItem) {
+    hoverTimerRef.current = setTimeout(() => onTaskClick(task), 600);
+  }
+
+  function handleNameHoverOut() {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }
+
+  function handleAssigneesChange(task: TaskListItem, userId: string, add: boolean) {
+    // Fall back to legacy assigneeUserId when junction table is empty
+    const current =
+      task.assignees.length > 0
+        ? task.assignees.map((a) => a.userId)
+        : task.assigneeUserId
+        ? [task.assigneeUserId]
+        : [];
+    const next = add
+      ? [...current.filter((id) => id !== userId), userId]
+      : current.filter((id) => id !== userId);
+    updateAssignees.mutate({ taskId: task.id, userIds: next });
+  }
+
+  function buildPayload(
+    task: TaskListItem,
+    overrides: {
+      status?: string;
+      priority?: string | null;
+      estimateMinutes?: number | null;
+      dueDate?: string | null;
+    },
+  ) {
+    return {
+      projectId: task.projectId,
+      title: task.title,
+      status: overrides.status ?? task.status,
+      priority: "priority" in overrides ? (overrides.priority ?? undefined) : (task.priority ?? undefined),
+      assigneeUserId: task.assigneeUserId ?? undefined,
+      dueDate:
+        "dueDate" in overrides
+          ? (overrides.dueDate ?? undefined)
+          : (task.dueDate ?? undefined),
+      estimateMinutes:
+        "estimateMinutes" in overrides
+          ? overrides.estimateMinutes
+          : task.estimateMinutes,
+      columnId: task.columnId ?? undefined,
+    };
+  }
+
+  function handleStatusChange(task: TaskListItem, newStatus: string) {
+    if (newStatus === task.status) return;
+    updateTask.mutate({ taskId: task.id, data: buildPayload(task, { status: newStatus }) });
+  }
+
+  function handleEstimateChange(task: TaskListItem, minutes: number | null) {
+    if (minutes === task.estimateMinutes) return;
+    updateTask.mutate({ taskId: task.id, data: buildPayload(task, { estimateMinutes: minutes }) });
+  }
+
+  function handlePriorityChange(task: TaskListItem, newPriority: string) {
+    if (newPriority === (task.priority ?? "none")) return;
+    const priority = newPriority === "none" ? null : newPriority;
+    updateTask.mutate({ taskId: task.id, data: buildPayload(task, { priority }) });
+  }
+
+  function handleDueDateChange(task: TaskListItem, date: Date | undefined) {
+    const iso = date ? date.toISOString() : null;
+    if (iso === task.dueDate) return;
+    updateTask.mutate({ taskId: task.id, data: buildPayload(task, { dueDate: iso }) });
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-card border border-dashed border-border py-16">
+        <p className="text-sm text-muted-foreground">No tasks found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-card border border-border bg-card overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-b border-border bg-muted/30 hover:bg-muted/30">
+            <TableHead className="px-2 py-2.5 w-[88px]" />
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Task</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Project</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Status</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Priority</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Assignee</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Due</TableHead>
+            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Estimate</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tasks.map((task) => (
+            <TableRow
+              key={task.id}
+              className="group border-b border-border/60 last:border-0 hover:bg-secondary/40 transition-colors"
+            >
+              {/* Actions */}
+              <TableCell className="px-2 py-3">
+                <div className="flex items-center justify-end gap-1">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
+                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit task</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onMoveToProject(task); }}
+                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          <FolderInput size={12} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Move to project</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
+                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-danger/10 hover:text-danger transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete task</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </TableCell>
+
+              {/* Title */}
+              <TableCell className="px-4 py-3 max-w-72">
+                <button
+                  type="button"
+                  onClick={() => onTaskClick(task)}
+                  onMouseEnter={() => handleNameHoverIn(task)}
+                  onMouseLeave={handleNameHoverOut}
+                  className="block w-full text-left"
+                >
+                  <p className="cursor-pointer truncate font-medium text-foreground hover:text-primary transition-colors">
+                    {task.title}
+                  </p>
+                </button>
+                {task.refNumber && (
+                  <p
+                    className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                    onMouseEnter={() => handleNameHoverIn(task)}
+                    onMouseLeave={handleNameHoverOut}
+                    onClick={() => onTaskClick(task)}
+                  >
+                    {task.refNumber}
+                  </p>
+                )}
+              </TableCell>
+
+              {/* Project */}
+              <TableCell className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                {task.projectName ?? "—"}
+              </TableCell>
+
+              {/* Status — shadcn Select styled as badge */}
+              <TableCell
+                className="px-4 py-3 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Select value={task.status} onValueChange={(v) => handleStatusChange(task, v)}>
+                  <SelectTrigger
+                    className={cn(
+                      "h-auto w-fit gap-1 rounded-pill border-0 px-2 py-0.5 text-xs font-medium shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer hover:opacity-80",
+                      STATUS_BADGE[task.status] ?? "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="bg-white">
+                    {STATUS_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="cursor-pointer text-xs">
+                        <span className={cn("inline-flex rounded-pill px-2 py-0.5 text-xs font-medium", STATUS_BADGE[o.value] ?? "bg-secondary text-muted-foreground")}>
+                          {o.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+
+              {/* Priority — shadcn Select styled as badge */}
+              <TableCell
+                className="px-4 py-3 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Select
+                  value={task.priority ?? "none"}
+                  onValueChange={(v) => handlePriorityChange(task, v)}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      "h-auto w-fit gap-1 rounded-pill border-0 px-2 py-0.5 text-xs font-medium shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer hover:opacity-80 capitalize",
+                      task.priority
+                        ? (PRIORITY_BADGE[task.priority] ?? "bg-secondary text-muted-foreground")
+                        : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="bg-white">
+                    <SelectItem value="none" className="cursor-pointer text-xs">
+                      <span className="inline-flex rounded-pill px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                        None
+                      </span>
+                    </SelectItem>
+                    {PRIORITY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="cursor-pointer text-xs">
+                        <span className={cn("inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize", PRIORITY_BADGE[o.value] ?? "bg-secondary text-muted-foreground")}>
+                          {o.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+
+              {/* Assignees — multi-select avatar group */}
+              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <Popover onOpenChange={(open) => { if (!open) setMemberSearch(""); }}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 cursor-pointer"
+                    >
+                      {(() => {
+                        // Fall back to legacy single-assignee field when junction table is empty
+                        const effectiveAssignees =
+                          task.assignees.length > 0
+                            ? task.assignees
+                            : task.assigneeUserId
+                            ? [{ userId: task.assigneeUserId, name: task.assigneeName }]
+                            : [];
+                        if (effectiveAssignees.length === 0) {
+                          return (
+                            <div className="flex items-center gap-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                              <UserPlus size={13} />
+                              <span className="text-xs">Assign</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="flex -space-x-1.5">
+                            {effectiveAssignees.slice(0, 3).map((a) => (
+                            <TooltipProvider key={a.userId} delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={cn(
+                                      "flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-semibold border-2 border-card",
+                                      a.userId === currentUserId
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-brand-100 text-primary",
+                                    )}
+                                  >
+                                    {getInitials(a.name)}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>{a.name ?? "Unknown"}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ))}
+                            {effectiveAssignees.length > 3 && (
+                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[9px] font-medium text-muted-foreground border-2 border-card">
+                                +{effectiveAssignees.length - 3}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 bg-white p-2" align="start" side="bottom" sideOffset={4}>
+                    <Input
+                      placeholder="Search members…"
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      className="mb-2 h-7 text-xs"
+                    />
+                    <div className="max-h-48 overflow-y-auto space-y-0.5">
+                      {filteredMembers.map((m) => {
+                        const effectiveIds =
+                          task.assignees.length > 0
+                            ? task.assignees.map((a) => a.userId)
+                            : task.assigneeUserId
+                            ? [task.assigneeUserId]
+                            : [];
+                        const assigned = effectiveIds.includes(m.userId);
+                        return (
+                          <button
+                            key={m.userId}
+                            type="button"
+                            onClick={() => handleAssigneesChange(task, m.userId, !assigned)}
+                            className={cn(
+                              "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
+                              assigned
+                                ? "bg-secondary text-foreground font-medium"
+                                : "hover:bg-secondary/50 text-muted-foreground",
+                            )}
+                          >
+                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                              {getInitials(m.name)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-foreground">{m.name}</p>
+                              <p className="truncate text-muted-foreground">{m.email}</p>
+                            </div>
+                            {assigned && <Check size={12} className="shrink-0 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+
+              {/* Due — inline date picker */}
+              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <Popover>
+                  <TooltipProvider delayDuration={400}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                          >
+                            {task.dueDate ? (
+                              <>
+                                <Clock size={11} />
+                                {formatDueShort(task.dueDate)}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground/50">Click to set due date</span>
+                            )}
+                          </button>
+                        </PopoverTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Click to set due date</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <PopoverContent className="w-auto bg-white p-0" align="start" side="bottom" sideOffset={4}>
+                    <Calendar
+                      mode="single"
+                      selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                      onSelect={(date) => handleDueDateChange(task, date)}
+                      initialFocus
+                    />
+                    {task.dueDate && (
+                      <div className="border-t border-border px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDueDateChange(task, undefined)}
+                          className="text-xs text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                        >
+                          Clear date
+                        </button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </TableCell>
+
+              {/* Estimate — TimeEstimateInput with elapsed-time color */}
+              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                <TimeEstimateInput
+                  value={task.estimateMinutes}
+                  onChange={(minutes) => handleEstimateChange(task, minutes)}
+                  size="sm"
+                  displayPlaceholder="Click to set estimate"
+                  tooltip="Click to set estimate (e.g. 1w 2d 3h 30m)"
+                  className={getEstimateColor(task)}
+                />
+              </TableCell>
+
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -452,6 +973,7 @@ const TasksPage = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<"task" | "column" | null>(null);
   const dragStartColumnId = useRef<string | null>(null);
+  const [view, setView] = useState<"board" | "list">("board");
   const [selectedTaskRef, setSelectedTaskRef] = useQueryState("task");
   const [deleteTask, setDeleteTask] = useState<TaskListItem | null>(null);
   const [deleteColumn, setDeleteColumn] = useState<BoardColumn | null>(null);
@@ -497,7 +1019,8 @@ const TasksPage = ({
     setActiveType(data.current?.type ?? null);
     if (data.current?.type === "task") {
       const task = data.current.task as TaskListItem;
-      dragStartColumnId.current = task.columnId ?? getTaskColumnId(task, localColumns);
+      dragStartColumnId.current =
+        task.columnId ?? getTaskColumnId(task, localColumns);
     } else {
       dragStartColumnId.current = null;
     }
@@ -561,10 +1084,25 @@ const TasksPage = ({
         targetColumnId = getTaskColumnId(overTask, localColumns);
       }
 
-      if (targetColumnId !== null && targetColumnId !== dragStartColumnId.current) {
+      if (
+        targetColumnId !== null &&
+        targetColumnId !== dragStartColumnId.current
+      ) {
+        // Cross-column move — persist to backend
         moveTaskMutation.mutate({
           taskId: activeTask.id,
           columnId: targetColumnId,
+        });
+      } else if (
+        overData?.type === "task" &&
+        String(active.id) !== String(over.id)
+      ) {
+        // Same-column reorder — commit new position in local state
+        setLocalTasks((prev) => {
+          const oldIndex = prev.findIndex((t) => t.id === String(active.id));
+          const newIndex = prev.findIndex((t) => t.id === String(over.id));
+          if (oldIndex === -1 || newIndex === -1) return prev;
+          return arrayMove(prev, oldIndex, newIndex);
         });
       }
       dragStartColumnId.current = null;
@@ -671,206 +1209,271 @@ const TasksPage = ({
       description={`${localColumns.length} columns · ${localTasks.length} tasks`}
     >
       <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-48 max-w-64">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            placeholder="Search tasks…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-8 text-sm bg-white"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setAssignedToMe((v) => !v)}
-          className={cn(
-            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer",
-            assignedToMe
-              ? "border-primary bg-primary/10 text-primary font-medium"
-              : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
-          )}
-        >
-          <UserCheck size={13} />
-          Assigned to me
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setFiltersOpen(true)}
-          className={cn(
-            "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer",
-            filters.priority || filters.projectId || filters.assigneeUserId
-              ? "border-primary bg-primary/10 text-primary font-medium"
-              : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
-          )}
-        >
-          <SlidersHorizontal size={13} />
-          Filters
-        </button>
-      </div>
-
-      {/* Board */}
-      {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="w-72 shrink-0 space-y-2">
-              <Skeleton className="h-10 w-full rounded-card" />
-              {[1, 2].map((j) => (
-                <Skeleton key={j} className="h-24 w-full rounded-card" />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <DndContext
-          id={dndId}
-          sensors={sensors}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div
-            className="flex gap-5 overflow-x-auto pb-6"
-            style={{ minHeight: "calc(100vh - 16rem)" }}
-          >
-            <SortableContext
-              items={localColumns.map((c) => c.id)}
-              strategy={horizontalListSortingStrategy}
-            >
-              {localColumns.map((col) => (
-                <SortableColumn
-                  key={col.id}
-                  column={col}
-                  tasks={getTasksForColumn(col.id)}
-                  currentUserId={currentUserId}
-                  onAddTask={handleAddTask}
-                  onEditColumn={handleEditColumn}
-                  onDeleteColumn={handleDeleteColumn}
-                  onTaskClick={(task) => setSelectedTaskRef(task.refNumber ?? task.id)}
-                  onDeleteTask={handleDeleteTask}
-                  onMoveToProject={handleMoveToProject}
-                />
-              ))}
-            </SortableContext>
-
-            {/* Add column button */}
-            <button
-              type="button"
-              onClick={() => setCreateColumnOpen(true)}
-              className="flex h-fit w-72 shrink-0 items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-6 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <Plus size={16} />
-              Add Column
-            </button>
+        {/* Toolbar */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-48 max-w-64">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            />
+            <Input
+              placeholder="Search tasks…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-8 text-sm bg-white"
+            />
           </div>
 
-          <DragOverlay>
-            {activeTask && (
-              <SortableTaskCard
-                task={activeTask}
-                currentUserId={currentUserId}
-                onClick={() => {}}
-                onDelete={() => {}}
-                onMoveToProject={() => {}}
-                isDragOverlay
-              />
+          <button
+            type="button"
+            onClick={() => setAssignedToMe((v) => !v)}
+            className={cn(
+              "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer bg-white",
+              assignedToMe
+                ? "border-primary bg-primary/10 text-primary font-medium"
+                : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
             )}
-            {activeColumn && (
-              <SortableColumn
-                column={activeColumn}
-                tasks={getTasksForColumn(activeColumn.id)}
-                currentUserId={currentUserId}
-                onAddTask={() => {}}
-                onEditColumn={() => {}}
-                onDeleteColumn={() => {}}
-                onTaskClick={() => {}}
-                onDeleteTask={() => {}}
-                onMoveToProject={() => {}}
-                isDragOverlay
-              />
+          >
+            <UserCheck size={13} />
+            Assigned to me
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className={cn(
+              "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer bg-white",
+              filters.priority || filters.projectId || filters.assigneeUserId
+                ? "border-primary bg-primary/10 text-primary font-medium"
+                : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
             )}
-          </DragOverlay>
-        </DndContext>
-      )}
+          >
+            <SlidersHorizontal size={13} />
+            Filters
+          </button>
 
-      {/* Dialogs / Drawers */}
-      <EditColumnDialog
-        open={createColumnOpen}
-        onClose={() => setCreateColumnOpen(false)}
-        mode="create"
-      />
+          {/* Spacer */}
+          <div className="flex-1" />
 
-      <EditColumnDialog
-        open={!!editColumn}
-        onClose={() => setEditColumn(null)}
-        mode="edit"
-        column={editColumn ?? undefined}
-      />
+          {/* New Task (list view) */}
+          {view === "list" && (
+            <button
+              type="button"
+              onClick={() => {
+                setCreateForColumn(null);
+                setCreateDialogOpen(true);
+              }}
+              className="flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+            >
+              <Plus size={13} />
+              New Task
+            </button>
+          )}
 
-      <CreateTaskDialog
-        open={createDialogOpen}
-        onClose={() => {
-          setCreateDialogOpen(false);
-          setCreateForColumn(null);
-        }}
-        defaultColumnId={createForColumn?.id}
-        defaultColumnName={createForColumn?.name}
-        defaultColumnColor={createForColumn?.color}
-      />
+          {/* View toggle */}
+          <div className="flex h-8 items-center rounded-md border border-border bg-card p-0.5 gap-0.5">
+            <button
+              type="button"
+              onClick={() => setView("board")}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                view === "board"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-label="Board view"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                view === "list"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-label="List view"
+            >
+              <List size={14} />
+            </button>
+          </div>
+        </div>
 
-      <FiltersDrawer
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        filters={filters}
-        onChange={setFilters}
-      />
+        {/* Board / List */}
+        {isLoading ? (
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="w-72 shrink-0 space-y-2">
+                <Skeleton className="h-10 w-full rounded-card" />
+                {[1, 2].map((j) => (
+                  <Skeleton key={j} className="h-24 w-full rounded-card" />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : view === "list" ? (
+          <div
+            className="scrollbar-thin overflow-y-auto"
+            style={{ height: "calc(100vh - 15rem)" }}
+          >
+            <TaskListView
+              tasks={filteredTasks}
+              currentUserId={currentUserId}
+              onTaskClick={(task) =>
+                setSelectedTaskRef(task.refNumber ?? task.id)
+              }
+              onDeleteTask={handleDeleteTask}
+              onMoveToProject={handleMoveToProject}
+            />
+          </div>
+        ) : (
+          <DndContext
+            id={dndId}
+            sensors={sensors}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div
+              className="scrollbar-thin flex gap-5 overflow-x-auto pb-4"
+              style={{ height: "calc(100vh - 15rem)" }}
+            >
+              <SortableContext
+                items={localColumns.map((c) => c.id)}
+                strategy={horizontalListSortingStrategy}
+              >
+                {localColumns.map((col) => (
+                  <SortableColumn
+                    key={col.id}
+                    column={col}
+                    tasks={getTasksForColumn(col.id)}
+                    currentUserId={currentUserId}
+                    onAddTask={handleAddTask}
+                    onEditColumn={handleEditColumn}
+                    onDeleteColumn={handleDeleteColumn}
+                    onTaskClick={(task) =>
+                      setSelectedTaskRef(task.refNumber ?? task.id)
+                    }
+                    onDeleteTask={handleDeleteTask}
+                    onMoveToProject={handleMoveToProject}
+                  />
+                ))}
+              </SortableContext>
 
-      <TaskDetailSheet
-        taskId={selectedTaskId}
-        onClose={() => setSelectedTaskRef(null)}
-        currentUserId={currentUserId}
-      />
+              {/* Add column button */}
+              <button
+                type="button"
+                onClick={() => setCreateColumnOpen(true)}
+                className="self-start flex h-fit w-72 shrink-0 items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-6 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                <Plus size={16} />
+                Add Column
+              </button>
+            </div>
 
-      <DeleteTaskDialog
-        open={!!deleteTask}
-        taskTitle={deleteTask?.title ?? ""}
-        isPending={deleteTaskMutation.isPending}
-        onClose={() => setDeleteTask(null)}
-        onConfirm={() => {
-          if (!deleteTask) return;
-          deleteTaskMutation.mutate(
-            { taskId: deleteTask.id },
-            { onSuccess: () => setDeleteTask(null) },
-          );
-        }}
-      />
+            <DragOverlay>
+              {activeTask && (
+                <SortableTaskCard
+                  task={activeTask}
+                  currentUserId={currentUserId}
+                  onClick={() => {}}
+                  onDelete={() => {}}
+                  onMoveToProject={() => {}}
+                  isDragOverlay
+                />
+              )}
+              {activeColumn && (
+                <SortableColumn
+                  column={activeColumn}
+                  tasks={getTasksForColumn(activeColumn.id)}
+                  currentUserId={currentUserId}
+                  onAddTask={() => {}}
+                  onEditColumn={() => {}}
+                  onDeleteColumn={() => {}}
+                  onTaskClick={() => {}}
+                  onDeleteTask={() => {}}
+                  onMoveToProject={() => {}}
+                  isDragOverlay
+                />
+              )}
+            </DragOverlay>
+          </DndContext>
+        )}
 
-      <DeleteColumnDialog
-        open={!!deleteColumn}
-        columnName={deleteColumn?.name ?? ""}
-        isPending={deleteColumnMutation.isPending}
-        onClose={() => setDeleteColumn(null)}
-        onConfirm={() => {
-          if (!deleteColumn) return;
-          deleteColumnMutation.mutate(
-            { columnId: deleteColumn.id },
-            { onSuccess: () => setDeleteColumn(null) },
-          );
-        }}
-      />
+        {/* Dialogs / Drawers */}
+        <EditColumnDialog
+          open={createColumnOpen}
+          onClose={() => setCreateColumnOpen(false)}
+          mode="create"
+        />
 
-      <MoveToProjectDialog
-        open={!!moveTask}
-        task={moveTask}
-        onClose={() => setMoveTask(null)}
-      />
-    </div>
+        <EditColumnDialog
+          open={!!editColumn}
+          onClose={() => setEditColumn(null)}
+          mode="edit"
+          column={editColumn ?? undefined}
+        />
+
+        <CreateTaskDialog
+          open={createDialogOpen}
+          onClose={() => {
+            setCreateDialogOpen(false);
+            setCreateForColumn(null);
+          }}
+          defaultColumnId={createForColumn?.id}
+          defaultColumnName={createForColumn?.name}
+          defaultColumnColor={createForColumn?.color}
+        />
+
+        <FiltersDrawer
+          open={filtersOpen}
+          onClose={() => setFiltersOpen(false)}
+          filters={filters}
+          onChange={setFilters}
+        />
+
+        <TaskDetailSheet
+          taskId={selectedTaskId}
+          onClose={() => setSelectedTaskRef(null)}
+          currentUserId={currentUserId}
+        />
+
+        <DeleteTaskDialog
+          open={!!deleteTask}
+          taskTitle={deleteTask?.title ?? ""}
+          isPending={deleteTaskMutation.isPending}
+          onClose={() => setDeleteTask(null)}
+          onConfirm={() => {
+            if (!deleteTask) return;
+            deleteTaskMutation.mutate(
+              { taskId: deleteTask.id },
+              { onSuccess: () => setDeleteTask(null) },
+            );
+          }}
+        />
+
+        <DeleteColumnDialog
+          open={!!deleteColumn}
+          columnName={deleteColumn?.name ?? ""}
+          isPending={deleteColumnMutation.isPending}
+          onClose={() => setDeleteColumn(null)}
+          onConfirm={() => {
+            if (!deleteColumn) return;
+            deleteColumnMutation.mutate(
+              { columnId: deleteColumn.id },
+              { onSuccess: () => setDeleteColumn(null) },
+            );
+          }}
+        />
+
+        <MoveToProjectDialog
+          open={!!moveTask}
+          task={moveTask}
+          onClose={() => setMoveTask(null)}
+        />
+      </div>
     </ListPageLayout>
   );
 };

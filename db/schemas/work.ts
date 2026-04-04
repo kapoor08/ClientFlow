@@ -31,6 +31,21 @@ export const clients = pgTable("clients", {
   deletedAt: timestamp("deleted_at"),
 });
 
+export const clientNotes = pgTable("client_notes", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  organizationId: text("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  type: text("type").notNull().default("general"),
+  content: text("content").notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   organizationId: text("organization_id")
@@ -137,6 +152,7 @@ export const tasks = pgTable("tasks", {
   completedAt: timestamp("completed_at"),
   position: integer("position"),
   estimateMinutes: integer("estimate_minutes"),
+  estimateSetAt: timestamp("estimate_set_at"),
   actualMinutes: integer("actual_minutes"),
   refNumber: text("ref_number"),
   tags: text("tags").array().notNull().default([]),

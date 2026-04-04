@@ -10,7 +10,7 @@ const StatsSection = () => {
   return (
     <section className="py-20">
       <div className="container">
-        <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-card p-10 md:p-14">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-border bg-card p-10 md:px-5 md:py-12">
           <div className="grid grid-cols-2 gap-y-10 gap-x-6 md:grid-cols-4">
             {stats.map((stat, index) => (
               <motion.div

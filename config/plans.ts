@@ -7,7 +7,11 @@ export const plans = [
     desc: "For small teams getting started",
     features: [
       "5 team members",
+      "15 clients",
       "10 projects",
+      "15 files per project",
+      "100 tasks/month",
+      "50 file uploads/month",
       "Basic analytics",
       "Email support",
     ],
@@ -20,8 +24,10 @@ export const plans = [
     period: "/mo",
     desc: "For growing agencies",
     features: [
-      "25 team members",
+      "Unlimited team members",
+      "Unlimited clients",
       "Unlimited projects",
+      "Unlimited files & uploads",
       "Advanced analytics",
       "Priority support",
       "API access",
@@ -38,7 +44,8 @@ export const plans = [
     desc: "For large organizations",
     features: [
       "Unlimited members",
-      "Unlimited projects",
+      "Unlimited projects & clients",
+      "Unlimited files & tasks",
       "Custom integrations",
       "Dedicated support",
       "SSO/SAML",

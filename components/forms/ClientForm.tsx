@@ -156,20 +156,6 @@ export function ClientForm(props: ClientFormProps) {
         </FormGrid>
       </FormSection>
 
-      <FormSection
-        title="Notes"
-        description="Add delivery preferences, business context, or other relevant notes."
-      >
-        <ControlledTextarea
-          name="notes"
-          control={control}
-          error={errors.notes}
-          rows={6}
-          placeholder="Important context for your team…"
-          disabled={isPending}
-        />
-      </FormSection>
-
       <div>
         <Button type="submit" disabled={isPending} className="cursor-pointer">
           <Save size={14} className="mr-1.5" />

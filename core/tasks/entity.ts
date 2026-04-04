@@ -1,5 +1,7 @@
 import type { PaginationMeta } from "@/lib/pagination";
 
+export type TaskAssignee = { userId: string; name: string | null };
+
 export type TaskListItem = {
   id: string;
   title: string;
@@ -9,8 +11,10 @@ export type TaskListItem = {
   priority: string | null;
   assigneeUserId: string | null;
   assigneeName: string | null;
+  assignees: TaskAssignee[];
   dueDate: string | null;
   estimateMinutes: number | null;
+  estimateSetAt: string | null;
   commentCount: number;
   attachmentCount: number;
   createdAt: string;
@@ -64,7 +68,11 @@ export function getInitials(name: string | null | undefined): string {
 
 export function formatDueShort(iso: string | null): string {
   if (!iso) return "";
-  return iso.slice(5, 10); // MM-DD
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
 }
 
 export const PRIORITY_BADGE: Record<string, string> = {

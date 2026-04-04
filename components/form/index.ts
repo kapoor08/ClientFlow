@@ -80,3 +80,11 @@ export { SwitchField } from "./SwitchField";
 export { TimePicker } from "./TimePicker";
 export { ControlledThumbnailInput } from "./ControlledThumbnailInput";
 export { ControlledLogoUpload } from "./ControlledLogoUpload";
+export {
+  TimeEstimateInput,
+  minutesToEstimate,
+  parseEstimate,
+  MINS_PER_WEEK,
+  MINS_PER_DAY,
+  MINS_PER_HOUR,
+} from "./TimeEstimateInput";

@@ -40,7 +40,6 @@ export const clientFormSchema = z.object({
   status: z.enum(clientStatusValues, {
     error: "Select a valid client status.",
   }),
-  notes: z.string().max(5000, "Notes must be 5,000 characters or fewer."),
 });
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -53,6 +52,5 @@ export function getDefaultClientFormValues(): ClientFormValues {
     contactEmail: "",
     contactPhone: "",
     status: "active",
-    notes: "",
   };
 }

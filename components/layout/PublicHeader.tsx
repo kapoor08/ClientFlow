@@ -219,7 +219,11 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                     </Badge>
                   </div>
                 </div>
-                <Button size="sm" asChild className="rounded-full cursor-pointer">
+                <Button
+                  size="sm"
+                  asChild
+                  className="rounded-full cursor-pointer"
+                >
                   <Link
                     href={viewer.dashboardHref}
                     onClick={() => setMobileOpen(false)}

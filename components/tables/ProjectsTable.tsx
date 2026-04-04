@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Building2, Calendar, FolderKanban } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/data-table";
 import { toast } from "sonner";
 import { useDeleteProject } from "@/core/projects/useCase";
+import { loadMoreProjectsAction } from "@/app/(protected)/projects/actions";
 import {
   PROJECT_STATUS_OPTIONS,
   PROJECT_PRIORITY_OPTIONS,
@@ -25,7 +27,6 @@ import type { ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
 
 const statusStyles: Record<ProjectStatus, string> = {
   planning: "bg-neutral-200/70 text-neutral-700",
-  active: "bg-info/10 text-info",
   in_progress: "bg-primary/10 text-primary",
   on_hold: "bg-warning/10 text-warning",
   completed: "bg-success/10 text-success",
@@ -34,7 +35,6 @@ const statusStyles: Record<ProjectStatus, string> = {
 
 const statusIconBg: Record<ProjectStatus, string> = {
   planning: "bg-neutral-100 text-neutral-500",
-  active: "bg-info/10 text-info",
   in_progress: "bg-primary/10 text-primary",
   on_hold: "bg-warning/10 text-warning",
   completed: "bg-success/10 text-success",
@@ -284,6 +284,7 @@ export function ProjectsTable({
 }: ProjectsTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteProject = useDeleteProject();
+  const searchParams = useSearchParams();
 
   const [, startTransition] = useTransition();
   const [status, setStatus] = useQueryState(
@@ -297,6 +298,23 @@ export function ProjectsTable({
     parseAsString
       .withDefault("")
       .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
+
+  const loadMore = useCallback(
+    async (page: number, pageSize: number) => {
+      return loadMoreProjectsAction({
+        page,
+        pageSize,
+        q: searchParams.get("q") ?? "",
+        sort: searchParams.get("sort") ?? "",
+        order: searchParams.get("order") ?? "desc",
+        status: searchParams.get("status") ?? "",
+        priority: searchParams.get("priority") ?? "",
+        dateFrom: searchParams.get("dateFrom") ?? "",
+        dateTo: searchParams.get("dateTo") ?? "",
+      });
+    },
+    [searchParams],
   );
 
   const handleDelete = async (projectId: string) => {
@@ -353,6 +371,8 @@ export function ProjectsTable({
       pagination={pagination}
       gridCard={(project) => <ProjectGridCard project={project} />}
       gridCols={3}
+      infiniteScroll
+      loadMore={loadMore}
       emptyTitle="No projects found."
       emptyDescription="Try a different search term or create your first project."
       emptyAction={

@@ -2,7 +2,6 @@ import { z } from "zod";
 
 export const PROJECT_STATUS_OPTIONS = [
   { value: "planning", label: "Planning" },
-  { value: "active", label: "Active" },
   { value: "in_progress", label: "In Progress" },
   { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },

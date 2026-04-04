@@ -293,29 +293,51 @@
   color: #888;
 }
 
-/* Hero - dark gradient with mesh */
-.hero-dark {
-  position: relative;
+/* ─── Thin scrollbar utility ─────────────────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* Hero - light gradient with brand mesh */
+.hero-light {
   background: linear-gradient(
     170deg,
-    hsl(220 35% 6%) 0%,
-    hsl(215 30% 10%) 30%,
-    hsl(210 25% 14%) 60%,
-    hsl(207 22% 17%) 100%
+    hsl(var(--cf-brand-100)) 0%,
+    hsl(var(--background)) 55%,
+    hsl(var(--muted)) 100%
   );
 }
 
 .hero-mesh {
   background:
-    radial-gradient(ellipse 60% 50% at 50% 0%, hsl(207 80% 50% / 0.12), transparent 70%),
-    radial-gradient(ellipse 40% 70% at 80% 40%, hsl(207 72% 38% / 0.08), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 15% 70%, hsl(170 76% 41% / 0.06), transparent 60%);
+    radial-gradient(ellipse 60% 50% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%),
+    radial-gradient(ellipse 40% 70% at 80% 40%, hsl(var(--primary) / 0.05), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 15% 70%, hsl(var(--accent) / 0.04), transparent 60%);
 }
 
 .hero-grid {
   background-image:
-    linear-gradient(hsla(207, 72%, 70%, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, hsla(207, 72%, 70%, 0.04) 1px, transparent 1px);
+    linear-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.05) 1px, transparent 1px);
   background-size: 64px 64px;
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
@@ -391,28 +413,27 @@
 
 /* Buttons - enhanced CTA styles */
 .btn-hero-primary {
-  color: hsl(220 26% 11%);
+  color: hsl(var(--primary-foreground));
   font-weight: 600;
-  background: hsl(0 0% 100%);
+  background: hsl(var(--primary));
   transition: all 0.2s;
 }
 
 .btn-hero-primary:hover {
   transform: translateY(-1px);
-  background: hsl(0 0% 93%);
+  background: hsl(var(--cf-brand-700));
 }
 
 .btn-hero-secondary {
-  color: hsl(0 0% 100%);
-  border: 1px solid hsl(0 0% 100% / 0.15);
-  background: hsl(0 0% 100% / 0.04);
-  backdrop-filter: blur(8px);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.25);
+  background: hsl(var(--primary) / 0.05);
   transition: all 0.2s;
 }
 
 .btn-hero-secondary:hover {
-  border-color: hsl(0 0% 100% / 0.3);
-  background: hsl(0 0% 100% / 0.08);
+  border-color: hsl(var(--primary) / 0.4);
+  background: hsl(var(--primary) / 0.1);
 }
 
 /* Section patterns */
@@ -427,16 +448,19 @@
 }
 
 .mockup-frame {
-  border: 1px solid hsl(0 0% 100% / 0.1);
+  border: 1px solid hsl(var(--border));
   border-radius: 12px;
-  background: hsl(0 0% 100% / 0.04);
+  background: hsl(var(--card));
+  box-shadow: var(--cf-shadow-3);
 }
 
 .mockup-dots {
   display: flex;
   gap: 6px;
-  padding: 12px 16px;
-  border-bottom: 1px solid hsl(0 0% 100% / 0.06);
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--secondary));
 }
 
 .mockup-dots span {

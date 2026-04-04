@@ -37,7 +37,7 @@ export default async function IpBlockedPage() {
     <div className="relative flex min-h-screen items-center justify-center bg-background px-6">
       <Link href="/" className="absolute left-6 top-6">
         <Image
-          src="/logo-dark.png"
+          src="/app-logo.png"
           alt="ClientFlow"
           width={140}
           height={32}

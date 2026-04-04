@@ -28,8 +28,10 @@ export type TaskListItem = {
   priority: string | null;
   assigneeUserId: string | null;
   assigneeName: string | null;
+  assignees: { userId: string; name: string | null }[];
   dueDate: Date | null;
   estimateMinutes: number | null;
+  estimateSetAt: Date | null;
   commentCount: number;
   attachmentCount: number;
   createdAt: Date;
@@ -108,10 +110,20 @@ export async function listTasksForUser(
         assigneeName: user.name,
         dueDate: tasks.dueDate,
         estimateMinutes: tasks.estimateMinutes,
+        estimateSetAt: tasks.estimateSetAt,
         commentCount:
           sql<number>`(SELECT COUNT(*) FROM task_comments WHERE task_id = ${tasks.id} AND deleted_at IS NULL)`,
         attachmentCount:
           sql<number>`(SELECT COUNT(*) FROM task_attachments WHERE task_id = ${tasks.id})`,
+        assignees: sql<{ userId: string; name: string | null }[]>`(
+          SELECT COALESCE(
+            json_agg(json_build_object('userId', ta.user_id, 'name', u.name) ORDER BY ta.created_at),
+            '[]'::json
+          )
+          FROM task_assignees ta
+          JOIN "user" u ON u.id = ta.user_id
+          WHERE ta.task_id = ${tasks.id}
+        )`,
         createdAt: tasks.createdAt,
         columnId: tasks.columnId,
         refNumber: tasks.refNumber,
@@ -272,6 +284,8 @@ export async function updateTaskForUser(
   if (!existing) throw new Error("Task not found.");
 
   // ─── Perform update ────────────────────────────────────────────────────────
+  const estimateChanged = (existing.estimateMinutes ?? null) !== (input.estimateMinutes ?? null);
+
   await db
     .update(tasks)
     .set({
@@ -283,6 +297,9 @@ export async function updateTaskForUser(
       assigneeUserId: input.assigneeUserId,
       dueDate: input.dueDate,
       estimateMinutes: input.estimateMinutes,
+      estimateSetAt: estimateChanged
+        ? (input.estimateMinutes ? new Date() : null)
+        : undefined,
       columnId: input.columnId ?? null,
       reporterUserId: input.reporterUserId ?? null,
       tags: input.tags ?? [],

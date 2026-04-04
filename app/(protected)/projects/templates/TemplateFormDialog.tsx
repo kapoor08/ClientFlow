@@ -31,7 +31,7 @@ type TemplateItem = {
 
 const STATUS_OPTIONS = [
   { value: "planning", label: "Planning" },
-  { value: "active", label: "Active" },
+  { value: "in_progress", label: "In Progress" },
   { value: "on_hold", label: "On Hold" },
 ];
 
@@ -46,7 +46,7 @@ const PRIORITY_OPTIONS = [
 const templateFormSchema = z.object({
   name: z.string().min(1, "Template name is required."),
   description: z.string().optional(),
-  defaultStatus: z.enum(["planning", "active", "on_hold"]),
+  defaultStatus: z.enum(["planning", "in_progress", "on_hold"]),
   defaultPriority: z.enum(["none", "low", "medium", "high", "urgent"]),
   tasks: z.array(z.object({ title: z.string() })),
   newTaskTitle: z.string().optional(),

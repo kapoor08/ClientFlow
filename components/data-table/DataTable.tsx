@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
 import {
   parseAsInteger,
   parseAsString,
@@ -321,6 +322,13 @@ type DataTableProps<T> = {
   gridCard?: (row: T) => ReactNode;
   /** Number of grid columns — default 3 */
   gridCols?: 2 | 3 | 4;
+  /**
+   * Enable infinite scroll in grid view.
+   * Requires `loadMore` to be provided.
+   */
+  infiniteScroll?: boolean;
+  /** Called with (page, pageSize) to fetch the next page of items in grid mode. */
+  loadMore?: (page: number, pageSize: number) => Promise<T[]>;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
@@ -335,11 +343,60 @@ export function DataTable<T>({
   pagination,
   gridCard,
   gridCols = 3,
+  infiniteScroll = false,
+  loadMore,
   emptyTitle = "No results found.",
   emptyDescription = "Try adjusting your search or filters.",
   emptyAction,
 }: DataTableProps<T>) {
   const [, startTransition] = useTransition();
+
+  // ── Infinite scroll state (grid view only) ──────────────────────────────────
+  const [accumulatedItems, setAccumulatedItems] = useState<T[]>(data);
+  const [nextPage, setNextPage] = useState(2);
+  const [hasMore, setHasMore] = useState(pagination?.hasNextPage ?? false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const generationRef = useRef(0); // incremented on each data reset to cancel stale fetches
+
+  // Reset accumulated items when server data changes (filter/search/initial)
+  useEffect(() => {
+    generationRef.current += 1;
+    setAccumulatedItems(data);
+    setNextPage(2);
+    setHasMore(pagination?.hasNextPage ?? false);
+    setIsLoadingMore(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  // IntersectionObserver sentinel
+  useEffect(() => {
+    if (!infiniteScroll || !loadMore || !hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        if (!entries[0].isIntersecting || isLoadingMore) return;
+        const gen = generationRef.current;
+        setIsLoadingMore(true);
+        try {
+          const pageSize = pagination?.pageSize ?? 12;
+          const newItems = await loadMore(nextPage, pageSize);
+          if (generationRef.current !== gen) return; // stale — data was reset
+          setAccumulatedItems((prev) => [...prev, ...newItems]);
+          setNextPage((p) => p + 1);
+          setHasMore(newItems.length >= pageSize);
+        } finally {
+          if (generationRef.current === gen) setIsLoadingMore(false);
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [infiniteScroll, loadMore, hasMore, isLoadingMore, nextPage, pagination?.pageSize]);
 
   // Sort state — also resets page when changed
   const [{ sort, order }, setSort] = useQueryStates(
@@ -352,13 +409,23 @@ export function DataTable<T>({
   );
 
   // View mode — persisted in URL, only active when gridCard is provided
-  const [rawView, setView] = useQueryState(
-    "view",
-    parseAsString
-      .withDefault("list")
-      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  const [{ view: rawView }, setViewParams] = useQueryStates(
+    {
+      view: parseAsString.withDefault("list"),
+      pageSize: parseAsInteger.withDefault(10),
+      page: parseAsInteger.withDefault(1),
+    },
+    { shallow: false, startTransition, clearOnDefault: true },
   );
   const view: ViewMode = gridCard && rawView === "grid" ? "grid" : "list";
+
+  function handleViewChange(v: ViewMode) {
+    setViewParams({
+      view: v === "list" ? null : v,
+      pageSize: v === "grid" ? 12 : null, // null resets to default (10)
+      page: null,
+    });
+  }
 
   function handleSort(key: string) {
     if (sort === key) {
@@ -382,7 +449,7 @@ export function DataTable<T>({
           searchExtra={searchExtra}
           hasGridView={!!gridCard}
           view={view}
-          onViewChange={(v) => setView(v === "list" ? null : v)}
+          onViewChange={handleViewChange}
         />
       ) : null}
 
@@ -398,16 +465,35 @@ export function DataTable<T>({
           {emptyAction ? <EmptyContent>{emptyAction}</EmptyContent> : null}
         </Empty>
       ) : view === "grid" && gridCard ? (
-        <div
-          className={cn(
-            "grid gap-4",
-            gridColsClass[gridCols] ?? gridColsClass[3],
+        <>
+          <div
+            className={cn(
+              "grid gap-4",
+              gridColsClass[gridCols] ?? gridColsClass[3],
+            )}
+          >
+            {(infiniteScroll ? accumulatedItems : data).map((row) => (
+              <div key={getRowKey(row)}>{gridCard(row)}</div>
+            ))}
+          </div>
+
+          {infiniteScroll && loadMore && (
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <div ref={sentinelRef} className="h-1 w-full" />
+              {isLoadingMore && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 size={15} className="animate-spin" />
+                  Loading more…
+                </div>
+              )}
+              {!hasMore && !isLoadingMore && accumulatedItems.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  All {accumulatedItems.length} items loaded
+                </p>
+              )}
+            </div>
           )}
-        >
-          {data.map((row) => (
-            <div key={getRowKey(row)}>{gridCard(row)}</div>
-          ))}
-        </div>
+        </>
       ) : (
         <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
           <Table>
@@ -473,7 +559,7 @@ export function DataTable<T>({
         </div>
       )}
 
-      {pagination ? (
+      {pagination && !(infiniteScroll && view === "grid") ? (
         <div className="mt-3">
           <TablePagination pagination={pagination} />
         </div>

@@ -208,10 +208,10 @@ export function CreateTaskDialog({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {/* Project select */}
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="h-8 w-auto min-w-32 cursor-pointer text-xs">
+              <SelectTrigger className="h-8 w-auto min-w-32 cursor-pointer bg-white text-xs">
                 <SelectValue placeholder="Select project…" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" sideOffset={4} className="bg-white p-2">
                 {projects.map((p) => (
                   <SelectItem key={p.id} value={p.id} className="cursor-pointer text-xs">
                     {p.name}
@@ -226,7 +226,7 @@ export function CreateTaskDialog({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
+                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-white px-2.5 text-xs transition-colors hover:bg-secondary",
                     assigneeUserId
                       ? "text-foreground font-medium"
                       : "text-muted-foreground",
@@ -243,7 +243,7 @@ export function CreateTaskDialog({
                   <ChevronDown size={12} className="text-muted-foreground" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
+              <PopoverContent className="w-64 bg-white p-2" align="start" side="bottom" sideOffset={4}>
                 <Input
                   placeholder="Search members…"
                   value={memberSearch}
@@ -319,7 +319,7 @@ export function CreateTaskDialog({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
+                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-white px-2.5 text-xs transition-colors hover:bg-secondary",
                     priority
                       ? "text-foreground font-medium"
                       : "text-muted-foreground",
@@ -337,7 +337,7 @@ export function CreateTaskDialog({
                   <ChevronDown size={12} className="text-muted-foreground" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-40 p-1" align="start">
+              <PopoverContent className="w-40 bg-white p-2" align="start" side="bottom" sideOffset={4}>
                 {priority && (
                   <button
                     type="button"

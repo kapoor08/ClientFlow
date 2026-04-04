@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FolderKanban, Mail, Phone, User } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import {
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { getUserInitials } from "@/core/auth";
 import { useDeleteClient } from "@/core/clients/useCase";
 import { CLIENT_STATUS_OPTIONS } from "@/lib/clients-shared";
+import { loadMoreClientsAction } from "@/app/(protected)/clients/actions";
 import type { PaginationMeta } from "@/lib/pagination";
 import type { ClientListItem } from "@/lib/clients";
 
@@ -251,6 +253,7 @@ export function ClientsTable({
 }: ClientsTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const deleteClient = useDeleteClient();
+  const searchParams = useSearchParams();
 
   const [, startTransition] = useTransition();
   const [status, setStatus] = useQueryState(
@@ -273,6 +276,22 @@ export function ClientsTable({
       setDeletingId(null);
     }
   };
+
+  const loadMore = useCallback(
+    async (page: number, pageSize: number) => {
+      return loadMoreClientsAction({
+        page,
+        pageSize,
+        q: searchParams.get("q") ?? "",
+        sort: searchParams.get("sort") ?? "",
+        order: searchParams.get("order") ?? "desc",
+        status: searchParams.get("status") ?? "",
+        dateFrom: searchParams.get("dateFrom") ?? "",
+        dateTo: searchParams.get("dateTo") ?? "",
+      });
+    },
+    [searchParams],
+  );
 
   const columns = buildColumns(canWrite, deletingId, handleDelete);
 
@@ -306,6 +325,8 @@ export function ClientsTable({
       pagination={pagination}
       gridCard={(client) => <ClientGridCard client={client} />}
       gridCols={3}
+      infiniteScroll
+      loadMore={loadMore}
       emptyTitle="No clients found."
       emptyDescription="Try a different search term or create your first client."
       emptyAction={

@@ -44,3 +44,13 @@ export async function deleteTask(taskId: string): Promise<void> {
 export async function moveTask(taskId: string, columnId: string | null): Promise<void> {
   return http<void>(`/api/tasks/${taskId}/move`, { method: "PATCH", body: { columnId } });
 }
+
+export async function updateTaskAssignees(
+  taskId: string,
+  userIds: string[],
+): Promise<void> {
+  return http<void>(`/api/tasks/${taskId}/assignees`, {
+    method: "PATCH",
+    body: { userIds },
+  });
+}
