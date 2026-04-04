@@ -540,10 +540,10 @@ function TaskListView({
   }
 
   function handleAssigneesChange(task: TaskListItem, userId: string, add: boolean) {
-    // Fall back to legacy assigneeUserId when junction table is empty
+    const assignees = task.assignees ?? [];
     const current =
-      task.assignees.length > 0
-        ? task.assignees.map((a) => a.userId)
+      assignees.length > 0
+        ? assignees.map((a) => a.userId)
         : task.assigneeUserId
         ? [task.assigneeUserId]
         : [];
@@ -778,7 +778,7 @@ function TaskListView({
                       {(() => {
                         // Fall back to legacy single-assignee field when junction table is empty
                         const effectiveAssignees =
-                          task.assignees.length > 0
+                          (task.assignees ?? []).length > 0
                             ? task.assignees
                             : task.assigneeUserId
                             ? [{ userId: task.assigneeUserId, name: task.assigneeName }]
@@ -832,8 +832,8 @@ function TaskListView({
                     <div className="max-h-48 overflow-y-auto space-y-0.5">
                       {filteredMembers.map((m) => {
                         const effectiveIds =
-                          task.assignees.length > 0
-                            ? task.assignees.map((a) => a.userId)
+                          (task.assignees ?? []).length > 0
+                            ? (task.assignees ?? []).map((a) => a.userId)
                             : task.assigneeUserId
                             ? [task.assigneeUserId]
                             : [];
@@ -1155,14 +1155,20 @@ const TasksPage = ({
     ) {
       return false;
     }
-    if (assignedToMe && task.assigneeUserId !== currentUserId) return false;
+    if (assignedToMe) {
+      const assigneeIds = (task.assignees ?? []).map((a) => a.userId);
+      const isAssigned =
+        task.assigneeUserId === currentUserId || assigneeIds.includes(currentUserId);
+      if (!isAssigned) return false;
+    }
     if (filters.priority && task.priority !== filters.priority) return false;
     if (filters.projectId && task.projectId !== filters.projectId) return false;
-    if (
-      filters.assigneeUserId &&
-      task.assigneeUserId !== filters.assigneeUserId
-    ) {
-      return false;
+    if (filters.assigneeUserId) {
+      const assigneeIds = (task.assignees ?? []).map((a) => a.userId);
+      const isAssigned =
+        task.assigneeUserId === filters.assigneeUserId ||
+        assigneeIds.includes(filters.assigneeUserId);
+      if (!isAssigned) return false;
     }
     return true;
   });

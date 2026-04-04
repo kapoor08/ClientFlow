@@ -31,7 +31,6 @@ type ProjectDetailPageProps = {
 
 const statusStyles: Record<ProjectStatus, string> = {
   planning: "bg-neutral-200/70 text-neutral-700",
-  active: "bg-info/10 text-info",
   in_progress: "bg-primary/10 text-primary",
   on_hold: "bg-warning/10 text-warning",
   completed: "bg-success/10 text-success",
