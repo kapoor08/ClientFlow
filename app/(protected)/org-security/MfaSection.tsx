@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldOff, Copy, Check, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,8 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 
+// ─── CopyButton ───────────────────────────────────────────────────────────────
+
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -35,7 +37,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
       title="Copy"
     >
       {copied ? (
@@ -47,13 +49,137 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// ─── ChangePasswordDialog ─────────────────────────────────────────────────────
+
+function ChangePasswordDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function handleClose() {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setError(null);
+    onClose();
+  }
+
+  async function handleSubmit() {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All fields are required.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError("New password must be at least 8 characters.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      });
+      if (res.error) throw new Error(res.error.message ?? "Failed to change password.");
+      toast.success("Password changed successfully.");
+      handleClose();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to change password.";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Enter your current password and choose a new one.
+          </DialogDescription>
+        </DialogHeader>
+
+        {error && (
+          <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label htmlFor="current-password">Current password</Label>
+            <Input
+              id="current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              id="new-password"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <Input
+              id="confirm-password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} className="cursor-pointer">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!currentPassword || !newPassword || !confirmPassword || loading}
+            className="cursor-pointer"
+          >
+            {loading ? (
+              <Loader2 size={14} className="animate-spin mr-1.5" />
+            ) : null}
+            Update Password
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── MfaSection ───────────────────────────────────────────────────────────────
+
 export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
   const [enableOpen, setEnableOpen] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
-  const [step, setStep] = useState<"password" | "verify" | "backup">(
-    "password",
-  );
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [step, setStep] = useState<"password" | "verify" | "backup">("password");
   const [password, setPassword] = useState("");
   const [totpUri, setTotpUri] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -70,18 +196,14 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setError(null);
     try {
       const res = await authClient.twoFactor.enable({ password });
-      if (res.error)
-        throw new Error(res.error.message ?? "Failed to enable MFA.");
-      const uri = (res.data as { totpURI: string; backupCodes: string[] })
-        .totpURI;
-      const codes = (res.data as { totpURI: string; backupCodes: string[] })
-        .backupCodes;
+      if (res.error) throw new Error(res.error.message ?? "Failed to enable MFA.");
+      const uri = (res.data as { totpURI: string; backupCodes: string[] }).totpURI;
+      const codes = (res.data as { totpURI: string; backupCodes: string[] }).backupCodes;
       setTotpUri(uri);
       setBackupCodes(codes);
       setStep("verify");
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Failed to start MFA setup.";
+      const message = e instanceof Error ? e.message : "Failed to start MFA setup.";
       setError(message);
       toast.error(message);
     } finally {
@@ -111,18 +233,14 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await authClient.twoFactor.disable({
-        password: disablePassword,
-      });
-      if (res.error)
-        throw new Error(res.error.message ?? "Failed to disable MFA.");
+      const res = await authClient.twoFactor.disable({ password: disablePassword });
+      if (res.error) throw new Error(res.error.message ?? "Failed to disable MFA.");
       setDisableOpen(false);
       setDisablePassword("");
       toast.success("Two-factor authentication disabled.");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to disable MFA.";
       setError(message);
-      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -143,20 +261,14 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await authClient.twoFactor.generateBackupCodes({
-        password: regenPassword,
-      });
-      if (res.error)
-        throw new Error(
-          res.error.message ?? "Failed to regenerate backup codes.",
-        );
+      const res = await authClient.twoFactor.generateBackupCodes({ password: regenPassword });
+      if (res.error) throw new Error(res.error.message ?? "Failed to regenerate backup codes.");
       const codes = (res.data as { backupCodes: string[] }).backupCodes;
       setNewBackupCodes(codes);
       setRegenPassword("");
       toast.success("Backup codes regenerated. Old codes are now invalid.");
     } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "Failed to regenerate backup codes.";
+      const message = e instanceof Error ? e.message : "Failed to regenerate backup codes.";
       setError(message);
       toast.error(message);
     } finally {
@@ -173,7 +285,8 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
 
   return (
     <>
-      <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
+      {/* 2FA card */}
+      <div className="mb-3 rounded-card border border-border bg-card p-5 shadow-cf-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -200,10 +313,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setDisableOpen(true);
-                setError(null);
-              }}
+              onClick={() => { setDisableOpen(true); setError(null); }}
               className="cursor-pointer"
             >
               Disable
@@ -211,11 +321,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           ) : (
             <Button
               size="sm"
-              onClick={() => {
-                setEnableOpen(true);
-                setError(null);
-                setStep("password");
-              }}
+              onClick={() => { setEnableOpen(true); setError(null); setStep("password"); }}
               className="cursor-pointer"
             >
               Enable
@@ -226,12 +332,10 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
 
       {/* Backup codes card — shown when MFA is enabled */}
       {mfaEnabled && (
-        <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
+        <div className="mb-3 rounded-card border border-border bg-card p-5 shadow-cf-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">
-                Backup Codes
-              </p>
+              <p className="text-sm font-medium text-foreground">Backup Codes</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Regenerate your one-time backup codes if you lose access to your
                 authenticator app.
@@ -240,11 +344,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setRegenerateOpen(true);
-                setError(null);
-                setNewBackupCodes([]);
-              }}
+              onClick={() => { setRegenerateOpen(true); setError(null); setNewBackupCodes([]); }}
               className="cursor-pointer"
             >
               Regenerate
@@ -253,21 +353,45 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
         </div>
       )}
 
+      {/* Change Password card */}
+      <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+              <Key size={20} className="text-muted-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">Password</p>
+              <p className="text-xs text-muted-foreground">
+                Update your account password regularly for better security.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setChangePasswordOpen(true)}
+            className="cursor-pointer"
+          >
+            Change
+          </Button>
+        </div>
+      </div>
+
+      {/* Change Password dialog */}
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+
       {/* Enable MFA dialog */}
-      <Dialog
-        open={enableOpen}
-        onOpenChange={(v) => {
-          if (!v) handleClose();
-        }}
-      >
+      <Dialog open={enableOpen} onOpenChange={(v) => { if (!v) handleClose(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              {step === "password" &&
-                "Confirm your password to generate a QR code."}
-              {step === "verify" &&
-                "Scan the QR code with your authenticator app, then enter the 6-digit code."}
+              {step === "password" && "Confirm your password to generate a QR code."}
+              {step === "verify" && "Scan the QR code with your authenticator app, then enter the 6-digit code."}
               {step === "backup" && "Save your backup codes somewhere safe."}
             </DialogDescription>
           </DialogHeader>
@@ -292,16 +416,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleClose}>
+                <Button variant="outline" onClick={handleClose} className="cursor-pointer">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleStartEnable}
-                  disabled={!password || loading}
-                >
-                  {loading ? (
-                    <Loader2 size={14} className="animate-spin mr-1.5" />
-                  ) : null}
+                <Button onClick={handleStartEnable} disabled={!password || loading} className="cursor-pointer">
+                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
                   Continue
                 </Button>
               </DialogFooter>
@@ -328,9 +447,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 <Input
                   id="totp-code"
                   value={code}
-                  onChange={(e) =>
-                    setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   onKeyDown={(e) => e.key === "Enter" && handleVerify()}
                   placeholder="000000"
                   maxLength={6}
@@ -339,16 +456,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleClose}>
+                <Button variant="outline" onClick={handleClose} className="cursor-pointer">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleVerify}
-                  disabled={code.length < 6 || loading}
-                >
-                  {loading ? (
-                    <Loader2 size={14} className="animate-spin mr-1.5" />
-                  ) : null}
+                <Button onClick={handleVerify} disabled={code.length < 6 || loading} className="cursor-pointer">
+                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
                   Verify
                 </Button>
               </DialogFooter>
@@ -359,8 +471,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             <div className="space-y-4 py-2">
               <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
                 <p className="text-xs text-warning">
-                  Save these backup codes. Each can be used once if you lose
-                  your authenticator.
+                  Save these backup codes. Each can be used once if you lose your authenticator.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -369,15 +480,13 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                     key={c}
                     className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
                   >
-                    <span className="font-mono text-xs text-foreground">
-                      {c}
-                    </span>
+                    <span className="font-mono text-xs text-foreground">{c}</span>
                     <CopyButton text={c} />
                   </div>
                 ))}
               </div>
               <DialogFooter>
-                <Button onClick={handleClose}>Done</Button>
+                <Button onClick={handleClose} className="cursor-pointer">Done</Button>
               </DialogFooter>
             </div>
           )}
@@ -385,12 +494,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       </Dialog>
 
       {/* Regenerate backup codes dialog */}
-      <Dialog
-        open={regenerateOpen}
-        onOpenChange={(v) => {
-          if (!v) handleRegenerateClose();
-        }}
-      >
+      <Dialog open={regenerateOpen} onOpenChange={(v) => { if (!v) handleRegenerateClose(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Regenerate Backup Codes</DialogTitle>
@@ -421,16 +525,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleRegenerateClose}>
+                <Button variant="outline" onClick={handleRegenerateClose} className="cursor-pointer">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleRegenerate}
-                  disabled={!regenPassword || loading}
-                >
-                  {loading ? (
-                    <Loader2 size={14} className="animate-spin mr-1.5" />
-                  ) : null}
+                <Button onClick={handleRegenerate} disabled={!regenPassword || loading} className="cursor-pointer">
+                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
                   Regenerate
                 </Button>
               </DialogFooter>
@@ -439,8 +538,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             <div className="space-y-4 py-2">
               <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
                 <p className="text-xs text-warning">
-                  Save these codes now. Each can be used once if you lose your
-                  authenticator.
+                  Save these codes now. Each can be used once if you lose your authenticator.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -449,15 +547,13 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                     key={c}
                     className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
                   >
-                    <span className="font-mono text-xs text-foreground">
-                      {c}
-                    </span>
+                    <span className="font-mono text-xs text-foreground">{c}</span>
                     <CopyButton text={c} />
                   </div>
                 ))}
               </div>
               <DialogFooter>
-                <Button onClick={handleRegenerateClose}>Done</Button>
+                <Button onClick={handleRegenerateClose} className="cursor-pointer">Done</Button>
               </DialogFooter>
             </div>
           )}
@@ -468,21 +564,14 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       <AlertDialog
         open={disableOpen}
         onOpenChange={(v) => {
-          if (!v) {
-            setDisableOpen(false);
-            setDisablePassword("");
-            setError(null);
-          }
+          if (!v) { setDisableOpen(false); setDisablePassword(""); setError(null); }
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Disable Two-Factor Authentication?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Disable Two-Factor Authentication?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove TOTP protection from your account. Enter your
-              password to confirm.
+              This will remove TOTP protection from your account. Enter your password to confirm.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && (
@@ -502,21 +591,17 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
-              onClick={() => {
-                setDisablePassword("");
-                setError(null);
-              }}
+              className="cursor-pointer"
+              onClick={() => { setDisablePassword(""); setError(null); }}
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-danger text-white hover:bg-danger/90"
+              className="cursor-pointer bg-danger text-white hover:bg-danger/90"
               onClick={handleDisable}
               disabled={!disablePassword || loading}
             >
-              {loading ? (
-                <Loader2 size={14} className="animate-spin mr-1.5" />
-              ) : null}
+              {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
               Disable MFA
             </AlertDialogAction>
           </AlertDialogFooter>

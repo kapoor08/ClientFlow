@@ -34,9 +34,8 @@ function formatDateLabel(dateFrom: string, dateTo: string) {
 
 const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
   const session = await getServerSession();
-  const { dateFrom, dateTo, clientId } = analyticsSearchParamsCache.parse(
-    await searchParams,
-  );
+  const { dateFrom, dateTo, clientId, priority } =
+    analyticsSearchParamsCache.parse(await searchParams);
   const userId = session!.user.id;
 
   const [serverSummary, clientsResult] = await Promise.all([
@@ -44,6 +43,7 @@ const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
       dateFrom: dateFrom ? new Date(dateFrom) : undefined,
       dateTo: dateTo ? new Date(dateTo) : undefined,
       clientId: clientId || undefined,
+      priority: priority || undefined,
     }),
     listClientsForUser(userId, { pageSize: 500 }),
   ]);
@@ -74,6 +74,11 @@ const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
     0,
   );
 
+  const totalInvoices = summary.invoicesByStatus.reduce(
+    (acc, r) => acc + r.total,
+    0,
+  );
+
   return (
     <ListPageLayout
       title="Analytics"
@@ -89,6 +94,7 @@ const AnalyticsPage = async ({ searchParams }: AnalyticsPageProps) => {
       <ChartsRow
         summary={summary}
         totalProjects={totalProjects}
+        totalInvoices={totalInvoices}
         dateLabel={formatDateLabel(dateFrom, dateTo)}
       />
 

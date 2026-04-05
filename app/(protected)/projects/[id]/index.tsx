@@ -232,6 +232,16 @@ export default async function ProjectDetailPage({
             </div>
           )}
 
+          {/* Tasks */}
+          <ProjectTasksSection
+            projectId={project.id}
+            canWrite={access.canWrite}
+            currentUserId={session!.user.id}
+          />
+
+          {/* Timesheet */}
+          <ProjectTimesheetSection projectId={project.id} />
+
           {/* Files */}
           <div className="rounded-card border border-border bg-card shadow-cf-1">
             <div className="flex items-center gap-2 border-b border-border px-6 py-4">
@@ -247,15 +257,6 @@ export default async function ProjectDetailPage({
               />
             </div>
           </div>
-
-          {/* Tasks */}
-          <ProjectTasksSection
-            projectId={project.id}
-            canWrite={access.canWrite}
-          />
-
-          {/* Timesheet */}
-          <ProjectTimesheetSection projectId={project.id} />
 
           {/* Footer meta */}
           <p className="text-right text-xs text-muted-foreground">

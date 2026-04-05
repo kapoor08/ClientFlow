@@ -19,7 +19,7 @@ function UsageCard({
   const isNearLimit = limit !== null && pct >= 80;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className={`rounded-lg border bg-card p-4 ${isNearLimit ? "border-warning/50" : "border-border"}`}>
       <div className="flex items-center gap-2 mb-2">
         <Icon size={14} className="text-muted-foreground" />
         <p className="text-xs text-muted-foreground">{label}</p>

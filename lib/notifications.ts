@@ -136,6 +136,44 @@ export async function markAllNotificationsReadForUser(
     );
 }
 
+// ─── Delete single notification ──────────────────────────────────────────────
+
+export async function deleteNotificationForUser(
+  userId: string,
+  notificationId: string,
+): Promise<void> {
+  const access = await getNotificationsModuleAccessForUser(userId);
+  if (!access) throw new Error("No active organization found.");
+
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId),
+        eq(notifications.organizationId, access.organizationId),
+      ),
+    );
+}
+
+// ─── Delete all notifications ─────────────────────────────────────────────────
+
+export async function deleteAllNotificationsForUser(
+  userId: string,
+): Promise<void> {
+  const access = await getNotificationsModuleAccessForUser(userId);
+  if (!access) throw new Error("No active organization found.");
+
+  await db
+    .delete(notifications)
+    .where(
+      and(
+        eq(notifications.organizationId, access.organizationId),
+        eq(notifications.userId, userId),
+      ),
+    );
+}
+
 // ─── Preferences ─────────────────────────────────────────────────────────────
 
 export async function getNotificationPreferencesForUser(

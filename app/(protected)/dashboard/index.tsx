@@ -4,6 +4,7 @@ import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { getServerSession } from "@/lib/get-session";
 import { getDashboardContextForUser } from "@/lib/dashboard";
 import { DashboardStats } from "./DashboardStats";
+import { RevenueTrendChart } from "./RevenueTrendChart";
 import { RecentTasksList } from "./RecentTasksList";
 import { RecentProjectsTable } from "./RecentProjectsTable";
 import { RecentActivityList } from "./RecentActivityList";
@@ -26,6 +27,7 @@ const DashboardPage = async () => {
   const dashboard = {
     userName: data.userName,
     kpis: data.kpis,
+    revenueTrend: data.revenueTrend,
     tasksDueSoon: data.tasksDueSoon.map((t) => ({
       ...t,
       dueDate: t.dueDate instanceof Date ? t.dueDate.toISOString() : t.dueDate,
@@ -52,6 +54,10 @@ const DashboardPage = async () => {
       }
     >
       <DashboardStats data={dashboard} />
+
+      <div className="mt-8">
+        <RevenueTrendChart data={data.revenueTrend} />
+      </div>
 
       <RecentTasksList tasksDueSoon={dashboard.tasksDueSoon} />
 

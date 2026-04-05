@@ -11,6 +11,8 @@ import {
   fetchNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
   fetchPreferences,
   updatePreference,
   bulkUpdatePreferences,
@@ -105,6 +107,22 @@ export function useMarkAllRead(): UseMutationResult<void, HttpError, void> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: markAllNotificationsRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: notificationKeys.list() }),
+  });
+}
+
+export function useDeleteNotification(): UseMutationResult<void, HttpError, string> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteNotification(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: notificationKeys.list() }),
+  });
+}
+
+export function useDeleteAllNotifications(): UseMutationResult<void, HttpError, void> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAllNotifications,
     onSuccess: () => qc.invalidateQueries({ queryKey: notificationKeys.list() }),
   });
 }

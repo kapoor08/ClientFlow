@@ -80,6 +80,8 @@ interface TimeEstimateInputProps {
   /** "sm" is compact (table cells), "md" is standard form field */
   size?: "sm" | "md";
   disabled?: boolean;
+  /** Start in editing mode immediately (e.g. inside a dialog) */
+  defaultEditing?: boolean;
 }
 
 export function TimeEstimateInput({
@@ -91,8 +93,9 @@ export function TimeEstimateInput({
   className,
   size = "md",
   disabled = false,
+  defaultEditing = false,
 }: TimeEstimateInputProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(defaultEditing);
   const [draft, setDraft] = useState("");
   const [invalid, setInvalid] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -58,7 +58,8 @@ export function useTaskComments(
     queryKey: taskDetailKeys.comments(taskId ?? ""),
     queryFn: () => listComments(taskId!),
     enabled: !!taskId,
-    staleTime: 15 * 1000,
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000,
   });
 }
 
@@ -69,7 +70,8 @@ export function useTaskActivity(
     queryKey: taskDetailKeys.activity(taskId ?? ""),
     queryFn: () => listActivity(taskId!),
     enabled: !!taskId,
-    staleTime: 15 * 1000,
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000,
   });
 }
 

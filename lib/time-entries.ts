@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { timeEntries, projects, tasks } from "@/db/schema";
+import { timeEntries, projects, tasks, taskAuditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { writeAuditLog } from "@/lib/audit";
@@ -43,9 +43,9 @@ export async function logTimeForUser(
   if (!input.projectId) throw new Error("projectId is required.");
   if (!input.minutes || input.minutes < 1) throw new Error("minutes must be at least 1.");
 
-  // Verify project belongs to the org
+  // Verify project belongs to the org and get name
   const [project] = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(
       and(
@@ -56,6 +56,17 @@ export async function logTimeForUser(
     .limit(1);
 
   if (!project) throw new Error("Project not found.");
+
+  // Fetch task title if provided
+  let taskTitle: string | null = null;
+  if (input.taskId) {
+    const [task] = await db
+      .select({ title: tasks.title })
+      .from(tasks)
+      .where(eq(tasks.id, input.taskId))
+      .limit(1);
+    taskTitle = task?.title ?? null;
+  }
 
   const id = crypto.randomUUID();
 
@@ -76,8 +87,29 @@ export async function logTimeForUser(
     action: "time_entry.created",
     entityType: "time_entry",
     entityId: id,
-    metadata: { projectId: input.projectId, minutes: input.minutes },
+    metadata: {
+      project: project.name,
+      minutes: input.minutes,
+      ...(taskTitle ? { task: taskTitle } : {}),
+      ...(input.description ? { description: input.description.trim() } : {}),
+    },
   }).catch(console.error);
+
+  if (input.taskId) {
+    db.insert(taskAuditLogs)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId: ctx.organizationId,
+        taskId: input.taskId,
+        actorUserId: userId,
+        action: "time.logged",
+        newValues: {
+          minutes: input.minutes,
+          description: input.description?.trim() || null,
+        },
+      })
+      .catch(console.error);
+  }
 
   return { entryId: id };
 }
@@ -182,6 +214,14 @@ export async function deleteTimeEntryForUser(
   }
 
   await db.delete(timeEntries).where(eq(timeEntries.id, entryId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "time_entry.deleted",
+    entityType: "time_entry",
+    entityId: entryId,
+  }).catch(console.error);
 }
 
 export async function getProjectTimeSummary(

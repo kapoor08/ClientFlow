@@ -53,12 +53,12 @@ export function PreferenceRow({
   const isPending = update.isPending;
 
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-border last:border-0">
-      <div className="min-w-0 flex-1">
+    <div className="grid grid-cols-[1fr_80px_80px] items-center gap-2 border-b border-border py-3.5 last:border-0">
+      <div className="min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <div className="flex items-center gap-8 shrink-0">
+      <div className="flex justify-center">
         <Toggle
           checked={inAppEnabled}
           onChange={(val) =>
@@ -72,6 +72,8 @@ export function PreferenceRow({
           }
           disabled={isPending}
         />
+      </div>
+      <div className="flex justify-center">
         <Toggle
           checked={emailEnabled}
           onChange={(val) =>

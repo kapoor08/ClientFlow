@@ -1,10 +1,13 @@
 import {
   Activity,
+  Building2,
   CalendarDays,
   CheckSquare,
+  Clock,
   FileText,
   FolderKanban,
   Mail,
+  Receipt,
   Shield,
   Users,
 } from "lucide-react";
@@ -21,19 +24,25 @@ import {
 const ENTITY_ICON: Record<string, React.ElementType> = {
   client: Users,
   project: FolderKanban,
+  task: CheckSquare,
   file: FileText,
+  invoice: Receipt,
+  time_entry: Clock,
   invitation: Mail,
   membership: Shield,
-  task: CheckSquare,
+  organization: Building2,
 };
 
 const ENTITY_ICON_BG: Record<string, string> = {
   client: "bg-blue-100 text-blue-600",
   project: "bg-violet-100 text-violet-600",
+  task: "bg-indigo-100 text-indigo-600",
   file: "bg-amber-100 text-amber-600",
+  invoice: "bg-orange-100 text-orange-600",
+  time_entry: "bg-cyan-100 text-cyan-600",
   invitation: "bg-emerald-100 text-emerald-600",
   membership: "bg-rose-100 text-rose-600",
-  task: "bg-indigo-100 text-indigo-600",
+  organization: "bg-slate-100 text-slate-600",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

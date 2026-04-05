@@ -301,7 +301,6 @@ export async function updateTaskForUser(
         ? (input.estimateMinutes ? new Date() : null)
         : undefined,
       columnId: input.columnId ?? null,
-      reporterUserId: input.reporterUserId ?? null,
       tags: input.tags ?? [],
       completedAt: input.status === "done" ? new Date() : null,
       updatedAt: new Date(),
@@ -515,13 +514,23 @@ export async function updateTaskForUser(
   }
 
   // ─── Global audit log ──────────────────────────────────────────────────────
+  const changedMeta: Record<string, unknown> = { name: taskTitle };
+  for (const e of entries) {
+    if (e.action === "status.changed")
+      changedMeta.status = (e.newValues as { label: string }).label;
+    else if (e.action === "priority.changed")
+      changedMeta.priority = (e.newValues as { label: string }).label;
+    else if (e.action === "assignee.changed")
+      changedMeta.assignee = (e.newValues as { name: string | null }).name ?? "Unassigned";
+  }
+
   writeAuditLog({
     organizationId: context.organizationId,
     actorUserId: userId,
     action: "task.updated",
     entityType: "task",
     entityId: taskId,
-    metadata: { name: taskTitle },
+    metadata: changedMeta,
   }).catch(console.error);
 
   return { taskId };
@@ -625,7 +634,6 @@ export async function moveTaskColumnForUser(
 
   // Log the column move in task audit log
   if (existing.columnId !== columnId) {
-
     db.insert(taskAuditLogs)
       .values({
         id: crypto.randomUUID(),
@@ -637,6 +645,15 @@ export async function moveTaskColumnForUser(
         newValues: { columnId, name: newColumnName },
       })
       .catch(console.error);
+
+    writeAuditLog({
+      organizationId: context.organizationId,
+      actorUserId: userId,
+      action: "task.moved",
+      entityType: "task",
+      entityId: taskId,
+      metadata: { from: existing.columnName, to: newColumnName },
+    }).catch(console.error);
   }
 }
 

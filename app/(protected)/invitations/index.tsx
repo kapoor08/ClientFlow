@@ -1,8 +1,6 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { InvitationsTable } from "@/components/tables/InvitationsTable";
+import { SendInviteModal } from "./SendInviteModal";
 import { listInvitationsForOrg } from "@/lib/invitations";
 import { getServerSession } from "@/lib/get-session";
 import { invitationsSearchParamsCache } from "@/core/invitations/searchParams";
@@ -55,16 +53,7 @@ const InvitationsPage = async ({ searchParams }: InvitationsPageProps) => {
     <ListPageLayout
       title="Invitations"
       description={`Manage team invitations for ${result.access.organizationName}`}
-      action={
-        result.access.canWrite ? (
-          <Button asChild>
-            <Link href="/invitations/new">
-              <Plus size={16} className="mr-1.5" />
-              Send Invite
-            </Link>
-          </Button>
-        ) : undefined
-      }
+      action={result.access.canWrite ? <SendInviteModal /> : undefined}
     >
       <InvitationsTable
         initialInvitations={initialInvitations}

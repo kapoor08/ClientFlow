@@ -201,9 +201,9 @@ export default function WebhooksPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-danger text-white hover:bg-danger/90"
+              className="bg-danger text-white hover:bg-danger/90 cursor-pointer"
               onClick={() =>
                 deleteTarget && deleteMutation.mutate(deleteTarget.id)
               }

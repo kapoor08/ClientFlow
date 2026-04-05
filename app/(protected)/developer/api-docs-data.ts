@@ -496,6 +496,127 @@ export const API_SECTIONS: ApiSection[] = [
     ],
   },
   {
+    id: "invoices",
+    title: "Invoices",
+    description:
+      "Create and manage manual invoices for clients. Stripe-synced invoices are read-only and managed via the billing portal.",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/invoices",
+        summary: "List invoices",
+        description: "Returns a paginated list of invoices for the organization.",
+        params: [
+          {
+            name: "q",
+            type: "string",
+            required: false,
+            description: "Search query to filter invoices by number or title.",
+          },
+          {
+            name: "status",
+            type: "string",
+            required: false,
+            description: "Filter by status: draft, sent, paid, payment_failed.",
+          },
+          {
+            name: "clientId",
+            type: "string",
+            required: false,
+            description: "Filter invoices by client ID.",
+          },
+          {
+            name: "page",
+            type: "number",
+            required: false,
+            description: "Page number (default: 1).",
+          },
+          {
+            name: "pageSize",
+            type: "number",
+            required: false,
+            description: "Results per page (default: 20).",
+          },
+        ],
+        responseExample: `{\n  "invoices": [...],\n  "total": 25,\n  "page": 1,\n  "pageSize": 20\n}`,
+      },
+      {
+        method: "POST",
+        path: "/api/invoices",
+        summary: "Create invoice",
+        description: "Creates a new manual invoice for a client.",
+        body: [
+          {
+            name: "clientId",
+            type: "string",
+            required: true,
+            description: "ID of the client to invoice.",
+          },
+          {
+            name: "title",
+            type: "string",
+            required: true,
+            description: "Invoice title or description.",
+          },
+          {
+            name: "number",
+            type: "string",
+            required: false,
+            description: "Invoice number (auto-generated if omitted).",
+          },
+          {
+            name: "dueAt",
+            type: "string (ISO 8601)",
+            required: false,
+            description: "Payment due date.",
+          },
+          {
+            name: "lineItems",
+            type: "object[]",
+            required: true,
+            description: "Array of line items: { description, quantity, unitPriceCents }.",
+          },
+          {
+            name: "notes",
+            type: "string",
+            required: false,
+            description: "Payment terms, bank details, or other notes.",
+          },
+        ],
+        responseExample: `{\n  "invoice": {\n    "id": "inv_01j...",\n    "number": "INV-0001",\n    "status": "draft"\n  }\n}`,
+      },
+      {
+        method: "GET",
+        path: "/api/invoices/{id}",
+        summary: "Get invoice",
+        description: "Retrieves full details for a specific invoice including line items.",
+        responseExample: `{\n  "id": "inv_01j...",\n  "number": "INV-0001",\n  "status": "sent",\n  "amountDueCents": 150000,\n  "lineItems": [...],\n  "notes": "Net 30"\n}`,
+      },
+      {
+        method: "PATCH",
+        path: "/api/invoices/{id}",
+        summary: "Update invoice status",
+        description: "Updates the status of a manual invoice. Only manual invoices can be updated.",
+        body: [
+          {
+            name: "action",
+            type: '"mark_paid" | "mark_sent"',
+            required: true,
+            description: "Action to perform on the invoice.",
+          },
+        ],
+        responseExample: `{ "ok": true }`,
+      },
+      {
+        method: "DELETE",
+        path: "/api/invoices/{id}",
+        summary: "Delete invoice",
+        description: "Permanently deletes a manual invoice. Paid invoices cannot be deleted.",
+        responseExample: `{ "ok": true }`,
+      },
+    ],
+  },
+  {
     id: "webhooks",
     title: "Webhooks",
     description:

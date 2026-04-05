@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,48 +14,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DatePicker } from "@/components/form/DatePicker";
+import { parseEstimate, minutesToEstimate } from "@/components/form/TimeEstimateInput";
+import { http } from "@/core/infrastructure";
+
+type TaskOption = { id: string; title: string };
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onLogged: () => void;
   projectId: string;
+  /** When set, task is pre-fixed (e.g. opened from TaskDetailSheet) */
   taskId?: string | null;
   taskTitle?: string | null;
 };
-
-/**
- * Parses a human-readable duration string into minutes.
- * Supports: "2h", "30m", "1h 30m", "90", "1.5h"
- */
-function parseDuration(raw: string): number | null {
-  const trimmed = raw.trim().toLowerCase();
-  if (!trimmed) return null;
-
-  // Plain number → treat as minutes
-  if (/^\d+(\.\d+)?$/.test(trimmed)) {
-    const v = parseFloat(trimmed);
-    return v > 0 ? Math.round(v) : null;
-  }
-
-  let total = 0;
-  // Match patterns like 2h, 30m, 1.5h, 2h30m, 2h 30m
-  const hourMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*h/);
-  const minMatch = trimmed.match(/(\d+(?:\.\d+)?)\s*m(?!o)/);
-
-  if (hourMatch) total += parseFloat(hourMatch[1]) * 60;
-  if (minMatch) total += parseFloat(minMatch[1]);
-
-  return total > 0 ? Math.round(total) : null;
-}
-
-function formatMinutes(mins: number): string {
-  if (mins < 60) return `${mins}m`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
 
 export function LogTimeDialog({
   open,
@@ -64,33 +45,43 @@ export function LogTimeDialog({
   taskId,
   taskTitle,
 }: Props) {
-  const [durationRaw, setDurationRaw] = useState("");
+  const [draft, setDraft] = useState("");
+  const [invalid, setInvalid] = useState(false);
   const [description, setDescription] = useState("");
   const [loggedAt, setLoggedAt] = useState<Date | undefined>(() => new Date());
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("none");
   const [saving, setSaving] = useState(false);
-  const [parseError, setParseError] = useState(false);
 
-  const parsedMinutes = parseDuration(durationRaw);
+  const parsedMinutes = parseEstimate(draft);
 
-  function handleDurationChange(v: string) {
-    setDurationRaw(v);
-    setParseError(false);
-  }
+  // Only fetch tasks when dialog is open and task is not pre-fixed
+  const { data: tasksData } = useQuery({
+    queryKey: ["project-tasks-for-log", projectId],
+    queryFn: () =>
+      http<{ tasks: TaskOption[] }>(`/api/tasks?projectId=${projectId}&pageSize=200`),
+    enabled: open && !taskId,
+    staleTime: 30 * 1000,
+  });
+  const taskOptions = tasksData?.tasks ?? [];
 
   function reset() {
-    setDurationRaw("");
+    setDraft("");
+    setInvalid(false);
     setDescription("");
     setLoggedAt(new Date());
-    setParseError(false);
+    setSelectedTaskId("none");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     if (!parsedMinutes) {
-      setParseError(true);
+      setInvalid(true);
       return;
     }
+
+    // Resolve which task ID to log against
+    const resolvedTaskId = taskId ?? (selectedTaskId !== "none" ? selectedTaskId : null);
 
     setSaving(true);
     try {
@@ -99,7 +90,7 @@ export function LogTimeDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId,
-          taskId: taskId ?? null,
+          taskId: resolvedTaskId,
           minutes: parsedMinutes,
           description: description.trim() || undefined,
           loggedAt: (loggedAt ?? new Date()).toISOString(),
@@ -111,7 +102,7 @@ export function LogTimeDialog({
         throw new Error(json.error ?? "Failed to log time.");
       }
 
-      toast.success(`${formatMinutes(parsedMinutes)} logged.`);
+      toast.success(`${minutesToEstimate(parsedMinutes)} logged.`);
       reset();
       onLogged();
       onClose();
@@ -123,8 +114,8 @@ export function LogTimeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -132,40 +123,59 @@ export function LogTimeDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {taskTitle && (
-          <p className="text-xs text-muted-foreground -mt-2">
-            On: <span className="font-medium text-foreground">{taskTitle}</span>
-          </p>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {/* Time spent */}
           <div className="space-y-1.5">
             <Label htmlFor="lt-duration">Time spent *</Label>
             <Input
               id="lt-duration"
-              placeholder="e.g. 2h 30m, 90m, 1.5h"
-              value={durationRaw}
-              onChange={(e) => handleDurationChange(e.target.value)}
-              className={parseError ? "border-destructive" : ""}
               autoFocus
+              placeholder="e.g. 1h 30m, 2d, 45m"
+              value={draft}
+              onChange={(e) => { setDraft(e.target.value); setInvalid(false); }}
+              className={invalid ? "border-destructive focus-visible:ring-destructive/30" : ""}
             />
-            {parseError && (
+            {invalid && (
               <p className="text-xs text-destructive">
-                Use: 2h, 30m, 1h 30m, or 90 (minutes)
+                Use: 1w 2d 3h 30m (w=week, d=day, h=hour, m=min)
               </p>
             )}
-            {parsedMinutes && !parseError && (
-              <p className="text-xs text-muted-foreground">
-                = {formatMinutes(parsedMinutes)}
-              </p>
+            {parsedMinutes && !invalid && (
+              <p className="text-xs text-muted-foreground">= {minutesToEstimate(parsedMinutes)}</p>
             )}
           </div>
 
+          {/* Task — read-only if pre-fixed, selectable otherwise */}
+          <div className="space-y-1.5">
+            <Label>Task</Label>
+            {taskId ? (
+              <p className="text-sm font-medium text-foreground">
+                {taskTitle ?? taskId}
+              </p>
+            ) : (
+              <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
+                <SelectTrigger className="cursor-pointer w-full">
+                  <SelectValue placeholder="Select a task (optional)" />
+                </SelectTrigger>
+                <SelectContent position="popper" side="bottom" align="start">
+                  <SelectItem value="none" className="cursor-pointer">No task</SelectItem>
+                  {taskOptions.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="cursor-pointer">
+                      {t.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Date */}
           <div className="space-y-1.5">
             <Label>Date</Label>
             <DatePicker value={loggedAt} onChange={setLoggedAt} />
           </div>
 
+          {/* Description */}
           <div className="space-y-1.5">
             <Label htmlFor="lt-desc">Description (optional)</Label>
             <Textarea
@@ -181,7 +191,7 @@ export function LogTimeDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => { reset(); onClose(); }}
               disabled={saving}
               className="cursor-pointer"
             >

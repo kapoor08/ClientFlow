@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Sparkles, Loader2 } from "lucide-react";
+import { CreditCard, Sparkles, Loader2, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BillingContext } from "@/core/billing/entity";
 import { formatPrice, formatDate, getStatusStyle } from "@/core/billing/entity";
@@ -48,6 +48,13 @@ export function SubscriptionCard({
 
   const cycle = subscription.billingCycle === "yearly" ? "year" : "month";
 
+  const daysUntilRenewal = subscription.currentPeriodEnd
+    ? Math.ceil(
+        (new Date(subscription.currentPeriodEnd).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24),
+      )
+    : null;
+
   return (
     <div className="mb-8 rounded-card border border-primary/30 bg-brand-100/20 p-6 shadow-cf-1">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -74,6 +81,20 @@ export function SubscriptionCard({
               <> · {subscription.status === "trialing" ? "Trial ends" : "Renews"} {formatDate(subscription.currentPeriodEnd)}</>
             )}
           </p>
+          {daysUntilRenewal !== null && !subscription.cancelAtPeriodEnd && (
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-secondary px-2.5 py-1 text-xs text-muted-foreground">
+              <CalendarClock size={12} />
+              {daysUntilRenewal <= 0
+                ? subscription.status === "trialing"
+                  ? "Trial ending today"
+                  : "Renewing today"
+                : daysUntilRenewal === 1
+                  ? subscription.status === "trialing"
+                    ? "Trial ends tomorrow"
+                    : "Renews tomorrow"
+                  : `${subscription.status === "trialing" ? "Trial ends" : "Renews"} in ${daysUntilRenewal} days`}
+            </div>
+          )}
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm" className="cursor-pointer" onClick={onViewPlans}>

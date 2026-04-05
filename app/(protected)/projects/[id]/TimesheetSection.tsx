@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Plus, Trash2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,14 +84,20 @@ function TimeEntryRow({ entry, onDeleted }: RowProps) {
         {entry.description ?? "—"}
       </td>
       <td className="px-4 py-3 text-right">
-        <button
-          onClick={handleDelete}
-          disabled={busy}
-          className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-40"
-          title="Delete entry"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleDelete}
+                disabled={busy}
+                className="cursor-pointer text-muted-foreground hover:text-destructive transition-colors disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Delete entry</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </td>
     </tr>
   );
@@ -189,7 +201,7 @@ export function ProjectTimesheetSection({ projectId }: Props) {
                 >
                   No time logged yet.{" "}
                   <button
-                    className="text-primary hover:underline"
+                    className="text-primary hover:underline cursor-pointer"
                     onClick={() => setLogOpen(true)}
                   >
                     Log the first entry

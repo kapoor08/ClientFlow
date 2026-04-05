@@ -40,6 +40,7 @@ export const clientFormSchema = z.object({
   status: z.enum(clientStatusValues, {
     error: "Select a valid client status.",
   }),
+  notes: z.string().optional(),
 });
 
 export type ClientFormValues = z.infer<typeof clientFormSchema>;

@@ -6,8 +6,8 @@ import type { ProjectStatusBreakdown, MonthlyCount } from "@/core/analytics/enti
 export function ChartSkeleton() {
   return (
     <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-      <Skeleton className="h-4 w-36 mb-6" />
-      <div className="flex items-end gap-2 h-40">
+      <Skeleton className="mb-6 h-4 w-36" />
+      <div className="flex h-40 items-end gap-2">
         {[0.4, 0.7, 0.5, 0.9, 0.6, 0.8].map((h, i) => (
           <Skeleton
             key={i}
@@ -22,17 +22,25 @@ export function ChartSkeleton() {
 
 // ─── Monthly bar chart ────────────────────────────────────────────────────────
 
-export function MonthlyChart({ data }: { data: MonthlyCount[] }) {
+export function MonthlyChart({
+  data,
+  color = "bg-primary/80 hover:bg-primary",
+  unit,
+}: {
+  data: MonthlyCount[];
+  color?: string;
+  unit?: string;
+}) {
   const max = Math.max(...data.map((d) => d.total), 1);
   return (
     <div className="flex items-end gap-2" style={{ height: 180 }}>
       {data.map((d) => (
         <div key={d.month} className="flex flex-1 flex-col items-center gap-1">
           <span className="text-[10px] font-medium text-foreground">
-            {d.total}
+            {unit ? `${d.total}${unit}` : d.total}
           </span>
           <div
-            className="w-full rounded-t-md bg-primary/80 hover:bg-primary transition-colors"
+            className={`w-full rounded-t-md transition-colors ${color}`}
             style={{ height: `${Math.max((d.total / max) * 140, 4)}px` }}
           />
           <span className="text-[10px] text-muted-foreground">{d.month}</span>
@@ -42,9 +50,9 @@ export function MonthlyChart({ data }: { data: MonthlyCount[] }) {
   );
 }
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
+// ─── Status distribution ──────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
+const PROJECT_STATUS_LABELS: Record<string, string> = {
   planning: "Planning",
   active: "Active",
   in_progress: "In Progress",
@@ -53,7 +61,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelled",
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const PROJECT_STATUS_COLORS: Record<string, string> = {
   planning: "bg-blue-400",
   active: "bg-emerald-500",
   in_progress: "bg-primary",
@@ -62,26 +70,69 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-muted-foreground",
 };
 
-// ─── Status distribution ──────────────────────────────────────────────────────
+const TASK_STATUS_LABELS: Record<string, string> = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  done: "Done",
+  cancelled: "Cancelled",
+};
+
+const TASK_STATUS_COLORS: Record<string, string> = {
+  todo: "bg-slate-400",
+  in_progress: "bg-primary",
+  done: "bg-emerald-500",
+  cancelled: "bg-muted-foreground",
+};
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  paid: "Paid",
+  overdue: "Overdue",
+};
+
+const INVOICE_STATUS_COLORS: Record<string, string> = {
+  draft: "bg-slate-400",
+  sent: "bg-blue-400",
+  paid: "bg-emerald-500",
+  overdue: "bg-red-500",
+};
 
 export function StatusDistribution({
   data,
   total,
+  type = "project",
 }: {
   data: ProjectStatusBreakdown[];
   total: number;
+  type?: "project" | "task" | "invoice";
 }) {
+  const labels =
+    type === "task"
+      ? TASK_STATUS_LABELS
+      : type === "invoice"
+        ? INVOICE_STATUS_LABELS
+        : PROJECT_STATUS_LABELS;
+
+  const colors =
+    type === "task"
+      ? TASK_STATUS_COLORS
+      : type === "invoice"
+        ? INVOICE_STATUS_COLORS
+        : PROJECT_STATUS_COLORS;
+
   const sorted = [...data].sort((a, b) => b.total - a.total);
+
   return (
     <div className="space-y-3">
       {sorted.map((row) => {
         const pct = total > 0 ? Math.round((row.total / total) * 100) : 0;
-        const color = STATUS_COLORS[row.status] ?? "bg-muted-foreground";
+        const color = colors[row.status] ?? "bg-muted-foreground";
         return (
           <div key={row.status}>
-            <div className="flex items-center justify-between text-sm mb-1">
+            <div className="mb-1 flex items-center justify-between text-sm">
               <span className="font-medium text-foreground">
-                {STATUS_LABELS[row.status] ?? row.status}
+                {labels[row.status] ?? row.status}
               </span>
               <span className="text-xs text-muted-foreground">
                 {row.total} ({pct}%)
@@ -102,11 +153,7 @@ export function StatusDistribution({
 
 // ─── ChartCard wrapper ────────────────────────────────────────────────────────
 
-export function ChartCard({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ChartCard({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
       {children}

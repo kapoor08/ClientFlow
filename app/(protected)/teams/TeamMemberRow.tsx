@@ -110,7 +110,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <button
-                className="rounded-lg p-1 text-muted-foreground hover:bg-secondary transition-colors"
+                className="cursor-pointer rounded-lg p-1 text-muted-foreground hover:bg-secondary transition-colors"
                 disabled={isPending}
               >
                 <MoreHorizontal size={16} />
@@ -122,7 +122,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
       </TooltipProvider>
       <DropdownMenuContent align="end" className="w-48">
         {/* Custom permissions */}
-        <DropdownMenuItem onClick={onOpenPermissions} className="gap-2">
+        <DropdownMenuItem onClick={onOpenPermissions} className="cursor-pointer gap-2">
           <Settings2 size={14} />
           Custom permissions
         </DropdownMenuItem>
@@ -131,7 +131,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
 
         {/* Change role submenu */}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
+          <DropdownMenuSubTrigger className="cursor-pointer gap-2">
             <ShieldCheck size={14} />
             Change role
           </DropdownMenuSubTrigger>
@@ -140,6 +140,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
               <DropdownMenuItem
                 key={role.key}
                 disabled={role.key === member.roleKey}
+                className="cursor-pointer"
                 onClick={() =>
                   updateRole.mutate(
                     { membershipId: member.membershipId, roleKey: role.key },
@@ -171,7 +172,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
                 },
               )
             }
-            className="gap-2"
+            className="cursor-pointer gap-2"
           >
             <UserCheck size={14} />
             Reactivate
@@ -187,7 +188,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
                 },
               )
             }
-            className="gap-2"
+            className="cursor-pointer gap-2"
           >
             <UserX size={14} />
             Suspend
@@ -207,7 +208,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
               },
             )
           }
-          className="gap-2 text-danger focus:text-danger"
+          className="cursor-pointer gap-2 text-danger focus:text-danger"
         >
           <UserX size={14} />
           Remove member

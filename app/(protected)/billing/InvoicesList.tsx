@@ -1,8 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { parseAsInteger, useQueryStates } from "nuqs";
-import { DateRangeFilter, RowActions } from "@/components/data-table";
+import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
+import { DateRangeFilter, FiltersPopover, RowActions } from "@/components/data-table";
 import type { BillingInvoiceItem } from "@/core/billing/entity";
 import { formatDate, formatPrice, getStatusStyle } from "@/core/billing/entity";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,14 @@ import {
 import type { PaginationMeta } from "@/lib/pagination";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
+
+const STATUS_OPTIONS = [
+  { value: "paid", label: "Paid" },
+  { value: "open", label: "Open" },
+  { value: "draft", label: "Draft" },
+  { value: "void", label: "Void" },
+  { value: "uncollectible", label: "Uncollectible" },
+];
 
 function buildPageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -159,11 +167,6 @@ function InvoiceRow({ invoice }: { invoice: BillingInvoiceItem }) {
       ? formatPrice(invoice.amountPaidCents, invoice.currencyCode ?? "USD")
       : formatPrice(invoice.amountDueCents, invoice.currencyCode ?? "USD");
 
-  const date =
-    invoice.status === "paid"
-      ? formatDate(invoice.paidAt)
-      : formatDate(invoice.dueAt);
-
   const reference =
     invoice.number ??
     invoice.externalInvoiceId ??
@@ -183,7 +186,7 @@ function InvoiceRow({ invoice }: { invoice: BillingInvoiceItem }) {
         </span>
       </td>
       <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
-        {date}
+        {formatDate(invoice.createdAt)}
       </td>
       <td className="px-4 py-3 text-right">
         <RowActions
@@ -203,13 +206,34 @@ export function InvoicesList({
   invoices: BillingInvoiceItem[];
   pagination: PaginationMeta;
 }) {
+  const [, startTransition] = useTransition();
+  const [status, setStatus] = useQueryState(
+    "status",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
+
   return (
     <>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="font-display text-lg font-semibold text-foreground">
           Subscription Billing History
         </h2>
-        <DateRangeFilter />
+        <div className="flex items-center gap-2">
+          <FiltersPopover
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                options: STATUS_OPTIONS,
+                value: status,
+                onChange: (val) => setStatus(val || null),
+              },
+            ]}
+          />
+          <DateRangeFilter key={status} />
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
@@ -226,7 +250,7 @@ export function InvoicesList({
                 Status
               </th>
               <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
-                Date
+                Issued
               </th>
               <th className="px-4 py-3" />
             </tr>

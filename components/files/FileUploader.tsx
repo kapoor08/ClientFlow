@@ -121,7 +121,7 @@ export function FileUploader({ projectId, canUpload }: FileUploaderProps) {
           onDrop={handleDrop}
           onClick={() => inputRef.current?.click()}
           className={cn(
-            "flex cursor-pointer flex-col items-center gap-2 rounded-card border-2 border-dashed px-6 py-8 text-center transition-all",
+            "flex cursor-pointer flex-col items-center gap-2 rounded-card border-2 border-dashed px-6 py-5 text-center transition-all",
             isDragging
               ? "border-primary bg-primary/5"
               : "border-border hover:border-primary/40 hover:bg-muted/30",

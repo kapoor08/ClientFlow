@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamMembers } from "@/core/team/useCase";
 import type { TeamListResponse } from "@/core/team/entity";
 import type { RolePermissionsConfig } from "@/config/role-permissions";
 import { TeamMemberRow, SkeletonRow } from "./TeamMemberRow";
+import { SendInviteModal } from "@/app/(protected)/invitations/SendInviteModal";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -33,13 +31,7 @@ const TeamPage = ({ initialData, orgRolePermissions }: { initialData?: TeamListR
             )}
           </p>
         </div>
-        {access?.canManage && (
-          <Button size="sm" asChild>
-            <Link href="/invitations/new">
-              <Plus size={14} className="mr-1.5" /> Invite Member
-            </Link>
-          </Button>
-        )}
+        {access?.canManage && <SendInviteModal />}
       </div>
 
       <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">

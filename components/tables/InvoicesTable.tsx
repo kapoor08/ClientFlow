@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, CheckCircle2, Send, Trash2, MoreHorizontal } from "lucide-react";
+import {
+  ExternalLink,
+  CheckCircle2,
+  Send,
+  Trash2,
+  MoreHorizontal,
+  Eye,
+} from "lucide-react";
 import { toast } from "sonner";
 import { parseAsString, useQueryState } from "nuqs";
 import {
@@ -27,6 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InvoiceDetailModal } from "./InvoiceDetailModal";
 import type { InvoiceListItem } from "@/core/invoices/entity";
 import type { PaginationMeta } from "@/lib/pagination";
 
@@ -68,10 +76,12 @@ function formatDate(d: string | null): string {
 function InvoiceActionsCell({
   invoice,
   onAction,
+  onViewDetails,
   busyId,
 }: {
   invoice: InvoiceListItem;
   onAction: (id: string, action: "mark_paid" | "mark_sent" | "delete") => void;
+  onViewDetails: (id: string) => void;
   busyId: string | null;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -81,37 +91,49 @@ function InvoiceActionsCell({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={busy}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" disabled={busy}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
+          {/* Always visible */}
+          <DropdownMenuItem className="cursor-pointer" onClick={() => onViewDetails(invoice.id)}>
+            <Eye className="mr-2 h-4 w-4" />
+            View Details
+          </DropdownMenuItem>
+
           {invoice.invoiceUrl && (
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem className="cursor-pointer" asChild>
               <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="mr-2 h-4 w-4" />
-                View Invoice
+                Open in Stripe
               </a>
             </DropdownMenuItem>
           )}
+
           {invoice.isManual && invoice.status === "draft" && (
-            <DropdownMenuItem onClick={() => onAction(invoice.id, "mark_sent")}>
-              <Send className="mr-2 h-4 w-4" />
-              Mark as Sent
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer" onClick={() => onAction(invoice.id, "mark_sent")}>
+                <Send className="mr-2 h-4 w-4" />
+                Mark as Sent
+              </DropdownMenuItem>
+            </>
           )}
+
           {invoice.isManual && invoice.status !== "paid" && (
-            <DropdownMenuItem onClick={() => onAction(invoice.id, "mark_paid")}>
+            <DropdownMenuItem className="cursor-pointer" onClick={() => onAction(invoice.id, "mark_paid")}>
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Mark as Paid
             </DropdownMenuItem>
           )}
+
           {invoice.isManual && invoice.status !== "paid" && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
-                className="text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -165,6 +187,7 @@ function InvoiceActionsCell({
 function buildColumns(
   busyId: string | null,
   onAction: (id: string, action: "mark_paid" | "mark_sent" | "delete") => void,
+  onViewDetails: (id: string) => void,
 ): ColumnDef<InvoiceListItem>[] {
   return [
     {
@@ -196,12 +219,16 @@ function buildColumns(
       header: "Amount",
       sortable: true,
       cell: (inv) => (
-        <span className="text-sm font-medium text-foreground">
-          {formatCents(
-            inv.status === "paid" ? inv.amountPaidCents : inv.amountDueCents,
-            inv.currencyCode,
+        <div>
+          <span className="text-sm font-medium text-foreground">
+            {formatCents(inv.amountDueCents, inv.currencyCode)}
+          </span>
+          {inv.status === "paid" && inv.amountPaidCents !== inv.amountDueCents && (
+            <p className="text-[10px] text-success">
+              Paid: {formatCents(inv.amountPaidCents, inv.currencyCode)}
+            </p>
           )}
-        </span>
+        </div>
       ),
     },
     {
@@ -224,12 +251,20 @@ function buildColumns(
     },
     {
       key: "dueAt",
-      header: "Date",
+      header: "Due Date",
       sortable: true,
+      hideOnMobile: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground">
-          {inv.status === "paid" ? formatDate(inv.paidAt) : formatDate(inv.dueAt)}
-        </span>
+        <span className="text-xs text-muted-foreground">{formatDate(inv.dueAt)}</span>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Created",
+      sortable: true,
+      hideOnTablet: true,
+      cell: (inv) => (
+        <span className="text-xs text-muted-foreground">{formatDate(inv.createdAt)}</span>
       ),
     },
     {
@@ -238,7 +273,12 @@ function buildColumns(
       className: "text-right",
       headerClassName: "text-right",
       cell: (inv) => (
-        <InvoiceActionsCell invoice={inv} onAction={onAction} busyId={busyId} />
+        <InvoiceActionsCell
+          invoice={inv}
+          onAction={onAction}
+          onViewDetails={onViewDetails}
+          busyId={busyId}
+        />
       ),
     },
   ];
@@ -255,10 +295,13 @@ export function InvoicesTable({ initialInvoices, pagination }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const [status, setStatus] = useQueryState(
     "status",
-    parseAsString.withDefault("").withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
   );
 
   const filterGroups: FilterGroupConfig[] = [
@@ -270,7 +313,6 @@ export function InvoicesTable({ initialInvoices, pagination }: Props) {
       onChange: (val) => setStatus(val || null),
     },
   ];
-
 
   async function handleAction(
     id: string,
@@ -305,21 +347,28 @@ export function InvoicesTable({ initialInvoices, pagination }: Props) {
     }
   }
 
-  const columns = buildColumns(busyId, handleAction);
+  const columns = buildColumns(busyId, handleAction, setDetailId);
 
   return (
-    <DataTable
-      data={initialInvoices}
-      columns={columns}
-      getRowKey={(inv) => inv.id}
-      searchPlaceholder="Search invoices…"
-      pagination={pagination}
-      searchExtra={
-        <>
-          <FiltersPopover filters={filterGroups} />
-          <DateRangeFilter key={status} />
-        </>
-      }
-    />
+    <>
+      <DataTable
+        data={initialInvoices}
+        columns={columns}
+        getRowKey={(inv) => inv.id}
+        searchPlaceholder="Search invoices…"
+        pagination={pagination}
+        searchExtra={
+          <>
+            <FiltersPopover filters={filterGroups} />
+            <DateRangeFilter key={status} />
+          </>
+        }
+      />
+
+      <InvoiceDetailModal
+        invoiceId={detailId}
+        onClose={() => setDetailId(null)}
+      />
+    </>
   );
 }

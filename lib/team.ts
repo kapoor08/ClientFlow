@@ -148,15 +148,6 @@ export async function updateMemberRoleForUser(
     .update(organizationMemberships)
     .set({ roleId: role.id, updatedAt: new Date() })
     .where(eq(organizationMemberships.id, targetMembershipId));
-
-  writeAuditLog({
-    organizationId: access.organizationId,
-    actorUserId: userId,
-    action: "member.role_changed",
-    entityType: "membership",
-    entityId: targetMembershipId,
-    metadata: { newRole: newRoleKey },
-  }).catch(console.error);
 }
 
 export async function updateMemberStatusForUser(
@@ -186,6 +177,14 @@ export async function updateMemberStatusForUser(
     .update(organizationMemberships)
     .set({ status: newStatus, updatedAt: new Date() })
     .where(eq(organizationMemberships.id, targetMembershipId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: newStatus === "suspended" ? "member.suspended" : "member.reactivated",
+    entityType: "membership",
+    entityId: targetMembershipId,
+  }).catch(console.error);
 }
 
 export async function updateMemberPermissionOverridesForUser(
@@ -250,4 +249,12 @@ export async function removeMemberForUser(
   await db
     .delete(organizationMemberships)
     .where(eq(organizationMemberships.id, targetMembershipId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "member.removed",
+    entityType: "membership",
+    entityId: targetMembershipId,
+  }).catch(console.error);
 }

@@ -24,6 +24,7 @@ function CopyButton({ text }: { text: string }) {
         setTimeout(() => setCopied(false), 2000);
       }}
       className="rounded p-1 text-muted-foreground hover:bg-secondary transition-colors cursor-pointer"
+      title="Copy"
     >
       {copied ? (
         <Check size={12} className="text-success" />
@@ -31,6 +32,56 @@ function CopyButton({ text }: { text: string }) {
         <Copy size={12} />
       )}
     </button>
+  );
+}
+
+function ParamTable({ params }: { params: ApiParam[] }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-border bg-secondary/60">
+            <th className="px-3 py-2 text-left font-semibold text-muted-foreground w-32">
+              Name
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-muted-foreground w-28">
+              Type
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-muted-foreground w-20">
+              Required
+            </th>
+            <th className="px-3 py-2 text-left font-semibold text-muted-foreground">
+              Description
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {params.map((p, i) => (
+            <tr
+              key={p.name}
+              className={`${i < params.length - 1 ? "border-b border-border" : ""}`}
+            >
+              <td className="px-3 py-2">
+                <code className="rounded bg-secondary px-1.5 py-0.5 font-mono text-foreground">
+                  {p.name}
+                </code>
+              </td>
+              <td className="px-3 py-2 font-mono text-info">{p.type}</td>
+              <td className="px-3 py-2">
+                {p.required ? (
+                  <span className="rounded-pill bg-danger/10 px-1.5 py-0.5 text-[10px] font-medium text-danger">
+                    required
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </td>
+              <td className="px-3 py-2 text-muted-foreground">{p.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -53,7 +104,7 @@ export function EndpointCard({ endpoint }: { endpoint: ApiEndpoint }) {
         <span className="flex-1 font-mono text-sm text-foreground">
           {endpoint.path}
         </span>
-        <span className="text-xs text-muted-foreground hidden sm:block">
+        <span className="hidden text-xs text-muted-foreground sm:block">
           {endpoint.summary}
         </span>
         {open ? (
@@ -64,11 +115,9 @@ export function EndpointCard({ endpoint }: { endpoint: ApiEndpoint }) {
       </button>
 
       {open && (
-        <div className="border-t border-border px-4 py-4 space-y-4 bg-secondary/10">
+        <div className="border-t border-border px-4 py-4 space-y-5 bg-secondary/[0.04]">
           {endpoint.description && (
-            <p className="text-sm text-muted-foreground">
-              {endpoint.description}
-            </p>
+            <p className="text-sm text-muted-foreground">{endpoint.description}</p>
           )}
 
           {endpoint.params && endpoint.params.length > 0 && (
@@ -76,24 +125,7 @@ export function EndpointCard({ endpoint }: { endpoint: ApiEndpoint }) {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Query Parameters
               </p>
-              <div className="space-y-2">
-                {endpoint.params.map((p: ApiParam) => (
-                  <div key={p.name} className="flex items-start gap-2">
-                    <code className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs text-foreground">
-                      {p.name}
-                    </code>
-                    <span className="text-xs text-info">{p.type}</span>
-                    {p.required && (
-                      <span className="text-[10px] text-danger font-medium">
-                        required
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {p.description}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <ParamTable params={endpoint.params} />
             </div>
           )}
 
@@ -102,39 +134,19 @@ export function EndpointCard({ endpoint }: { endpoint: ApiEndpoint }) {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Request Body
               </p>
-              <div className="space-y-2">
-                {endpoint.body.map((p: ApiParam) => (
-                  <div
-                    key={p.name}
-                    className="flex items-start gap-2 flex-wrap"
-                  >
-                    <code className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs text-foreground">
-                      {p.name}
-                    </code>
-                    <span className="text-xs text-info">{p.type}</span>
-                    {p.required && (
-                      <span className="text-[10px] text-danger font-medium">
-                        required
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                      {p.description}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <ParamTable params={endpoint.body} />
             </div>
           )}
 
           {endpoint.responseExample && (
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Response Example
                 </p>
                 <CopyButton text={endpoint.responseExample} />
               </div>
-              <pre className="overflow-x-auto rounded-lg bg-secondary p-3 font-mono text-xs text-foreground">
+              <pre className="overflow-x-auto rounded-lg bg-secondary p-3 font-mono text-xs text-foreground leading-relaxed">
                 {endpoint.responseExample}
               </pre>
             </div>

@@ -209,6 +209,17 @@ export async function updateTaskComment(
     .update(taskComments)
     .set({ body, updatedAt: new Date() })
     .where(eq(taskComments.id, commentId));
+
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: access.organizationId,
+      taskId,
+      actorUserId: userId,
+      action: "comment.updated",
+      newValues: { commentId },
+    })
+    .catch(console.error);
 }
 
 export async function deleteTaskComment(
@@ -232,6 +243,17 @@ export async function deleteTaskComment(
     .update(taskComments)
     .set({ deletedAt: new Date() })
     .where(eq(taskComments.id, commentId));
+
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: access.organizationId,
+      taskId,
+      actorUserId: userId,
+      action: "comment.deleted",
+      oldValues: { commentId },
+    })
+    .catch(console.error);
 }
 
 export async function listTaskActivity(

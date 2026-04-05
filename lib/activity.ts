@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, gte, lte, count } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, or, count } from "drizzle-orm";
 import { auditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
@@ -19,11 +19,14 @@ export type ActivityEntry = {
   action: string;
   entityType: string;
   entityId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
 };
 
 type ListActivityOptions = {
+  query?: string;
   entityType?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -38,16 +41,30 @@ export async function listActivityForUser(
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
 
+  // Only owner and admin can view activity logs
+  if (context.roleKey !== "owner" && context.roleKey !== "admin") return null;
+
   const {
+    query = "",
     entityType,
     dateFrom,
     dateTo,
     page = 1,
-    pageSize = DEFAULT_PAGE_SIZE,
+    pageSize = 10,
   } = options;
+
+  const trimmed = query.trim();
 
   const conditions = [
     eq(auditLogs.organizationId, context.organizationId),
+    trimmed
+      ? or(
+          ilike(auditLogs.action, `%${trimmed}%`),
+          ilike(auditLogs.entityType, `%${trimmed}%`),
+          ilike(user.name, `%${trimmed}%`),
+          ilike(user.email, `%${trimmed}%`),
+        )
+      : undefined,
     entityType ? eq(auditLogs.entityType, entityType) : undefined,
     dateFrom ? gte(auditLogs.createdAt, new Date(dateFrom)) : undefined,
     dateTo ? lte(auditLogs.createdAt, new Date(dateTo)) : undefined,
@@ -70,6 +87,8 @@ export async function listActivityForUser(
         action: auditLogs.action,
         entityType: auditLogs.entityType,
         entityId: auditLogs.entityId,
+        ipAddress: auditLogs.ipAddress,
+        userAgent: auditLogs.userAgent,
         metadata: auditLogs.metadata,
         createdAt: auditLogs.createdAt,
       })

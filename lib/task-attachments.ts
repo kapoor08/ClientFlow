@@ -1,7 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, isNull } from "drizzle-orm";
-import { tasks, taskAttachments } from "@/db/schema";
+import { tasks, taskAttachments, taskAuditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { cloudinary } from "@/lib/cloudinary";
@@ -98,6 +98,17 @@ export async function saveTaskAttachment(
     sizeBytes: input.sizeBytes,
   });
 
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: access.organizationId,
+      taskId,
+      actorUserId: userId,
+      action: "attachment.added",
+      newValues: { fileName: input.fileName, attachmentId },
+    })
+    .catch(console.error);
+
   return { attachmentId };
 }
 
@@ -111,7 +122,9 @@ export async function deleteTaskAttachment(
   const [attachment] = await db
     .select({
       id: taskAttachments.id,
+      taskId: taskAttachments.taskId,
       storageKey: taskAttachments.storageKey,
+      fileName: taskAttachments.fileName,
       mimeType: taskAttachments.mimeType,
     })
     .from(taskAttachments)
@@ -137,6 +150,17 @@ export async function deleteTaskAttachment(
   await db
     .delete(taskAttachments)
     .where(eq(taskAttachments.id, attachmentId));
+
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: context.organizationId,
+      taskId: attachment.taskId,
+      actorUserId: userId,
+      action: "attachment.deleted",
+      oldValues: { fileName: attachment.fileName, attachmentId },
+    })
+    .catch(console.error);
 }
 
 export async function getSignedUploadParamsForTask(

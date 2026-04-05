@@ -12,8 +12,9 @@ import { mergeAttributes, Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Mention from "@tiptap/extension-mention";
+import Link from "@tiptap/extension-link";
 import { cn } from "@/lib/utils";
-import { Bold, Italic, List, ListOrdered, Strikethrough, Code } from "lucide-react";
+import { Bold, Italic, List, ListOrdered, Strikethrough, Code, Link2 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,6 +158,11 @@ export function TiptapEditor({
       const base: any[] = [
         StarterKit,
         Placeholder.configure({ placeholder }),
+        Link.configure({
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: { class: "text-primary underline cursor-pointer" },
+        }),
         Mention.configure({
           HTMLAttributes: { class: "mention" },
           renderHTML({ options, node }) {
@@ -293,7 +299,8 @@ export function TiptapEditor({
     editable,
     immediatelyRender: false,
     onUpdate({ editor }) {
-      onChange?.(editor.getHTML());
+      const html = editor.getHTML();
+      queueMicrotask(() => onChange?.(html));
     },
     onBlur({ editor }) {
       onBlur?.(editor.getHTML());
@@ -321,6 +328,20 @@ export function TiptapEditor({
           <ToolbarButton icon={Italic} label="Italic" active={editor?.isActive("italic")} onPress={() => editor?.chain().focus().toggleItalic().run()} />
           <ToolbarButton icon={Strikethrough} label="Strikethrough" active={editor?.isActive("strike")} onPress={() => editor?.chain().focus().toggleStrike().run()} />
           <ToolbarButton icon={Code} label="Inline code" active={editor?.isActive("code")} onPress={() => editor?.chain().focus().toggleCode().run()} />
+          <ToolbarButton
+            icon={Link2}
+            label="Link"
+            active={editor?.isActive("link")}
+            onPress={() => {
+              if (!editor) return;
+              if (editor.isActive("link")) {
+                editor.chain().focus().unsetLink().run();
+              } else {
+                const url = window.prompt("Enter URL");
+                if (url) editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+          />
           <div className="mx-1 h-4 w-px bg-border" />
           <ToolbarButton icon={List} label="Bullet list" active={editor?.isActive("bulletList")} onPress={() => editor?.chain().focus().toggleBulletList().run()} />
           <ToolbarButton icon={ListOrdered} label="Ordered list" active={editor?.isActive("orderedList")} onPress={() => editor?.chain().focus().toggleOrderedList().run()} />
@@ -336,6 +357,21 @@ export function TiptapEditor({
           <ToolbarButton icon={Italic} label="Italic" active={editor?.isActive("italic")} onPress={() => editor?.chain().focus().toggleItalic().run()} size={12} />
           <ToolbarButton icon={Strikethrough} label="Strikethrough" active={editor?.isActive("strike")} onPress={() => editor?.chain().focus().toggleStrike().run()} size={12} />
           <ToolbarButton icon={Code} label="Inline code" active={editor?.isActive("code")} onPress={() => editor?.chain().focus().toggleCode().run()} size={12} />
+          <ToolbarButton
+            icon={Link2}
+            label="Link"
+            active={editor?.isActive("link")}
+            size={12}
+            onPress={() => {
+              if (!editor) return;
+              if (editor.isActive("link")) {
+                editor.chain().focus().unsetLink().run();
+              } else {
+                const url = window.prompt("Enter URL");
+                if (url) editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+          />
           <span className="ml-auto text-[10px] text-muted-foreground/60 select-none pr-1">
             Enter to post · Shift+Enter for newline
           </span>

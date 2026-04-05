@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -18,13 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ColorPicker } from "@/components/ui/color-picker";
 import { useCreateColumn, useUpdateColumn } from "@/core/task-columns/useCase";
 import {
   COLUMN_TYPE_OPTIONS,
-  PRESET_COLORS,
   type BoardColumn,
 } from "@/core/task-columns/entity";
-import { Plus } from "lucide-react";
 
 type EditColumnDialogProps = {
   open: boolean;
@@ -43,9 +41,6 @@ export function EditColumnDialog({
   const [color, setColor] = useState("#3b82f6");
   const [columnType, setColumnType] = useState<string>("none");
   const [description, setDescription] = useState("");
-  const [hexInput, setHexInput] = useState("#3b82f6");
-
-  const colorPickerRef = useRef<HTMLInputElement>(null);
 
   const createColumn = useCreateColumn();
   const updateColumn = useUpdateColumn();
@@ -57,35 +52,16 @@ export function EditColumnDialog({
       if (mode === "edit" && column) {
         setName(column.name);
         setColor(column.color);
-        setHexInput(column.color);
         setColumnType(column.columnType ?? "none");
         setDescription(column.description ?? "");
       } else {
         setName("");
         setColor("#3b82f6");
-        setHexInput("#3b82f6");
         setColumnType("none");
         setDescription("");
       }
     }
   }, [open, mode, column]);
-
-  function handleColorSelect(c: string) {
-    setColor(c);
-    setHexInput(c);
-  }
-
-  function handleHexChange(val: string) {
-    setHexInput(val);
-    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-      setColor(val);
-    }
-  }
-
-  function handleNativeColorChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setColor(e.target.value);
-    setHexInput(e.target.value);
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -163,75 +139,35 @@ export function EditColumnDialog({
             />
           </div>
 
-          {/* Color */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Color</label>
-            <div className="flex flex-wrap items-center gap-2">
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => handleColorSelect(c)}
-                  className={cn(
-                    "h-7 w-7 rounded-full border-2 transition-transform hover:scale-110",
-                    color === c
-                      ? "border-foreground scale-110"
-                      : "border-transparent",
-                  )}
-                  style={{ backgroundColor: c }}
-                  aria-label={`Select color ${c}`}
-                />
-              ))}
-              {/* Custom color picker trigger */}
-              <button
-                type="button"
-                onClick={() => colorPickerRef.current?.click()}
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-                aria-label="Pick custom color"
-              >
-                <Plus size={14} />
-              </button>
-              <input
-                ref={colorPickerRef}
-                type="color"
-                value={color}
-                onChange={handleNativeColorChange}
-                className="sr-only"
-                aria-hidden
-              />
+          {/* Color + Column Type */}
+          <div className="flex items-end gap-4">
+            <div className="space-y-1.5 min-w-0">
+              <label className="text-sm font-medium text-foreground">
+                Color
+              </label>
+              <ColorPicker value={color} onChange={setColor} />
             </div>
-            {/* Hex input */}
-            <div className="flex items-center gap-2 mt-1">
-              <div
-                className="h-6 w-6 rounded-full border border-border shrink-0"
-                style={{ backgroundColor: color }}
-              />
-              <Input
-                value={hexInput}
-                onChange={(e) => handleHexChange(e.target.value)}
-                placeholder="#3b82f6"
-                className="font-mono text-sm"
-              />
+            <div className="shrink-0">
+              <label className="text-sm font-medium text-foreground">
+                Column Type
+              </label>
+              <Select value={columnType} onValueChange={setColumnType}>
+                <SelectTrigger className="cursor-pointer w-36">
+                  <SelectValue placeholder="Select type…" />
+                </SelectTrigger>
+                <SelectContent position="popper" side="bottom" align="start">
+                  {COLUMN_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem
+                      key={opt.value}
+                      value={opt.value}
+                      className="cursor-pointer"
+                    >
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          {/* Column Type */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Column Type
-            </label>
-            <Select value={columnType} onValueChange={setColumnType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select type…" />
-              </SelectTrigger>
-              <SelectContent>
-                {COLUMN_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Description */}
@@ -253,10 +189,15 @@ export function EditColumnDialog({
 
           {/* Footer */}
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              className="cursor-pointer"
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending} className="cursor-pointer">
               {isPending
                 ? "Saving…"
                 : mode === "create"

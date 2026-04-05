@@ -286,7 +286,7 @@ export default function ApiKeysPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-warning"
+                                className="h-7 w-7 text-warning cursor-pointer"
                                 onClick={() => setRevokeTarget(k)}
                               >
                                 <Ban size={13} />
@@ -300,7 +300,7 @@ export default function ApiKeysPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-danger"
+                              className="h-7 w-7 text-danger cursor-pointer"
                               onClick={() => setDeleteTarget(k)}
                             >
                               <Trash2 size={13} />
@@ -436,7 +436,7 @@ export default function ApiKeysPage() {
             {revealedKey && <CopyButton text={revealedKey.key} />}
           </div>
           <DialogFooter>
-            <Button onClick={() => setRevealedKey(null)}>Done</Button>
+            <Button onClick={() => setRevealedKey(null)} className="cursor-pointer">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -457,9 +457,9 @@ export default function ApiKeysPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-warning text-warning-foreground hover:bg-warning/90"
+              className="bg-warning text-warning-foreground hover:bg-warning/90 cursor-pointer"
               onClick={() =>
                 revokeTarget && revokeMutation.mutate(revokeTarget.id)
               }
@@ -485,9 +485,9 @@ export default function ApiKeysPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-danger text-white hover:bg-danger/90"
+              className="bg-danger text-white hover:bg-danger/90 cursor-pointer"
               onClick={() =>
                 deleteTarget && deleteMutation.mutate(deleteTarget.id)
               }

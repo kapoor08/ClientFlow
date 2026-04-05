@@ -11,12 +11,13 @@ type BillingPageProps = {
 const BillingPage = async ({ searchParams }: BillingPageProps) => {
   const session = await getServerSession();
   const params = await searchParams;
-  const { dateFrom, dateTo, page, pageSize } =
+  const { dateFrom, dateTo, status, page, pageSize } =
     billingSearchParamsCache.parse(params);
 
   const billing = await getBillingContextForUser(session!.user.id, {
     dateFrom: dateFrom ? new Date(dateFrom) : undefined,
     dateTo: dateTo ? new Date(dateTo) : undefined,
+    status: status || undefined,
     page,
     pageSize,
   });

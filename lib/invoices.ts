@@ -305,6 +305,26 @@ export async function updateInvoiceForUser(
       updatedAt: new Date(),
     })
     .where(eq(invoices.id, invoiceId));
+
+  // Re-fetch for audit metadata
+  const [updated] = await db
+    .select({ number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents })
+    .from(invoices)
+    .where(eq(invoices.id, invoiceId))
+    .limit(1);
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "invoice.updated",
+    entityType: "invoice",
+    entityId: invoiceId,
+    metadata: {
+      number: updated?.number ?? undefined,
+      title: updated?.title ?? undefined,
+      amountCents: updated?.amountDueCents ?? undefined,
+    },
+  }).catch(console.error);
 }
 
 export async function markInvoicePaidForUser(
@@ -316,7 +336,7 @@ export async function markInvoicePaidForUser(
   if (!ctx.canManageSettings) throw new Error("Only admins can mark invoices as paid.");
 
   const [existing] = await db
-    .select({ id: invoices.id, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual })
+    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual })
     .from(invoices)
     .where(
       and(
@@ -345,7 +365,11 @@ export async function markInvoicePaidForUser(
     action: "invoice.paid",
     entityType: "invoice",
     entityId: invoiceId,
-    metadata: {},
+    metadata: {
+      number: existing.number ?? undefined,
+      title: existing.title ?? undefined,
+      amountCents: existing.amountDueCents ?? undefined,
+    },
   }).catch(console.error);
 }
 
@@ -358,7 +382,7 @@ export async function markInvoiceSentForUser(
   if (!ctx.canManageSettings) throw new Error("Only admins can send invoices.");
 
   const [existing] = await db
-    .select({ id: invoices.id, isManual: invoices.isManual })
+    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual })
     .from(invoices)
     .where(
       and(
@@ -375,6 +399,19 @@ export async function markInvoiceSentForUser(
     .update(invoices)
     .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
     .where(eq(invoices.id, invoiceId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "invoice.sent",
+    entityType: "invoice",
+    entityId: invoiceId,
+    metadata: {
+      number: existing.number ?? undefined,
+      title: existing.title ?? undefined,
+      amountCents: existing.amountDueCents ?? undefined,
+    },
+  }).catch(console.error);
 }
 
 export async function deleteInvoiceForUser(
@@ -386,7 +423,7 @@ export async function deleteInvoiceForUser(
   if (!ctx.canManageSettings) throw new Error("Only admins can delete invoices.");
 
   const [existing] = await db
-    .select({ id: invoices.id, isManual: invoices.isManual, status: invoices.status })
+    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual, status: invoices.status })
     .from(invoices)
     .where(
       and(
@@ -401,4 +438,17 @@ export async function deleteInvoiceForUser(
   if (existing.status === "paid") throw new Error("Paid invoices cannot be deleted.");
 
   await db.delete(invoices).where(eq(invoices.id, invoiceId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "invoice.deleted",
+    entityType: "invoice",
+    entityId: invoiceId,
+    metadata: {
+      number: existing.number ?? undefined,
+      title: existing.title ?? undefined,
+      amountCents: existing.amountDueCents ?? undefined,
+    },
+  }).catch(console.error);
 }

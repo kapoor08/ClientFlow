@@ -11,6 +11,7 @@ export type TaskDetail = {
   columnColor: string | null;
   assigneeUserId: string | null;
   assigneeName: string | null;
+  assignees: { userId: string; name: string | null }[];
   reporterUserId: string | null;
   reporterName: string | null;
   dueDate: string | null;
@@ -157,6 +158,60 @@ export function formatActivityMessage(
       if (added.length) parts.push(`added ${added.map((t) => `#${t}`).join(", ")}`);
       if (removed.length) parts.push(`removed ${removed.map((t) => `#${t}`).join(", ")}`);
       return parts.join(" and ") || "updated tags";
+    }
+
+    case "comment.added":
+      return "added a comment";
+
+    case "comment.updated":
+      return "edited a comment";
+
+    case "comment.deleted":
+      return "deleted a comment";
+
+    case "attachment.added": {
+      const name = nv.fileName as string | null;
+      return name ? `added file "${name}"` : "added a file";
+    }
+
+    case "attachment.deleted": {
+      const name = ov.fileName as string | null;
+      return name ? `removed file "${name}"` : "removed a file";
+    }
+
+    case "assignees.changed": {
+      const newNames = (nv.names as string[]) ?? [];
+      const oldNames = (ov.names as string[]) ?? [];
+      if (newNames.length === 0) return "removed all assignees";
+      if (oldNames.length === 0) return `assigned ${newNames.join(", ")}`;
+      return `updated assignees to ${newNames.join(", ")}`;
+    }
+
+    case "subtask.added": {
+      const title = nv.title as string | null;
+      return title ? `added subtask "${title}"` : "added a subtask";
+    }
+
+    case "subtask.completed": {
+      const title = nv.title as string | null;
+      return title ? `completed subtask "${title}"` : "completed a subtask";
+    }
+
+    case "subtask.reopened": {
+      const title = nv.title as string | null;
+      return title ? `reopened subtask "${title}"` : "reopened a subtask";
+    }
+
+    case "subtask.deleted": {
+      const title = ov.title as string | null;
+      return title ? `deleted subtask "${title}"` : "deleted a subtask";
+    }
+
+    case "time.logged": {
+      const mins = nv.minutes as number | null;
+      const desc = nv.description as string | null;
+      const formatted = mins ? formatEstimateMinutes(mins) : "time";
+      return desc ? `logged ${formatted} — ${desc}` : `logged ${formatted}`;
     }
 
     default:

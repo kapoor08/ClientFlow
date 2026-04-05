@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import type { RolePermissionsConfig, MemberPermissionOverrides } from "@/config/role-permissions";
 import { db } from "./db";
+import { writeAuditLog } from "./audit";
 
 const ACTIVE_MEMBERSHIP_STATUS = "active";
 const MANAGE_SETTINGS_ROLE_KEYS = new Set(["owner", "admin"]);
@@ -488,6 +489,15 @@ export async function updateOrganizationSettingsForUser(
         updatedAt: new Date(),
       },
     });
+
+  writeAuditLog({
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    action: "organization.updated",
+    entityType: "organization",
+    entityId: context.organizationId,
+    metadata: { name: input.name.trim() },
+  }).catch(console.error);
 }
 
 export async function updateOrganizationBrandingForUser(
@@ -520,6 +530,14 @@ export async function updateOrganizationBrandingForUser(
       brandColor: organizationSettings.brandColor,
     });
 
+  writeAuditLog({
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    action: "organization.branding_updated",
+    entityType: "organization",
+    entityId: context.organizationId,
+  }).catch(console.error);
+
   return {
     logoUrl: saved?.logoUrl ?? null,
     brandColor: saved?.brandColor ?? null,
@@ -546,6 +564,14 @@ export async function updateSsoConfigForUser(
       target: organizationSettings.organizationId,
       set: { ssoConfig, updatedAt: new Date() },
     });
+
+  writeAuditLog({
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    action: "organization.sso_updated",
+    entityType: "organization",
+    entityId: context.organizationId,
+  }).catch(console.error);
 }
 
 export async function updateSecurityPoliciesForUser(
@@ -573,6 +599,14 @@ export async function updateSecurityPoliciesForUser(
         updatedAt: new Date(),
       },
     });
+
+  writeAuditLog({
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    action: "organization.security_updated",
+    entityType: "organization",
+    entityId: context.organizationId,
+  }).catch(console.error);
 }
 
 export async function completeOnboardingForUser(userId: string): Promise<void> {

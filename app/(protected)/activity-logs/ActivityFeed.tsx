@@ -1,24 +1,217 @@
 "use client";
 
-import { useTransition } from "react";
-import { Activity, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Download } from "lucide-react";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
 import { Button } from "@/components/ui/button";
 import {
   DateRangeFilter,
   FiltersPopover,
+  RowActions,
+  type ColumnDef,
   type FilterGroupConfig,
 } from "@/components/data-table";
-import { ENTITY_TYPE_OPTIONS } from "@/core/activity/entity";
+import { DataTable } from "@/components/data-table";
+import {
+  ENTITY_TYPE_OPTIONS,
+  getActionLabel,
+  getEntityBadgeStyle,
+  getEntityName,
+} from "@/core/activity/entity";
 import type { ActivityEntry } from "@/core/activity/entity";
 import type { PaginationMeta } from "@/lib/pagination";
-import { ActivityItem } from "./ActivityItem";
+import { timeAgo } from "./ActivityItem";
+import { ActivityDetailModal } from "./ActivityDetailModal";
 
-// ─── Entity type filter options (exclude the "all" sentinel) ─────────────────
+// ─── Filter options ───────────────────────────────────────────────────────────
 
 const ENTITY_FILTER_OPTIONS = ENTITY_TYPE_OPTIONS.filter(
   (o) => o.value !== "all",
 ).map((o) => ({ label: o.label, value: o.value }));
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+function getInitials(name: string | null): string {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Keys that are always skipped in the summary (shown elsewhere or redundant)
+const SKIP_KEYS = new Set(["id", "entityId", "name", "email", "overrides"]);
+
+function formatMinutes(v: number): string {
+  const h = Math.floor(v / 60);
+  const m = v % 60;
+  return [h > 0 ? `${h}h` : "", m > 0 ? `${m}m` : ""].filter(Boolean).join(" ") || "0m";
+}
+
+function formatCents(cents: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
+
+/** Format metadata into a short readable summary for the table cell */
+function formatMetaSummary(meta: Record<string, unknown> | null): string {
+  if (!meta) return "—";
+
+  const parts: string[] = [];
+
+  for (const [k, v] of Object.entries(meta)) {
+    if (parts.length >= 3) break;
+    if (SKIP_KEYS.has(k)) continue;
+    if (v === null || v === undefined) continue;
+    if (typeof v === "string" && UUID_RE.test(v)) continue; // skip raw UUIDs
+    if (typeof v === "object") continue; // skip nested objects
+
+    if (k === "minutes" && typeof v === "number") {
+      parts.push(formatMinutes(v));
+    } else if (k === "amountCents" && typeof v === "number") {
+      parts.push(formatCents(v));
+    } else if (k === "number") {
+      // Invoice number — show as-is, prominent
+      parts.push(String(v));
+    } else if (k === "title" && parts.some((p) => p.startsWith("INV-"))) {
+      // Skip title if invoice number already shown
+    } else {
+      // Convert key: "projectId" → skip (UUID), "project" → "Project: X"
+      const label = k
+        .replace(/Id$/, "")
+        .replace(/_/g, " ")
+        .replace(/([A-Z])/g, " $1")
+        .trim()
+        .replace(/^\w/, (c) => c.toUpperCase());
+      const rawVal = String(v);
+      // Capitalize single-word values (status, priority, role, etc.)
+      const displayVal = /^[a-z_]+$/.test(rawVal)
+        ? rawVal.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())
+        : rawVal;
+      parts.push(`${label}: ${displayVal}`);
+    }
+  }
+
+  return parts.length ? parts.join(" · ") : "—";
+}
+
+// ─── Column builder (needs onPreview callback) ────────────────────────────────
+
+function buildColumns(
+  onPreview: (entry: ActivityEntry) => void,
+): ColumnDef<ActivityEntry>[] {
+  return [
+    {
+      key: "createdAt",
+      header: "Timestamp",
+      cell: (entry) => (
+        <div>
+          <p className="whitespace-nowrap font-mono text-xs text-foreground">
+            {formatDate(entry.createdAt)}
+          </p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">
+            {timeAgo(entry.createdAt)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "actorName",
+      header: "Actor",
+      cell: (entry) => (
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+            {getInitials(entry.actorName)}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium leading-tight text-foreground">
+              {entry.actorName ?? "System"}
+            </p>
+            {entry.actorEmail && (
+              <p className="truncate text-xs text-muted-foreground">
+                {entry.actorEmail}
+              </p>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "action",
+      header: "Action",
+      cell: (entry) => {
+        const name = getEntityName(entry);
+        return (
+          <div>
+            <p className="text-sm text-foreground">{getActionLabel(entry.action)}</p>
+            {name && (
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">{name}</p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "entityType",
+      header: "Entity",
+      hideOnMobile: true,
+      cell: (entry) => (
+        <span
+          className={`w-fit rounded-pill px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide ${getEntityBadgeStyle(entry.entityType)}`}
+        >
+          {entry.entityType.replace("_", " ")}
+        </span>
+      ),
+    },
+    {
+      key: "metadata",
+      header: "Details",
+      hideOnTablet: true,
+      cell: (entry) => (
+        <p className="max-w-[220px] truncate text-xs text-muted-foreground">
+          {formatMetaSummary(entry.metadata)}
+        </p>
+      ),
+    },
+    {
+      key: "id",
+      header: "",
+      cell: (entry) => (
+        <RowActions onPreview={() => onPreview(entry)} />
+      ),
+    },
+  ];
+}
+
+// ─── Export button ────────────────────────────────────────────────────────────
+
+function ExportButton({ q, entityType }: { q: string; entityType: string }) {
+  function handleExport() {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (entityType) params.set("entityType", entityType);
+    window.location.href = `/api/activity-logs/export?${params.toString()}`;
+  }
+
+  return (
+    <Button variant="default" size="sm" className="cursor-pointer" onClick={handleExport}>
+      <Download size={13} className="mr-1" />
+      Export CSV
+    </Button>
+  );
+}
 
 // ─── ActivityFeed ─────────────────────────────────────────────────────────────
 
@@ -29,6 +222,14 @@ type ActivityFeedProps = {
 
 export function ActivityFeed({ entries, pagination }: ActivityFeedProps) {
   const [, startTransition] = useTransition();
+  const [selectedEntry, setSelectedEntry] = useState<ActivityEntry | null>(null);
+
+  const [q] = useQueryState(
+    "q",
+    parseAsString
+      .withDefault("")
+      .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
+  );
 
   const [entityType, setEntityType] = useQueryState(
     "entityType",
@@ -44,8 +245,6 @@ export function ActivityFeed({ entries, pagination }: ActivityFeedProps) {
       .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
   );
 
-  const hasAnyFilter = !!entityType;
-
   const filters: FilterGroupConfig[] = [
     {
       key: "entityType",
@@ -59,86 +258,31 @@ export function ActivityFeed({ entries, pagination }: ActivityFeedProps) {
     },
   ];
 
-  function handleExport() {
-    const params = new URLSearchParams();
-    if (entityType) params.set("entityType", entityType);
-    window.location.href = `/api/activity-logs/export?${params.toString()}`;
-  }
+  const columns = buildColumns(setSelectedEntry);
 
   return (
-    <div className="space-y-4">
-      {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <DateRangeFilter />
-        <FiltersPopover filters={filters} />
-        <div className="ml-auto">
-          <Button variant="default" className="cursor-pointer" size="lg" onClick={handleExport}>
-            <Download size={14} className="mr-1" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
+    <>
+      <DataTable
+        data={entries}
+        columns={columns}
+        getRowKey={(e) => e.id}
+        searchPlaceholder="Search by action, actor, or entity…"
+        searchExtra={
+          <div className="flex items-center gap-2">
+            <DateRangeFilter />
+            <FiltersPopover filters={filters} />
+            <ExportButton q={q} entityType={entityType} />
+          </div>
+        }
+        pagination={pagination}
+        emptyTitle="No activity found."
+        emptyDescription="Activity will appear here as your team takes actions across the workspace."
+      />
 
-      {/* Feed */}
-      <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
-        {entries.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-              <Activity size={20} className="text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                No activity found
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {hasAnyFilter
-                  ? "Try adjusting your filters to see more events."
-                  : "Activity will appear here as your team works."}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {entries.map((entry, i) => (
-              <ActivityItem
-                key={entry.id}
-                entry={entry}
-                isLast={i === entries.length - 1}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Pagination */}
-      {pagination.pageCount > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Page {pagination.page} of {pagination.pageCount}{" "}
-            <span className="text-muted-foreground/60">
-              ({pagination.total} event{pagination.total !== 1 ? "s" : ""})
-            </span>
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!pagination.hasPreviousPage}
-              onClick={() => setPage(pagination.page - 1)}
-            >
-              <ChevronLeft size={14} />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!pagination.hasNextPage}
-              onClick={() => setPage(pagination.page + 1)}
-            >
-              <ChevronRight size={14} />
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+      <ActivityDetailModal
+        entry={selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+      />
+    </>
   );
 }

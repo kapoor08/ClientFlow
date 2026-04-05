@@ -1,11 +1,18 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Building2, Globe, Save, ShieldCheck } from "lucide-react";
+import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FormSection } from "@/components/form/FormSection";
 import { FormGrid } from "@/components/form/FormGrid";
 import type { OrganizationSettingsContext } from "@/lib/organization-settings";
@@ -13,6 +20,74 @@ import {
   type SettingsActionState,
   updateOrganizationSettingsAction,
 } from "./actions";
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
+
+const TIMEZONES = [
+  { value: "UTC", label: "UTC" },
+  { value: "America/New_York", label: "Eastern Time (New York)" },
+  { value: "America/Chicago", label: "Central Time (Chicago)" },
+  { value: "America/Denver", label: "Mountain Time (Denver)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (Los Angeles)" },
+  { value: "America/Phoenix", label: "Arizona (Phoenix)" },
+  { value: "America/Anchorage", label: "Alaska (Anchorage)" },
+  { value: "America/Honolulu", label: "Hawaii (Honolulu)" },
+  { value: "America/Toronto", label: "Eastern Time (Toronto)" },
+  { value: "America/Vancouver", label: "Pacific Time (Vancouver)" },
+  { value: "America/Mexico_City", label: "Central Time (Mexico City)" },
+  { value: "America/Sao_Paulo", label: "Brasília Time (São Paulo)" },
+  { value: "America/Argentina/Buenos_Aires", label: "Argentina (Buenos Aires)" },
+  { value: "Europe/London", label: "GMT (London)" },
+  { value: "Europe/Paris", label: "Central European Time (Paris)" },
+  { value: "Europe/Berlin", label: "Central European Time (Berlin)" },
+  { value: "Europe/Rome", label: "Central European Time (Rome)" },
+  { value: "Europe/Madrid", label: "Central European Time (Madrid)" },
+  { value: "Europe/Amsterdam", label: "Central European Time (Amsterdam)" },
+  { value: "Europe/Stockholm", label: "Central European Time (Stockholm)" },
+  { value: "Europe/Moscow", label: "Moscow Time" },
+  { value: "Europe/Istanbul", label: "Turkey Time (Istanbul)" },
+  { value: "Africa/Cairo", label: "Eastern European Time (Cairo)" },
+  { value: "Africa/Johannesburg", label: "South Africa Standard Time" },
+  { value: "Asia/Dubai", label: "Gulf Standard Time (Dubai)" },
+  { value: "Asia/Karachi", label: "Pakistan Standard Time (Karachi)" },
+  { value: "Asia/Kolkata", label: "India Standard Time (Kolkata)" },
+  { value: "Asia/Dhaka", label: "Bangladesh Standard Time (Dhaka)" },
+  { value: "Asia/Bangkok", label: "Indochina Time (Bangkok)" },
+  { value: "Asia/Singapore", label: "Singapore Time" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong Time" },
+  { value: "Asia/Shanghai", label: "China Standard Time (Shanghai)" },
+  { value: "Asia/Tokyo", label: "Japan Standard Time (Tokyo)" },
+  { value: "Asia/Seoul", label: "Korea Standard Time (Seoul)" },
+  { value: "Australia/Perth", label: "Australian Western Time (Perth)" },
+  { value: "Australia/Adelaide", label: "Australian Central Time (Adelaide)" },
+  { value: "Australia/Sydney", label: "Australian Eastern Time (Sydney)" },
+  { value: "Pacific/Auckland", label: "New Zealand Time (Auckland)" },
+];
+
+const CURRENCIES = [
+  { value: "USD", label: "USD — US Dollar" },
+  { value: "EUR", label: "EUR — Euro" },
+  { value: "GBP", label: "GBP — British Pound" },
+  { value: "JPY", label: "JPY — Japanese Yen" },
+  { value: "CAD", label: "CAD — Canadian Dollar" },
+  { value: "AUD", label: "AUD — Australian Dollar" },
+  { value: "CHF", label: "CHF — Swiss Franc" },
+  { value: "CNY", label: "CNY — Chinese Yuan" },
+  { value: "INR", label: "INR — Indian Rupee" },
+  { value: "SGD", label: "SGD — Singapore Dollar" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "MXN", label: "MXN — Mexican Peso" },
+  { value: "BRL", label: "BRL — Brazilian Real" },
+  { value: "NOK", label: "NOK — Norwegian Krone" },
+  { value: "SEK", label: "SEK — Swedish Krona" },
+  { value: "DKK", label: "DKK — Danish Krone" },
+  { value: "ZAR", label: "ZAR — South African Rand" },
+  { value: "HKD", label: "HKD — Hong Kong Dollar" },
+  { value: "NZD", label: "NZD — New Zealand Dollar" },
+  { value: "THB", label: "THB — Thai Baht" },
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 type OrganizationSettingsFormProps = {
   initialValues: OrganizationSettingsContext;
@@ -28,6 +103,10 @@ const OrganizationSettingsForm = ({
   );
   const [requireEmailVerification, setRequireEmailVerification] = useState(
     initialValues.requireEmailVerification,
+  );
+  const [timezone, setTimezone] = useState(initialValues.timezone ?? "UTC");
+  const [currencyCode, setCurrencyCode] = useState(
+    initialValues.currencyCode ?? "USD",
   );
 
   return (
@@ -84,23 +163,51 @@ const OrganizationSettingsForm = ({
         <FormGrid cols={2}>
           <div className="space-y-2">
             <Label htmlFor="timezone">Timezone</Label>
-            <Input
-              id="timezone"
-              name="timezone"
-              defaultValue={initialValues.timezone ?? "UTC"}
+            <Select
+              value={timezone}
+              onValueChange={setTimezone}
               disabled={isPending}
-              placeholder="UTC"
-            />
+            >
+              <SelectTrigger id="timezone" className="w-full cursor-pointer">
+                <SelectValue placeholder="Select timezone…" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72 overflow-y-auto">
+                {TIMEZONES.map((tz) => (
+                  <SelectItem
+                    key={tz.value}
+                    value={tz.value}
+                    className="cursor-pointer"
+                  >
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="timezone" value={timezone} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="currencyCode">Currency</Label>
-            <Input
-              id="currencyCode"
-              name="currencyCode"
-              defaultValue={initialValues.currencyCode ?? "USD"}
+            <Select
+              value={currencyCode}
+              onValueChange={setCurrencyCode}
               disabled={isPending}
-              placeholder="USD"
-            />
+            >
+              <SelectTrigger id="currencyCode" className="w-full cursor-pointer">
+                <SelectValue placeholder="Select currency…" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72 overflow-y-auto">
+                {CURRENCIES.map((c) => (
+                  <SelectItem
+                    key={c.value}
+                    value={c.value}
+                    className="cursor-pointer"
+                  >
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="currencyCode" value={currencyCode} />
           </div>
         </FormGrid>
       </FormSection>

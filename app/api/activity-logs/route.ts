@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const { userId } = await requireAuth();
     const { searchParams } = request.nextUrl;
 
+    const query = searchParams.get("q") ?? undefined;
     const entityType = searchParams.get("entityType") ?? undefined;
     const dateFrom = searchParams.get("dateFrom") ?? undefined;
     const dateTo = searchParams.get("dateTo") ?? undefined;
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
     );
 
     const result = await listActivityForUser(userId, {
+      query,
       entityType,
       dateFrom,
       dateTo,

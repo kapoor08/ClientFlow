@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { tasks } from "@/db/schema";
+import { tasks, taskAuditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -83,15 +83,28 @@ export async function createSubtaskForUser(
 
   const taskId = crypto.randomUUID();
 
+  const trimmedTitle = title.trim();
+
   await db.insert(tasks).values({
     id: taskId,
     organizationId: access.organizationId,
     projectId: access.projectId,
     parentTaskId,
-    title: title.trim(),
+    title: trimmedTitle,
     status: "todo",
     reporterUserId: userId,
   });
+
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: access.organizationId,
+      taskId: parentTaskId,
+      actorUserId: userId,
+      action: "subtask.added",
+      newValues: { title: trimmedTitle },
+    })
+    .catch(console.error);
 
   return { taskId };
 }
@@ -104,7 +117,7 @@ export async function toggleSubtaskStatusForUser(
   if (!context) throw new Error("No active organization found.");
 
   const [subtask] = await db
-    .select({ id: tasks.id, status: tasks.status })
+    .select({ id: tasks.id, status: tasks.status, title: tasks.title, parentTaskId: tasks.parentTaskId })
     .from(tasks)
     .where(
       and(
@@ -127,6 +140,19 @@ export async function toggleSubtaskStatusForUser(
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, subtaskId));
+
+  if (subtask.parentTaskId) {
+    db.insert(taskAuditLogs)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId: context.organizationId,
+        taskId: subtask.parentTaskId,
+        actorUserId: userId,
+        action: newStatus === "done" ? "subtask.completed" : "subtask.reopened",
+        newValues: { title: subtask.title },
+      })
+      .catch(console.error);
+  }
 }
 
 export async function deleteSubtaskForUser(
@@ -135,6 +161,18 @@ export async function deleteSubtaskForUser(
 ): Promise<void> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) throw new Error("No active organization found.");
+
+  const [subtask] = await db
+    .select({ title: tasks.title, parentTaskId: tasks.parentTaskId })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.id, subtaskId),
+        eq(tasks.organizationId, context.organizationId),
+        isNull(tasks.deletedAt),
+      ),
+    )
+    .limit(1);
 
   await db
     .update(tasks)
@@ -146,4 +184,17 @@ export async function deleteSubtaskForUser(
         isNull(tasks.deletedAt),
       ),
     );
+
+  if (subtask?.parentTaskId) {
+    db.insert(taskAuditLogs)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId: context.organizationId,
+        taskId: subtask.parentTaskId,
+        actorUserId: userId,
+        action: "subtask.deleted",
+        oldValues: { title: subtask.title },
+      })
+      .catch(console.error);
+  }
 }

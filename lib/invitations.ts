@@ -387,6 +387,15 @@ export async function resendInvitationForUser(
 
   const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${raw}`;
 
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "invitation.resent",
+    entityType: "invitation",
+    entityId: invitationId,
+    metadata: { email: invitation.email },
+  }).catch(console.error);
+
   onUserInvited({
     invitee: { id: invitationId, name: invitation.email.split("@")[0] ?? "there", email: invitation.email },
     org: { id: access.organizationId, name: access.organizationName },
@@ -438,6 +447,15 @@ export async function revokeInvitationForUser(
     .update(organizationInvitations)
     .set({ status: "revoked", revokedAt: new Date(), updatedAt: new Date() })
     .where(eq(organizationInvitations.id, invitationId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "invitation.revoked",
+    entityType: "invitation",
+    entityId: invitationId,
+    metadata: { email: invitation.email },
+  }).catch(console.error);
 
   onInviteRevoked({
     invitee: { id: invitationId, name: invitation.email.split("@")[0] ?? "there", email: invitation.email },
@@ -568,6 +586,14 @@ export async function acceptInvitationForUser(
       role: roleRows?.[0]?.name ?? "Member",
       recipients: [{ id: invitation.invitedByUserId!, name: inviter.name ?? "Team admin", email: inviter.email }],
     });
+  }).catch(console.error);
+
+  writeAuditLog({
+    organizationId: invitation.organizationId,
+    actorUserId: userId,
+    action: "invitation.accepted",
+    entityType: "invitation",
+    entityId: invitation.id,
   }).catch(console.error);
 
   return { organizationId: invitation.organizationId, roleKey: invitation.roleKey ?? null };

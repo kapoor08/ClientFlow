@@ -7,6 +7,7 @@ import {
 export const billingSearchParamsCache = createSearchParamsCache({
   dateFrom: parseAsString.withDefault(""),
   dateTo: parseAsString.withDefault(""),
+  status: parseAsString.withDefault(""),
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(10),
 });

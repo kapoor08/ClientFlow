@@ -69,13 +69,11 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 
     if (action === "suspend") {
       await updateMemberStatusForUser(userId, memberId, "suspended");
-      if (orgId) writeAuditLog({ organizationId: orgId, actorUserId: userId, action: "member.suspended", entityType: "membership", entityId: memberId, ipAddress: ip, userAgent: ua }).catch(console.error);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "reactivate") {
       await updateMemberStatusForUser(userId, memberId, "active");
-      if (orgId) writeAuditLog({ organizationId: orgId, actorUserId: userId, action: "member.reactivated", entityType: "membership", entityId: memberId, ipAddress: ip, userAgent: ua }).catch(console.error);
       return NextResponse.json({ ok: true });
     }
 
@@ -85,17 +83,11 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteContext) {
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   try {
     const { userId } = await requireAuth();
     const { memberId } = await params;
-    const ctx = await getOrganizationSettingsContextForUser(userId);
     await removeMemberForUser(userId, memberId);
-    if (ctx?.organizationId) {
-      const ip = request.headers.get("x-forwarded-for") ?? undefined;
-      const ua = request.headers.get("user-agent") ?? undefined;
-      writeAuditLog({ organizationId: ctx.organizationId, actorUserId: userId, action: "member.removed", entityType: "membership", entityId: memberId, ipAddress: ip, userAgent: ua }).catch(console.error);
-    }
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     return apiErrorResponse(err);

@@ -19,11 +19,13 @@ export async function GET(request: NextRequest) {
     const { userId } = await requireAuth();
     const { searchParams } = request.nextUrl;
 
+    const query = searchParams.get("q") ?? undefined;
     const entityType = searchParams.get("entityType") ?? undefined;
     const dateFrom = searchParams.get("dateFrom") ?? undefined;
     const dateTo = searchParams.get("dateTo") ?? undefined;
 
     const result = await listActivityForUser(userId, {
+      query,
       entityType,
       dateFrom,
       dateTo,
@@ -43,6 +45,8 @@ export async function GET(request: NextRequest) {
       "Entity Type",
       "Entity ID",
       "Entity Name",
+      "IP Address",
+      "User Agent",
     ];
 
     const rows = result.entries.map((e) =>
@@ -54,6 +58,8 @@ export async function GET(request: NextRequest) {
         e.entityType,
         e.entityId ?? "",
         (e.metadata?.name as string) ?? "",
+        e.ipAddress ?? "",
+        e.userAgent ?? "",
       ]),
     );
 

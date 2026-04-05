@@ -39,7 +39,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+function formatDDMMYYYY(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+}
 import { TiptapEditor } from "@/components/TiptapEditor";
 import {
   useTaskDetail,
@@ -56,8 +59,12 @@ import {
   useDeleteAttachment,
   taskDetailKeys,
 } from "@/core/task-detail/useCase";
-import { useUpdateTask, useDeleteTask } from "@/core/tasks/useCase";
-import { useBoardColumns } from "@/core/task-columns/useCase";
+import {
+  useUpdateTask,
+  useDeleteTask,
+  useUpdateTaskAssignees,
+} from "@/core/tasks/useCase";
+import { TimeEstimateInput } from "@/components/form";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { http } from "@/core/infrastructure";
 import { formatActivityMessage } from "@/core/task-detail/entity";
@@ -95,6 +102,7 @@ import {
   FileSpreadsheet,
   FileCode,
   File,
+  Link2,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -513,7 +521,7 @@ function FileTypeThumbnail({
   return (
     <div
       className={cn(
-        "flex h-full w-full flex-col items-center justify-center gap-1",
+        "flex h-full w-full flex-col items-center justify-center gap-1 cursor-pointer",
         bg,
       )}
     >
@@ -599,7 +607,7 @@ function FilePreviewModal({
       }}
     >
       <DialogContent
-        className="w-[92vw] !max-w-7xl p-0 gap-0 flex flex-col overflow-hidden"
+        className="w-[92vw] max-w-7xl! p-0 gap-0 flex flex-col overflow-hidden"
         style={{ height: "90vh" }}
         showCloseButton={false}
       >
@@ -699,7 +707,7 @@ function FilePreviewModal({
                   <ReactMarkdown>{textContent}</ReactMarkdown>
                 </article>
               ) : (
-                <pre className="whitespace-pre-wrap break-words font-mono text-xs text-foreground">
+                <pre className="whitespace-pre-wrap wrap-break-words font-mono text-xs text-foreground">
                   {textContent}
                 </pre>
               )}
@@ -800,63 +808,6 @@ function PropRow({
   );
 }
 
-// ─── Estimate helpers ─────────────────────────────────────────────────────────
-// 1 week = 5 days, 1 day = 8 hours, 1 hour = 60 minutes
-
-/**
- * Parse a human estimate string like "2w 3d 4h 30m" → total minutes.
- * Accepts any combination of w/d/h/m tokens in any order.
- * Returns null if the string is empty or unparseable.
- */
-function parseEstimate(input: string): number | null {
-  const s = input.trim().toLowerCase();
-  if (!s) return null;
-  const re = /(\d+(?:\.\d+)?)\s*([wdhm])/g;
-  let total = 0;
-  let matched = false;
-  for (const m of s.matchAll(re)) {
-    const n = parseFloat(m[1]);
-    switch (m[2]) {
-      case "w":
-        total += n * 5 * 8 * 60;
-        break;
-      case "d":
-        total += n * 8 * 60;
-        break;
-      case "h":
-        total += n * 60;
-        break;
-      case "m":
-        total += n;
-        break;
-    }
-    matched = true;
-  }
-  return matched ? Math.round(total) : null;
-}
-
-/**
- * Format total minutes back to a compact string like "1w 2d 3h 40m".
- * Omits zero parts.
- */
-function formatEstimate(mins: number | null): string {
-  if (!mins || mins <= 0) return "";
-  let rem = mins;
-  const W = 5 * 8 * 60;
-  const D = 8 * 60;
-  const H = 60;
-  const w = Math.floor(rem / W);
-  rem %= W;
-  const d = Math.floor(rem / D);
-  rem %= D;
-  const h = Math.floor(rem / H);
-  rem %= H;
-  const m = rem;
-  return [w && `${w}w`, d && `${d}d`, h && `${h}h`, m && `${m}m`]
-    .filter(Boolean)
-    .join(" ");
-}
-
 const TAG_COLORS: Record<string, string> = {
   bug: "bg-danger/10 text-danger border-danger/20",
   enhancement: "bg-info/10 text-info border-info/20",
@@ -867,68 +818,6 @@ const TAG_COLORS: Record<string, string> = {
   design: "bg-pink-100 text-pink-700 border-pink-200",
   blocked: "bg-danger/20 text-danger border-danger/30",
 };
-
-// ─── Estimate field — free-text input ─────────────────────────────────────────
-
-function EstimateField({
-  initialMinutes,
-  onSave,
-}: {
-  initialMinutes: number | null;
-  onSave: (mins: number | null) => void;
-}) {
-  const [draft, setDraft] = useState(() => formatEstimate(initialMinutes));
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    setDraft(formatEstimate(initialMinutes));
-    setError(false);
-  }, [initialMinutes]);
-
-  function handleBlur() {
-    if (!draft.trim()) {
-      setError(false);
-      onSave(null);
-      return;
-    }
-    const mins = parseEstimate(draft);
-    if (mins === null) {
-      setError(true);
-      return;
-    }
-    setError(false);
-    setDraft(formatEstimate(mins) ?? draft);
-    onSave(mins);
-  }
-
-  return (
-    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-        <Clock size={10} /> Estimate
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setError(false);
-          }}
-          onBlur={handleBlur}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          placeholder="e.g. 2h 30m"
-          className={cn(
-            "h-9 w-28 border bg-background px-2 text-xs rounded-md focus:outline-none focus:ring-1 focus:ring-ring",
-            error ? "border-danger focus:ring-danger" : "border-input",
-          )}
-        />
-        {error && (
-          <span className="text-[10px] text-danger">Use: 2w 3d 4h 30m</span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
@@ -946,23 +835,27 @@ export function TaskDetailSheet({
   const qc = useQueryClient();
   const [commentHtml, setCommentHtml] = useState("");
   const [commentKey, setCommentKey] = useState(0);
+  const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
+  const [pendingAttachPreviews, setPendingAttachPreviews] = useState<(string | null)[]>([]);
+  const [editingPendingAttachments, setEditingPendingAttachments] = useState<File[]>([]);
+  const [editingPendingAttachPreviews, setEditingPendingAttachPreviews] = useState<(string | null)[]>([]);
   const [activeTab, setActiveTab] = useQueryState(
     "tab",
-    parseAsStringLiteral(["comments", "logs", "files"] as const).withDefault("comments"),
+    parseAsStringLiteral(["comments", "logs", "files"] as const).withDefault(
+      "comments",
+    ),
   );
   const [assigneeOpen, setAssigneeOpen] = useState(false);
-  const [reporterOpen, setReporterOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
-  const [reporterSearch, setReporterSearch] = useState("");
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+  const [tagSearch, setTagSearch] = useState("");
 
   // ── Local field state (batched by Save Changes) ────────────────────────────
   const [localStatus, setLocalStatus] = useState("todo");
-  const [localColumnId, setLocalColumnId] = useState("");
   const [localPriority, setLocalPriority] = useState<string | null>(null);
-  const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(null);
-  const [localAssigneeName, setLocalAssigneeName] = useState<string | null>(
-    null,
-  );
+  const [localAssignees, setLocalAssignees] = useState<
+    { userId: string; name: string }[]
+  >([]);
   const [localDueDate, setLocalDueDate] = useState<string | null>(null);
   const [localEstimate, setLocalEstimate] = useState<number | null>(null);
   const [localReporterId, setLocalReporterId] = useState<string | null>(null);
@@ -977,16 +870,17 @@ export function TaskDetailSheet({
   const [previewFile, setPreviewFile] = useState<PreviewFile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const commentAttachRef = useRef<HTMLInputElement>(null);
+  const editAttachRef = useRef<HTMLInputElement>(null);
   const feedScrollRef = useRef<HTMLDivElement>(null);
 
   const { data: taskData, isLoading: taskLoading } = useTaskDetail(taskId);
   const { data: commentsData } = useTaskComments(taskId);
   const { data: activityData } = useTaskActivity(taskId);
-  const { data: columnsData } = useBoardColumns();
   const { data: subtasksData } = useSubtasks(taskId);
   const { data: attachmentsData } = useTaskAttachments(taskId);
 
   const updateTask = useUpdateTask();
+  const updateTaskAssignees = useUpdateTaskAssignees();
   const deleteTaskMutation = useDeleteTask();
   const createComment = useCreateComment(taskId ?? "");
   const updateComment = useUpdateComment(taskId ?? "");
@@ -1017,7 +911,6 @@ export function TaskDetailSheet({
       )
     : allMembers;
 
-  const columns = columnsData?.columns ?? [];
   const task = taskData;
   const comments = commentsData?.comments ?? [];
   const activity = activityData?.activity ?? [];
@@ -1030,10 +923,14 @@ export function TaskDetailSheet({
   useEffect(() => {
     if (!task) return;
     setLocalStatus(task.status);
-    setLocalColumnId(task.columnId ?? "");
     setLocalPriority(task.priority ?? null);
-    setLocalAssigneeId(task.assigneeUserId ?? null);
-    setLocalAssigneeName(task.assigneeName ?? null);
+    const assigneesFromTask =
+      (task.assignees ?? []).length > 0
+        ? (task.assignees as { userId: string; name: string }[])
+        : task.assigneeUserId
+          ? [{ userId: task.assigneeUserId, name: task.assigneeName ?? "" }]
+          : [];
+    setLocalAssignees(assigneesFromTask);
     setLocalDueDate(task.dueDate ?? null);
     setLocalEstimate(task.estimateMinutes ?? null);
     setLocalReporterId(task.reporterUserId ?? null);
@@ -1043,15 +940,24 @@ export function TaskDetailSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
 
+  const taskAssigneeIds = (() => {
+    const base =
+      (task?.assignees ?? []).length > 0
+        ? (task?.assignees ?? []).map((a) => a.userId)
+        : task?.assigneeUserId
+          ? [task.assigneeUserId]
+          : [];
+    return [...base].sort();
+  })();
+  const localAssigneeIds = [...localAssignees.map((a) => a.userId)].sort();
+
   const isDirty =
     !!task &&
     (localStatus !== task.status ||
-      (localColumnId || null) !== (task.columnId ?? null) ||
       (localPriority ?? null) !== (task.priority ?? null) ||
-      (localAssigneeId ?? null) !== (task.assigneeUserId ?? null) ||
+      JSON.stringify(localAssigneeIds) !== JSON.stringify(taskAssigneeIds) ||
       (localDueDate ?? null) !== (task.dueDate ?? null) ||
       (localEstimate ?? null) !== (task.estimateMinutes ?? null) ||
-      (localReporterId ?? null) !== (task.reporterUserId ?? null) ||
       JSON.stringify([...localTags].sort()) !==
         JSON.stringify([...(task.tags ?? [])].sort()) ||
       localDescription !== (task.description ?? ""));
@@ -1069,16 +975,24 @@ export function TaskDetailSheet({
           description: localDescription,
           status: localStatus,
           priority: localPriority,
-          assigneeUserId: localAssigneeId,
+          assigneeUserId: localAssignees[0]?.userId ?? null,
           dueDate: localDueDate,
           estimateMinutes: localEstimate,
-          columnId: localColumnId || null,
-          reporterUserId: localReporterId,
+          columnId: task.columnId ?? null,
           tags: localTags,
         },
       },
       {
-        onSuccess: () => toast.success("Changes saved."),
+        onSuccess: () => {
+          updateTaskAssignees.mutate(
+            { taskId: task.id, userIds: localAssignees.map((a) => a.userId) },
+            {
+              onSuccess: () => toast.success("Changes saved."),
+              onError: (err) =>
+                toast.error(err.message ?? "Failed to update assignees."),
+            },
+          );
+        },
         onError: (err) => toast.error(err.message ?? "Failed to update task."),
       },
     );
@@ -1087,10 +1001,14 @@ export function TaskDetailSheet({
   function handleDiscard() {
     if (!task) return;
     setLocalStatus(task.status);
-    setLocalColumnId(task.columnId ?? "");
     setLocalPriority(task.priority ?? null);
-    setLocalAssigneeId(task.assigneeUserId ?? null);
-    setLocalAssigneeName(task.assigneeName ?? null);
+    const assigneesFromTask =
+      (task.assignees ?? []).length > 0
+        ? (task.assignees as { userId: string; name: string }[])
+        : task.assigneeUserId
+          ? [{ userId: task.assigneeUserId, name: task.assigneeName ?? "" }]
+          : [];
+    setLocalAssignees(assigneesFromTask);
     setLocalDueDate(task.dueDate ?? null);
     setLocalEstimate(task.estimateMinutes ?? null);
     setLocalReporterId(task.reporterUserId ?? null);
@@ -1131,6 +1049,15 @@ export function TaskDetailSheet({
     setLocalTags(updated);
   }
 
+  const allTagOptions = Array.from(
+    new Set([...TASK_TAG_OPTIONS, ...localTags]),
+  );
+  const filteredTagOptions = tagSearch
+    ? allTagOptions.filter((t) =>
+        t.toLowerCase().includes(tagSearch.toLowerCase()),
+      )
+    : allTagOptions;
+
   const isCommentEmpty =
     !commentHtml || commentHtml === "<p></p>" || commentHtml.trim() === "";
 
@@ -1151,16 +1078,13 @@ export function TaskDetailSheet({
     (p) => p.value === localPriority,
   );
 
-  const assigneeInitials = localAssigneeName
-    ? getInitials(localAssigneeName)
-    : null;
-
   // Merge comments + activity + file uploads for the right sidebar feed
   const feed = [
     ...comments.map((c) => ({
       id: c.id,
       type: "comment" as const,
       actorName: c.authorName,
+      actorUserId: c.authorUserId as string | null,
       authorId: c.authorUserId,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -1173,28 +1097,28 @@ export function TaskDetailSheet({
       storageUrl: null as string | null,
       sizeBytes: null as number | null,
     })),
-    ...activity
-      .filter((a) => a.action !== "comment.added")
-      .map((a) => ({
-        id: a.id,
-        type: "activity" as const,
-        actorName: a.actorName,
-        createdAt: a.createdAt,
-        body: null as string | null,
-        action: a.action,
-        oldValues: a.oldValues,
-        newValues: a.newValues,
-        authorId: null as string | null,
-        updatedAt: null as string | null,
-        fileName: null as string | null,
-        mimeType: null as string | null,
-        storageUrl: null as string | null,
-        sizeBytes: null as number | null,
-      })),
+    ...activity.map((a) => ({
+      id: a.id,
+      type: "activity" as const,
+      actorName: a.actorName,
+      actorUserId: a.actorUserId as string | null,
+      createdAt: a.createdAt,
+      body: null as string | null,
+      action: a.action,
+      oldValues: a.oldValues,
+      newValues: a.newValues,
+      authorId: null as string | null,
+      updatedAt: null as string | null,
+      fileName: null as string | null,
+      mimeType: null as string | null,
+      storageUrl: null as string | null,
+      sizeBytes: null as number | null,
+    })),
     ...attachments.map((a) => ({
       id: `file-${a.id}`,
       type: "file" as const,
       actorName: a.uploaderName,
+      actorUserId: null as string | null,
       authorId: null as string | null,
       createdAt: a.createdAt,
       updatedAt: null as string | null,
@@ -1219,9 +1143,17 @@ export function TaskDetailSheet({
   }, [feed.length]);
 
   return (
-    <Dialog open={!!taskId} onOpenChange={(v) => { if (!v) { setActiveTab(null); onClose(); } }}>
+    <Dialog
+      open={!!taskId}
+      onOpenChange={(v) => {
+        if (!v) {
+          setActiveTab(null);
+          onClose();
+        }
+      }}
+    >
       <DialogContent
-        className="w-[90vw] max-w-275! p-0 gap-0 overflow-visible"
+        className="w-[90vw] max-w-350! p-0 gap-0 overflow-visible"
         showCloseButton={false}
         onInteractOutside={(e) => {
           // e.target is the DialogContent node itself (Radix dispatches the custom event on it).
@@ -1304,7 +1236,7 @@ export function TaskDetailSheet({
           ) : (
             <div className="flex min-h-0 flex-1 overflow-hidden">
               {/* ─── Left pane ──────────────────────────────────────────────── */}
-              <div className="flex-1 min-h-0 overflow-y-auto border-r border-border p-6">
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin border-r border-border p-6">
                 {/* Title */}
                 <DialogHeader className="mb-5">
                   <InlineTitle
@@ -1339,7 +1271,11 @@ export function TaskDetailSheet({
                           })()}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent
+                        position="popper"
+                        side="bottom"
+                        align="start"
+                      >
                         {STATUS_OPTIONS.map((opt) => (
                           <SelectItem
                             key={opt.value}
@@ -1361,38 +1297,6 @@ export function TaskDetailSheet({
 
                   {/* 2-column grid */}
                   <div className="grid grid-cols-2">
-                    {/* Column */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                        <AlertCircle size={10} /> Column
-                      </span>
-                      <Select
-                        value={localColumnId}
-                        onValueChange={setLocalColumnId}
-                      >
-                        <SelectTrigger className="h-7 border bg-transparent px-2 cursor-pointer text-xs shadow-none focus:ring-0 -ml-0.5">
-                          <SelectValue placeholder="No column" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {columns.map((c) => (
-                            <SelectItem
-                              key={c.id}
-                              value={c.id}
-                              className="text-xs"
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <span
-                                  className="h-2 w-2 rounded-full inline-block"
-                                  style={{ backgroundColor: c.color }}
-                                />
-                                {c.name}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     {/* Priority */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                       <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
@@ -1459,7 +1363,7 @@ export function TaskDetailSheet({
                       </DropdownMenu>
                     </div>
 
-                    {/* Assignee */}
+                    {/* Assignee — multi-select */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                       <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                         <User size={10} /> Assignee
@@ -1473,13 +1377,33 @@ export function TaskDetailSheet({
                             type="button"
                             className="flex h-8.5 border px-3 rounded-md min-w-0 items-center gap-1.5 text-xs hover:text-foreground transition-colors cursor-pointer"
                           >
-                            {localAssigneeId ? (
+                            {localAssignees.length > 0 ? (
                               <>
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
-                                  {assigneeInitials}
+                                <div className="flex -space-x-1.5">
+                                  {localAssignees.slice(0, 3).map((a) => (
+                                    <div
+                                      key={a.userId}
+                                      className={cn(
+                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold ring-1 ring-background",
+                                        a.userId === currentUserId
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-brand-100 text-primary",
+                                      )}
+                                      title={a.name}
+                                    >
+                                      {getInitials(a.name)}
+                                    </div>
+                                  ))}
+                                  {localAssignees.length > 3 && (
+                                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-foreground ring-1 ring-background">
+                                      +{localAssignees.length - 3}
+                                    </div>
+                                  )}
                                 </div>
                                 <span className="truncate text-foreground">
-                                  {localAssigneeName}
+                                  {localAssignees.length === 1
+                                    ? localAssignees[0].name
+                                    : `${localAssignees.length} assignees`}
                                 </span>
                               </>
                             ) : (
@@ -1501,49 +1425,66 @@ export function TaskDetailSheet({
                             className="mb-2 h-7 text-xs"
                           />
                           <div className="max-h-48 overflow-y-auto space-y-0.5">
-                            {localAssigneeId && (
+                            {localAssignees.length > 0 && (
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setLocalAssigneeId(null);
-                                  setLocalAssigneeName(null);
+                                  setLocalAssignees([]);
                                   setAssigneeOpen(false);
                                 }}
                                 className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary cursor-pointer"
                               >
-                                <User size={14} /> Unassign
+                                <User size={14} /> Unassign all
                               </button>
                             )}
-                            {filteredMembers.map((m) => (
-                              <button
-                                key={m.userId}
-                                type="button"
-                                onClick={() => {
-                                  setLocalAssigneeId(m.userId);
-                                  setLocalAssigneeName(m.name);
-                                  setAssigneeOpen(false);
-                                  setMemberSearch("");
-                                }}
-                                className={cn(
-                                  "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                                  localAssigneeId === m.userId
-                                    ? "bg-secondary text-foreground font-medium"
-                                    : "hover:bg-secondary/50 text-muted-foreground",
-                                )}
-                              >
-                                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
-                                  {getInitials(m.name)}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="truncate text-foreground">
-                                    {m.name}
-                                  </p>
-                                  <p className="truncate text-muted-foreground">
-                                    {m.email}
-                                  </p>
-                                </div>
-                              </button>
-                            ))}
+                            {filteredMembers.map((m) => {
+                              const isSelected = localAssignees.some(
+                                (a) => a.userId === m.userId,
+                              );
+                              return (
+                                <button
+                                  key={m.userId}
+                                  type="button"
+                                  onClick={() => {
+                                    setLocalAssignees((prev) =>
+                                      isSelected
+                                        ? prev.filter(
+                                            (a) => a.userId !== m.userId,
+                                          )
+                                        : [
+                                            ...prev,
+                                            { userId: m.userId, name: m.name },
+                                          ],
+                                    );
+                                    setMemberSearch("");
+                                  }}
+                                  className={cn(
+                                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                                    isSelected
+                                      ? "bg-secondary text-foreground font-medium"
+                                      : "hover:bg-secondary/50 text-muted-foreground",
+                                  )}
+                                >
+                                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                                    {getInitials(m.name)}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-foreground">
+                                      {m.name}
+                                    </p>
+                                    <p className="truncate text-muted-foreground">
+                                      {m.email}
+                                    </p>
+                                  </div>
+                                  {isSelected && (
+                                    <Check
+                                      size={11}
+                                      className="shrink-0 text-primary"
+                                    />
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         </PopoverContent>
                       </Popover>
@@ -1568,7 +1509,7 @@ export function TaskDetailSheet({
                             >
                               <CalendarDays size={12} />
                               {localDueDate
-                                ? format(new Date(localDueDate), "MMM d, yyyy")
+                                ? formatDDMMYYYY(localDueDate)
                                 : "Set date"}
                             </button>
                           </PopoverTrigger>
@@ -1601,10 +1542,17 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Estimate */}
-                    <EstimateField
-                      initialMinutes={localEstimate}
-                      onSave={setLocalEstimate}
-                    />
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <Clock size={10} /> Estimate
+                      </span>
+                      <TimeEstimateInput
+                        value={localEstimate}
+                        onChange={setLocalEstimate}
+                        size="sm"
+                        displayPlaceholder="Set estimate"
+                      />
+                    </div>
 
                     {/* Log Time */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
@@ -1614,97 +1562,59 @@ export function TaskDetailSheet({
                       <button
                         type="button"
                         onClick={() => setLogTimeOpen(true)}
-                        className="flex h-8 items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                        className="flex h-8 items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
                       >
                         <Plus size={10} />
                         Log time
                       </button>
                     </div>
 
-                    {/* Reporter */}
+                    {/* Reporter — static display */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                       <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                         <User size={10} /> Reporter
                       </span>
-                      <Popover
-                        open={reporterOpen}
-                        onOpenChange={setReporterOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex h-8.5 border px-3 rounded-md min-w-0 items-center gap-1.5 text-xs hover:text-foreground transition-colors cursor-pointer"
-                          >
-                            {localReporterId ? (
-                              <>
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
-                                  {getInitials(localReporterName)}
-                                </div>
-                                <span className="truncate text-foreground">
-                                  {localReporterName}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
+                      {localReporterName ? (
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={cn(
+                              "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold",
+                              localReporterId === currentUserId
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-brand-100 text-primary",
                             )}
-                            <ChevronDown
-                              size={11}
-                              className="shrink-0 text-muted-foreground"
-                            />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-2" align="start">
-                          <Input
-                            placeholder="Search members…"
-                            value={reporterSearch}
-                            onChange={(e) => setReporterSearch(e.target.value)}
-                            className="mb-2 h-7 text-xs"
-                          />
-                          <div className="max-h-48 overflow-y-auto space-y-0.5">
-                            {allMembers
-                              .filter(
-                                (m) =>
-                                  !reporterSearch ||
-                                  m.name
-                                    .toLowerCase()
-                                    .includes(reporterSearch.toLowerCase()) ||
-                                  m.email
-                                    .toLowerCase()
-                                    .includes(reporterSearch.toLowerCase()),
-                              )
-                              .map((m) => (
-                                <button
-                                  key={m.userId}
-                                  type="button"
-                                  onClick={() => {
-                                    setLocalReporterId(m.userId);
-                                    setLocalReporterName(m.name);
-                                    setReporterOpen(false);
-                                    setReporterSearch("");
-                                  }}
-                                  className={cn(
-                                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors cursor-pointer",
-                                    localReporterId === m.userId
-                                      ? "bg-secondary text-foreground font-medium"
-                                      : "hover:bg-secondary/50 text-muted-foreground",
-                                  )}
-                                >
-                                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
-                                    {getInitials(m.name)}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="truncate text-foreground">
-                                      {m.name}
-                                    </p>
-                                    <p className="truncate text-muted-foreground">
-                                      {m.email}
-                                    </p>
-                                  </div>
-                                </button>
-                              ))}
+                          >
+                            {getInitials(localReporterName)}
                           </div>
-                        </PopoverContent>
-                      </Popover>
+                          <span className="text-xs text-foreground">
+                            {localReporterName}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
+
+                    {/* Created at */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <Clock size={10} /> Created
+                      </span>
+                      <RelativeTime
+                        iso={task.createdAt}
+                        className="text-xs text-muted-foreground"
+                      />
+                    </div>
+
+                    {/* Updated at */}
+                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                        <Clock size={10} /> Updated
+                      </span>
+                      <RelativeTime
+                        iso={task.updatedAt}
+                        className="text-xs text-muted-foreground"
+                      />
                     </div>
                   </div>
 
@@ -1734,33 +1644,94 @@ export function TaskDetailSheet({
                     <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2.5">
                       <Tag size={10} /> Tags
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {TASK_TAG_OPTIONS.map((tag) => {
-                        const active = localTags.includes(tag);
-                        return (
+                    {/* Selected tags */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {localTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium capitalize",
+                            TAG_COLORS[tag] ??
+                              "bg-secondary text-foreground border-transparent",
+                          )}
+                        >
+                          {tag}
                           <button
-                            key={tag}
                             type="button"
                             onClick={() => toggleTag(tag)}
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium capitalize transition-all cursor-pointer",
-                              active
-                                ? cn(
-                                    TAG_COLORS[tag] ??
-                                      "bg-secondary text-foreground border-transparent",
-                                    "shadow-sm",
-                                  )
-                                : "border-border bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border",
-                            )}
+                            className="text-current opacity-60 hover:opacity-100"
                           >
-                            {active && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-                            )}
-                            {tag}
+                            <X size={10} />
                           </button>
-                        );
-                      })}
+                        </span>
+                      ))}
                     </div>
+                    {/* Combobox popover */}
+                    <Popover
+                      open={tagPopoverOpen}
+                      onOpenChange={setTagPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          <Plus size={11} /> Add tag
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-52 bg-white p-2"
+                        align="start"
+                        side="bottom"
+                        sideOffset={4}
+                      >
+                        <Input
+                          placeholder="Search or create tag…"
+                          value={tagSearch}
+                          onChange={(e) => setTagSearch(e.target.value)}
+                          className="mb-2 h-7 text-xs"
+                        />
+                        <div className="max-h-40 overflow-y-auto space-y-0.5">
+                          {filteredTagOptions.map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => {
+                                toggleTag(tag);
+                                setTagSearch("");
+                              }}
+                              className={cn(
+                                "flex w-full cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs capitalize transition-colors",
+                                localTags.includes(tag)
+                                  ? "bg-secondary font-medium"
+                                  : "hover:bg-secondary/50 text-muted-foreground",
+                              )}
+                            >
+                              {tag}
+                              {localTags.includes(tag) && (
+                                <Check size={11} className="text-primary" />
+                              )}
+                            </button>
+                          ))}
+                          {tagSearch &&
+                            !allTagOptions.includes(
+                              tagSearch.toLowerCase(),
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleTag(tagSearch.toLowerCase());
+                                  setTagSearch("");
+                                }}
+                                className="flex w-full cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-secondary/50 transition-colors"
+                              >
+                                <Plus size={11} /> Create &ldquo;{tagSearch}
+                                &rdquo;
+                              </button>
+                            )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
@@ -1902,7 +1873,7 @@ export function TaskDetailSheet({
               </div>
 
               {/* ─── Right pane ─────────────────────────────────────────────── */}
-              <div className="flex w-96 shrink-0 flex-col overflow-hidden bg-secondary/20">
+              <div className="flex w-120 shrink-0 flex-col overflow-hidden bg-secondary/20">
                 {/* Tabs header */}
                 <div className="border-b border-border px-4 pt-3 pb-0 flex items-center gap-0">
                   {(["comments", "logs", "files"] as const).map((tab) => (
@@ -1930,15 +1901,16 @@ export function TaskDetailSheet({
                 {activeTab !== "files" && (
                   <div
                     ref={feedScrollRef}
-                    className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+                    className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4"
                   >
                     {(() => {
-                      const visibleFeed =
-                        activeTab === "comments"
-                          ? feed.filter(
-                              (i) => i.type === "comment" || i.type === "file",
-                            )
-                          : feed.filter((i) => i.type === "activity");
+                      const visibleFeed = activeTab === "comments"
+                        ? feed
+                            .filter((i) => i.type === "comment" || i.type === "file")
+                            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                        : feed
+                            .filter((i) => i.type === "activity")
+                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                       if (visibleFeed.length === 0) {
                         return (
                           <p className="text-center text-xs text-muted-foreground py-4">
@@ -1954,7 +1926,14 @@ export function TaskDetailSheet({
                             /* ── Comment ── */
                             <div className="flex gap-2.5">
                               {/* Avatar */}
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">
+                              <div
+                                className={cn(
+                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5",
+                                  item.actorUserId === currentUserId
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-primary/10 text-primary",
+                                )}
+                              >
                                 {getInitials(item.actorName)}
                               </div>
 
@@ -1979,9 +1958,9 @@ export function TaskDetailSheet({
                                           type="button"
                                           onClick={() => {
                                             setEditingCommentId(item.id);
-                                            setEditingCommentBody(
-                                              item.body ?? "",
-                                            );
+                                            setEditingCommentBody(item.body ?? "");
+                                            setEditingPendingAttachments([]);
+                                            setEditingPendingAttachPreviews([]);
                                           }}
                                           className="flex h-5 w-5 items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                                         >
@@ -2020,61 +1999,144 @@ export function TaskDetailSheet({
                                       }))}
                                       onChange={setEditingCommentBody}
                                       onSubmit={() => {
-                                        if (
-                                          !editingCommentBody.trim() ||
-                                          updateComment.isPending
-                                        )
-                                          return;
+                                        if (!editingCommentBody.trim() || updateComment.isPending) return;
                                         updateComment.mutate(
+                                          { commentId: item.id, body: editingCommentBody },
                                           {
-                                            commentId: item.id,
-                                            body: editingCommentBody,
-                                          },
-                                          {
-                                            onSuccess: () =>
-                                              setEditingCommentId(null),
-                                            onError: (err) =>
-                                              toast.error(err.message),
+                                            onSuccess: () => setEditingCommentId(null),
+                                            onError: (err) => toast.error(err.message),
                                           },
                                         );
                                       }}
                                       placeholder="Edit comment…"
                                     />
-                                    <div className="flex items-center justify-end gap-1.5 border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setEditingCommentId(null)
-                                        }
-                                        className="rounded border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          updateComment.mutate(
-                                            {
-                                              commentId: item.id,
-                                              body: editingCommentBody,
-                                            },
-                                            {
-                                              onSuccess: () =>
-                                                setEditingCommentId(null),
-                                              onError: (err) =>
-                                                toast.error(err.message),
-                                            },
-                                          )
-                                        }
-                                        disabled={
-                                          !editingCommentBody.trim() ||
-                                          updateComment.isPending
-                                        }
-                                        className="flex items-center gap-1 rounded bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground disabled:opacity-50 transition-opacity cursor-pointer"
-                                      >
-                                        <Check size={10} /> Save
-                                      </button>
+                                    <div className="flex items-center justify-between border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
+                                      <TooltipProvider delayDuration={300}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              type="button"
+                                              disabled={uploadAttachment.isPending}
+                                              onClick={() => editAttachRef.current?.click()}
+                                              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                                            >
+                                              <Paperclip size={11} />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">Attach files (max 5 MB each)</TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                      <input
+                                        ref={editAttachRef}
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const files = Array.from(e.target.files ?? []);
+                                          const valid = files.filter((f) => {
+                                            if (f.size > 5 * 1024 * 1024) {
+                                              toast.error(`"${f.name}" exceeds 5 MB and was skipped.`);
+                                              return false;
+                                            }
+                                            return true;
+                                          });
+                                          setEditingPendingAttachments((prev) => [...prev, ...valid]);
+                                          valid.forEach((file, idx) => {
+                                            if (file.type.startsWith("image/")) {
+                                              const reader = new FileReader();
+                                              reader.onload = (ev) =>
+                                                setEditingPendingAttachPreviews((prev) => {
+                                                  const next = [...prev];
+                                                  next[editingPendingAttachments.length + idx] = ev.target?.result as string;
+                                                  return next;
+                                                });
+                                              reader.readAsDataURL(file);
+                                            } else {
+                                              setEditingPendingAttachPreviews((prev) => {
+                                                const next = [...prev];
+                                                next[editingPendingAttachments.length + idx] = null;
+                                                return next;
+                                              });
+                                            }
+                                          });
+                                          e.target.value = "";
+                                        }}
+                                      />
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingCommentId(null);
+                                            setEditingPendingAttachments([]);
+                                            setEditingPendingAttachPreviews([]);
+                                          }}
+                                          className="rounded border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            if (editingPendingAttachments.length > 0) {
+                                              try {
+                                                for (const file of editingPendingAttachments) {
+                                                  await uploadAttachment.mutateAsync({ file });
+                                                }
+                                                setEditingPendingAttachments([]);
+                                                setEditingPendingAttachPreviews([]);
+                                              } catch (err) {
+                                                toast.error(err instanceof Error ? err.message : "Upload failed.");
+                                                return;
+                                              }
+                                            }
+                                            updateComment.mutate(
+                                              { commentId: item.id, body: editingCommentBody },
+                                              {
+                                                onSuccess: () => setEditingCommentId(null),
+                                                onError: (err) => toast.error(err.message),
+                                              },
+                                            );
+                                          }}
+                                          disabled={(!editingCommentBody.trim() && editingPendingAttachments.length === 0) || updateComment.isPending || uploadAttachment.isPending}
+                                          className="flex items-center gap-1 rounded bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground disabled:opacity-50 transition-opacity cursor-pointer"
+                                        >
+                                          <Check size={10} /> {updateComment.isPending || uploadAttachment.isPending ? "Saving…" : "Save"}
+                                        </button>
+                                      </div>
                                     </div>
+
+                                    {/* Edit pending attachments preview */}
+                                    {editingPendingAttachments.length > 0 && (
+                                      <div className="flex flex-wrap gap-2 border-t border-border/60 bg-secondary/10 px-2.5 py-2">
+                                        {editingPendingAttachments.map((file, idx) => (
+                                          <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
+                                            {editingPendingAttachPreviews[idx] ? (
+                                              <img
+                                                src={editingPendingAttachPreviews[idx]!}
+                                                alt={file.name}
+                                                className="h-6 w-6 rounded object-cover shrink-0"
+                                              />
+                                            ) : (
+                                              <Paperclip size={11} className="shrink-0 text-muted-foreground" />
+                                            )}
+                                            <div className="min-w-0">
+                                              <p className="truncate text-[10px] font-medium text-foreground">{file.name}</p>
+                                              <p className="text-[9px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditingPendingAttachments((prev) => prev.filter((_, i) => i !== idx));
+                                                setEditingPendingAttachPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                              }}
+                                              className="absolute right-1 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                                            >
+                                              <X size={10} />
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <CommentBody
@@ -2088,7 +2150,14 @@ export function TaskDetailSheet({
                           ) : item.type === "file" ? (
                             /* ── File upload ── */
                             <div className="flex gap-2.5">
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">
+                              <div
+                                className={cn(
+                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5",
+                                  item.actorUserId === currentUserId
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-primary/10 text-primary",
+                                )}
+                              >
                                 {getInitials(item.actorName)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -2149,7 +2218,7 @@ export function TaskDetailSheet({
                                           <img
                                             src={item.storageUrl}
                                             alt={item.fileName ?? ""}
-                                            className="h-32 max-w-[220px] object-cover rounded-t-lg"
+                                            className="h-32 max-w-55 object-cover rounded-t-lg"
                                           />
                                           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/file:bg-black/25 transition-colors rounded-t-lg">
                                             <ZoomIn
@@ -2162,7 +2231,7 @@ export function TaskDetailSheet({
                                         <button
                                           type="button"
                                           disabled={!canPreview}
-                                          className="relative h-16 w-full overflow-hidden group/thumb disabled:cursor-default"
+                                          className="relative h-16 w-full overflow-hidden group/thumb disabled:cursor-default cursor-pointer"
                                           onClick={() =>
                                             canPreview &&
                                             setPreviewFile({
@@ -2179,7 +2248,7 @@ export function TaskDetailSheet({
                                             fileName={item.fileName ?? "file"}
                                           />
                                           {canPreview && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/10 transition-colors">
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/10 transition-colors cursor-pointer">
                                               <Eye
                                                 size={13}
                                                 className="text-current opacity-0 group-hover/thumb:opacity-60 transition-opacity drop-shadow"
@@ -2220,7 +2289,14 @@ export function TaskDetailSheet({
                           ) : (
                             /* ── Activity ── */
                             <div className="flex items-start gap-2">
-                              <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[8px] font-bold text-muted-foreground">
+                              <div
+                                className={cn(
+                                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold",
+                                  item.actorUserId === currentUserId
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-secondary text-muted-foreground",
+                                )}
+                              >
                                 {getInitials(item.actorName)}
                               </div>
                               <p className="text-[11px] text-muted-foreground leading-snug pt-0.5">
@@ -2301,7 +2377,7 @@ export function TaskDetailSheet({
                           return (
                             <div
                               key={att.id}
-                              className="group relative overflow-hidden rounded-card border border-border bg-card"
+                              className="group relative overflow-hidden rounded-card border border-border bg-card cursor-pointer"
                             >
                               {isImage && att.storageUrl ? (
                                 <button
@@ -2333,7 +2409,7 @@ export function TaskDetailSheet({
                               ) : (
                                 <button
                                   type="button"
-                                  className="relative h-20 w-full overflow-hidden group/thumb"
+                                  className="relative h-20 w-full overflow-hidden group/thumb cursor-pointer"
                                   onClick={() =>
                                     att.storageUrl &&
                                     setPreviewFile({
@@ -2374,7 +2450,7 @@ export function TaskDetailSheet({
                                   href={att.storageUrl ?? "#"}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                                  className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                                   title="Download"
                                 >
                                   <Download size={11} />
@@ -2391,7 +2467,7 @@ export function TaskDetailSheet({
                                       ),
                                   })
                                 }
-                                className="absolute right-1 top-1 rounded bg-card/80 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all"
+                                className="absolute right-1 top-1 rounded bg-card/80 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all cursor-pointer"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -2432,41 +2508,54 @@ export function TaskDetailSheet({
                           <span className="text-[10px] text-muted-foreground/30 select-none">
                             ·
                           </span>
-                          <button
-                            type="button"
-                            title="Attach file (max 5 MB)"
-                            disabled={uploadAttachment.isPending}
-                            onClick={() => commentAttachRef.current?.click()}
-                            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
-                          >
-                            <Paperclip size={11} />
-                          </button>
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  disabled={uploadAttachment.isPending}
+                                  onClick={() => commentAttachRef.current?.click()}
+                                  className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                                >
+                                  <Paperclip size={11} />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Attach file (max 5 MB)</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                           <input
                             ref={commentAttachRef}
                             type="file"
                             className="hidden"
+                            multiple
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              if (file.size > 5 * 1024 * 1024) {
-                                toast.error(
-                                  "File too large. Maximum size is 5 MB.",
-                                );
-                                e.target.value = "";
-                                return;
-                              }
-                              uploadAttachment.mutate(
-                                { file },
-                                {
-                                  onSuccess: () => {
-                                    toast.success(`"${file.name}" attached.`);
-                                  },
-                                  onError: (err) =>
-                                    toast.error(
-                                      err.message ?? "Upload failed.",
-                                    ),
-                                },
-                              );
+                              const files = Array.from(e.target.files ?? []);
+                              const valid = files.filter((f) => {
+                                if (f.size > 5 * 1024 * 1024) {
+                                  toast.error(`"${f.name}" exceeds 5 MB and was skipped.`);
+                                  return false;
+                                }
+                                return true;
+                              });
+                              setPendingAttachments((prev) => [...prev, ...valid]);
+                              valid.forEach((file, idx) => {
+                                if (file.type.startsWith("image/")) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) =>
+                                    setPendingAttachPreviews((prev) => {
+                                      const next = [...prev];
+                                      next[pendingAttachments.length + idx] = ev.target?.result as string;
+                                      return next;
+                                    });
+                                  reader.readAsDataURL(file);
+                                } else {
+                                  setPendingAttachPreviews((prev) => {
+                                    const next = [...prev];
+                                    next[pendingAttachments.length + idx] = null;
+                                    return next;
+                                  });
+                                }
+                              });
                               e.target.value = "";
                             }}
                           />
@@ -2474,13 +2563,61 @@ export function TaskDetailSheet({
                         <Button
                           size="sm"
                           className="h-6 px-2.5 text-[11px] cursor-pointer gap-1"
-                          onClick={() => handleSubmitComment()}
-                          disabled={isCommentEmpty || createComment.isPending}
+                          disabled={(isCommentEmpty && pendingAttachments.length === 0) || createComment.isPending || uploadAttachment.isPending}
+                          onClick={async () => {
+                            if (pendingAttachments.length > 0) {
+                              try {
+                                for (const file of pendingAttachments) {
+                                  await uploadAttachment.mutateAsync({ file });
+                                }
+                                toast.success(`${pendingAttachments.length} file${pendingAttachments.length > 1 ? "s" : ""} attached.`);
+                                setPendingAttachments([]);
+                                setPendingAttachPreviews([]);
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Upload failed.");
+                                return;
+                              }
+                            }
+                            if (!isCommentEmpty) handleSubmitComment();
+                          }}
                         >
                           <Send size={11} />
-                          {createComment.isPending ? "Posting…" : "Post"}
+                          {createComment.isPending || uploadAttachment.isPending ? "Posting…" : "Post"}
                         </Button>
                       </div>
+
+                      {/* Pending attachments preview */}
+                      {pendingAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 border-t border-border/60 bg-secondary/10 px-2.5 py-2">
+                          {pendingAttachments.map((file, idx) => (
+                            <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
+                              {pendingAttachPreviews[idx] ? (
+                                <img
+                                  src={pendingAttachPreviews[idx]!}
+                                  alt={file.name}
+                                  className="h-6 w-6 rounded object-cover shrink-0"
+                                />
+                              ) : (
+                                <Paperclip size={11} className="shrink-0 text-muted-foreground" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate text-[10px] font-medium text-foreground">{file.name}</p>
+                                <p className="text-[9px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPendingAttachments((prev) => prev.filter((_, i) => i !== idx));
+                                  setPendingAttachPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

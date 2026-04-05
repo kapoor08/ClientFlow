@@ -164,6 +164,7 @@ export default function BrandingForm({
                     variant="outline"
                     size="icon"
                     onClick={() => setLogoUrl("")}
+                    className="cursor-pointer"
                   >
                     <X size={14} />
                   </Button>

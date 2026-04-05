@@ -24,6 +24,14 @@ export async function markAllNotificationsRead(): Promise<void> {
   return http<void>("/api/notifications", { method: "POST" });
 }
 
+export async function deleteNotification(id: string): Promise<void> {
+  return http<void>(`/api/notifications/${id}`, { method: "DELETE" });
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  return http<void>("/api/notifications", { method: "DELETE" });
+}
+
 export async function fetchPreferences(): Promise<NotificationPreferencesResponse> {
   return http<NotificationPreferencesResponse>("/api/notifications/preferences");
 }

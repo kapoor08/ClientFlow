@@ -164,7 +164,7 @@ export function CreateInvoiceDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
+                    <SelectItem key={c.id} value={c.id} className="cursor-pointer">
                       {c.name}
                     </SelectItem>
                   ))}
@@ -210,7 +210,7 @@ export function CreateInvoiceDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Line Items *</Label>
-              <Button type="button" variant="ghost" size="sm" onClick={addLine}>
+              <Button type="button" variant="ghost" size="sm" onClick={addLine} className="cursor-pointer">
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Add line
               </Button>
@@ -287,7 +287,7 @@ export function CreateInvoiceDialog({
                           <button
                             type="button"
                             onClick={() => removeLine(idx)}
-                            className="text-muted-foreground hover:text-destructive transition-colors"
+                            className="cursor-pointer text-muted-foreground hover:text-destructive transition-colors"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

@@ -23,14 +23,28 @@ export type RecentProject = {
 };
 
 export type AnalyticsSummary = {
+  // Projects
   totalClients: number;
   activeProjects: number;
   completedProjects: number;
   totalFiles: number;
+  // Tasks
+  totalTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+  tasksByStatus: ProjectStatusBreakdown[];
+  // Time
+  totalHoursLogged: number;
+  monthlyHoursLogged: MonthlyCount[];
+  // Revenue
   totalRevenueCents: number;
+  pendingRevenueCents: number;
+  invoicesByStatus: ProjectStatusBreakdown[];
+  // Charts
   projectsByStatus: ProjectStatusBreakdown[];
   monthlyProjectCreation: MonthlyCount[];
   monthlyRevenue: MonthlyRevenue[];
+  // Lists
   recentProjects: RecentProject[];
 };
 

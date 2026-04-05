@@ -40,13 +40,19 @@ export function DeleteColumnDialog({
           Tasks in this column will be unassigned. This action cannot be undone.
         </p>
         <DialogFooter showCloseButton={false}>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer"
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={onConfirm}
             disabled={isPending}
+            className="cursor-pointer"
           >
             {isPending ? "Deleting…" : "Delete Column"}
           </Button>

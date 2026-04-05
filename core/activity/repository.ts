@@ -5,6 +5,7 @@ export async function fetchActivity(
   filters: ActivityFilters = {},
 ): Promise<ActivityResponse> {
   const params = new URLSearchParams();
+  if (filters.q) params.set("q", filters.q);
   if (filters.entityType) params.set("entityType", filters.entityType);
   if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
   if (filters.dateTo) params.set("dateTo", filters.dateTo);

@@ -6,7 +6,29 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const SESSION_TIMEOUT_OPTIONS = [
+  { value: "none", label: "No timeout" },
+  { value: "1", label: "1 hour" },
+  { value: "2", label: "2 hours" },
+  { value: "4", label: "4 hours" },
+  { value: "8", label: "8 hours" },
+  { value: "12", label: "12 hours" },
+  { value: "24", label: "1 day" },
+  { value: "48", label: "2 days" },
+  { value: "72", label: "3 days" },
+  { value: "168", label: "1 week" },
+  { value: "336", label: "2 weeks" },
+  { value: "720", label: "30 days" },
+];
 
 export function SecurityPoliciesSection() {
   const qc = useQueryClient();
@@ -91,33 +113,35 @@ export function SecurityPoliciesSection() {
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Session timeout */}
         <div className="space-y-2">
-          <Label htmlFor="session-timeout">Session Timeout (hours)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="session-timeout"
-              type="number"
-              min={1}
-              max={8760}
-              value={timeoutHours}
-              onChange={(e) => setTimeoutHours(e.target.value)}
-              placeholder="No timeout"
-              className="w-40"
-            />
-            <span className="text-xs text-muted-foreground">
-              Leave blank to disable auto sign-out.
-            </span>
-          </div>
+          <Label htmlFor="session-timeout">Session Timeout</Label>
+          <p className="text-xs text-muted-foreground">
+            Auto sign-out members after this period of inactivity.
+          </p>
+          <Select
+            value={timeoutHours || "none"}
+            onValueChange={(val) => setTimeoutHours(val === "none" ? "" : val)}
+          >
+            <SelectTrigger id="session-timeout" className="w-full cursor-pointer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SESSION_TIMEOUT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* IP allowlist */}
         <div className="space-y-2">
           <Label>IP Allowlist</Label>
           <p className="text-xs text-muted-foreground">
-            Restrict access to these IP addresses or CIDR ranges. Leave empty to
-            allow all IPs.
+            Restrict access to these IP addresses or CIDR ranges. Leave empty to allow all IPs.
           </p>
           <div className="flex gap-2">
             <Input
@@ -138,7 +162,7 @@ export function SecurityPoliciesSection() {
             </Button>
           </div>
           {ipList.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {ipList.map((ip) => (
                 <span
                   key={ip}
@@ -158,7 +182,9 @@ export function SecurityPoliciesSection() {
             </div>
           )}
         </div>
+      </div>
 
+      <div className="mt-5 border-t border-border pt-4">
         <Button
           onClick={handleSave}
           disabled={saving}

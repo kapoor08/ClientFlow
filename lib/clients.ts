@@ -113,7 +113,7 @@ function normalizeClientInput(input: ClientFormValues): ClientFormValues {
     contactEmail: input.contactEmail.trim().toLowerCase(),
     contactPhone: input.contactPhone.trim(),
     status: input.status,
-    notes: input.notes.trim(),
+    notes: input.notes?.trim(),
   };
 }
 
@@ -424,7 +424,7 @@ export async function updateClientForUser(
   }
 
   const existing = await db
-    .select({ id: clients.id })
+    .select({ id: clients.id, name: clients.name, status: clients.status, company: clients.company })
     .from(clients)
     .where(
       and(
@@ -463,13 +463,18 @@ export async function updateClientForUser(
     })
     .where(eq(clients.id, clientId));
 
+  const clientChangedMeta: Record<string, unknown> = { name: values.name };
+  if (existing[0].status !== values.status) clientChangedMeta.status = values.status;
+  if ((existing[0].company || "") !== (values.company || ""))
+    clientChangedMeta.company = values.company || null;
+
   writeAuditLog({
     organizationId: access.organizationId,
     actorUserId: userId,
     action: "client.updated",
     entityType: "client",
     entityId: clientId,
-    metadata: { name: values.name },
+    metadata: clientChangedMeta,
   }).catch(console.error);
 
   // Notify org members about status changes

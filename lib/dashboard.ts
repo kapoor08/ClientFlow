@@ -12,6 +12,7 @@ import {
   not,
   inArray,
   sum,
+  sql,
 } from "drizzle-orm";
 import { auditLogs, clients, invoices, projects, tasks } from "@/db/schema";
 import { user } from "@/db/auth-schema";
@@ -54,9 +55,15 @@ export type DashboardKPIs = {
   monthlyRevenueCents: number;
 };
 
+export type RevenueTrendPoint = {
+  month: string;
+  revenueCents: number;
+};
+
 export type DashboardContext = {
   userName: string | null;
   kpis: DashboardKPIs;
+  revenueTrend: RevenueTrendPoint[];
   tasksDueSoon: DashboardTask[];
   recentProjects: DashboardProject[];
   recentActivity: DashboardActivity[];
@@ -75,6 +82,7 @@ export async function getDashboardContextForUser(
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
   const [userRow] = await db
     .select({ name: user.name })
@@ -90,6 +98,7 @@ export async function getDashboardContextForUser(
     openTaskRows,
     overdueTaskRows,
     revenueRows,
+    revenueTrendRows,
     tasksDueSoonRows,
     recentProjectRows,
     recentActivityRows,
@@ -181,6 +190,24 @@ export async function getDashboardContextForUser(
         ),
       ),
 
+    // Monthly revenue for the last 6 months
+    db
+      .select({
+        month: sql<string>`to_char(date_trunc('month', ${invoices.paidAt}), 'Mon YY')`,
+        monthDate: sql<string>`date_trunc('month', ${invoices.paidAt})`,
+        totalCents: sum(invoices.amountPaidCents),
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.organizationId, orgId),
+          eq(invoices.status, "paid"),
+          gte(invoices.paidAt, sixMonthsAgo),
+        ),
+      )
+      .groupBy(sql`date_trunc('month', ${invoices.paidAt})`)
+      .orderBy(sql`date_trunc('month', ${invoices.paidAt}) asc`),
+
     // Tasks due within the next 7 days or already overdue, joined with project name
     db
       .select({
@@ -242,6 +269,21 @@ export async function getDashboardContextForUser(
       .limit(8),
   ]);
 
+  // Build a complete 6-month series, filling 0 for months with no data
+  // Label format matches PostgreSQL to_char(..., 'Mon YY'): e.g. "Apr 25"
+  const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const trendMap = new Map(
+    revenueTrendRows.map((r) => [r.month, Number(r.totalCents ?? 0)]),
+  );
+  const revenueTrend = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    const label = `${MONTH_ABBR[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+    return {
+      month: label,
+      revenueCents: trendMap.get(label) ?? 0,
+    };
+  });
+
   return {
     userName: userRow?.name ?? null,
     kpis: {
@@ -253,6 +295,7 @@ export async function getDashboardContextForUser(
       overdueTasks: overdueTaskRows[0]?.value ?? 0,
       monthlyRevenueCents: Number(revenueRows[0]?.value ?? 0),
     },
+    revenueTrend,
     tasksDueSoon: tasksDueSoonRows,
     recentProjects: recentProjectRows,
     recentActivity: recentActivityRows,

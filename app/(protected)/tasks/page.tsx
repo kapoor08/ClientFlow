@@ -36,6 +36,7 @@ export default async function Page() {
           ...t,
           dueDate: t.dueDate ? t.dueDate.toISOString() : null,
           createdAt: t.createdAt.toISOString(),
+          estimateSetAt: t.estimateSetAt ? t.estimateSetAt.toISOString() : null,
           columnId: t.columnId ?? null,
           refNumber: t.refNumber ?? null,
           tags: t.tags ?? [],

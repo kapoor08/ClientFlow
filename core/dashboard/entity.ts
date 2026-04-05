@@ -34,9 +34,15 @@ export type DashboardKPIs = {
   monthlyRevenueCents: number;
 };
 
+export type RevenueTrendPoint = {
+  month: string;
+  revenueCents: number;
+};
+
 export type DashboardContext = {
   userName: string | null;
   kpis: DashboardKPIs;
+  revenueTrend: RevenueTrendPoint[];
   tasksDueSoon: DashboardTask[];
   recentProjects: DashboardProject[];
   recentActivity: DashboardActivity[];

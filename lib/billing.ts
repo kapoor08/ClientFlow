@@ -129,6 +129,7 @@ async function listStripeSubscriptionInvoices(
   options: {
     dateFrom?: Date;
     dateTo?: Date;
+    status?: string;
     page: number;
     pageSize: number;
   },
@@ -206,7 +207,9 @@ async function listStripeSubscriptionInvoices(
     const filteredInvoices = uniqueStripeInvoices
       .filter((invoice) => {
         const subscriptionId = getSubscriptionIdFromStripeInvoice(invoice);
-        return !!subscriptionId && subscriptionIds.has(subscriptionId);
+        if (!subscriptionId || !subscriptionIds.has(subscriptionId)) return false;
+        if (options.status && invoice.status !== options.status) return false;
+        return true;
       })
       .sort((a, b) => b.created - a.created)
       .map((invoice) => ({
@@ -263,6 +266,7 @@ async function listStripeSubscriptionInvoices(
 export type GetBillingContextOptions = {
   dateFrom?: Date;
   dateTo?: Date;
+  status?: string;
   page?: number;
   pageSize?: number;
 };
@@ -278,6 +282,7 @@ export async function getBillingContextForUser(
   const {
     dateFrom,
     dateTo,
+    status,
     page = 1,
     pageSize = 10,
   } = options;
@@ -418,6 +423,7 @@ export async function getBillingContextForUser(
           and(
             eq(invoices.organizationId, orgId),
             isNotNull(invoices.subscriptionId),
+            status ? eq(invoices.status, status) : undefined,
             dateFrom ? gte(invoices.createdAt, dateFrom) : undefined,
             dateTo ? lte(invoices.createdAt, dateTo) : undefined,
           ),
@@ -442,6 +448,7 @@ export async function getBillingContextForUser(
           and(
             eq(invoices.organizationId, orgId),
             isNotNull(invoices.subscriptionId),
+            status ? eq(invoices.status, status) : undefined,
             dateFrom ? gte(invoices.createdAt, dateFrom) : undefined,
             dateTo ? lte(invoices.createdAt, dateTo) : undefined,
           ),
@@ -481,6 +488,7 @@ export async function getBillingContextForUser(
   const stripeInvoiceResult = await listStripeSubscriptionInvoices(subscriptionRows, {
     dateFrom,
     dateTo,
+    status,
     page,
     pageSize,
   });

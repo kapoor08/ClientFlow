@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const dateFromParam = searchParams.get("dateFrom");
     const dateToParam = searchParams.get("dateTo");
     const clientId = searchParams.get("clientId") ?? undefined;
+    const priority = searchParams.get("priority") ?? undefined;
 
     const dateFrom = dateFromParam ? new Date(dateFromParam) : undefined;
     const dateTo = dateToParam ? new Date(dateToParam) : undefined;
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
       dateFrom,
       dateTo,
       clientId,
+      priority,
     });
 
     if (!summary) {

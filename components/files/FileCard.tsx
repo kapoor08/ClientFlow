@@ -47,20 +47,16 @@ function getFileIcon(mimeType: string | null) {
   return File;
 }
 
-function getFileIconColor(mimeType: string | null): string {
-  if (!mimeType) return "text-muted-foreground";
-  if (mimeType.startsWith("image/")) return "text-primary";
-  if (mimeType.startsWith("video/")) return "text-purple-500";
-  if (mimeType === "application/pdf") return "text-danger";
-  if (
-    mimeType.includes("spreadsheet") ||
-    mimeType.includes("excel") ||
-    mimeType === "text/csv"
-  )
-    return "text-success";
+function getIconBg(mimeType: string | null): string {
+  if (!mimeType) return "bg-muted text-muted-foreground";
+  if (mimeType.startsWith("image/")) return "bg-primary/10 text-primary";
+  if (mimeType.startsWith("video/")) return "bg-purple-100 text-purple-500";
+  if (mimeType === "application/pdf") return "bg-danger/10 text-danger";
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel") || mimeType === "text/csv")
+    return "bg-success/10 text-success";
   if (mimeType.includes("word") || mimeType.includes("document"))
-    return "text-info";
-  return "text-muted-foreground";
+    return "bg-info/10 text-info";
+  return "bg-muted text-muted-foreground";
 }
 
 function formatBytes(bytes: number | null): string {
@@ -93,14 +89,14 @@ export function FileCard({
 }: FileCardProps) {
   const [previewing, setPreviewing] = useState(false);
   const Icon = getFileIcon(file.mimeType);
-  const iconColor = getFileIconColor(file.mimeType);
+  const iconBg = getIconBg(file.mimeType);
 
   return (
     <>
-      <div className="group flex items-start gap-3 rounded-card border border-border bg-card p-4 shadow-cf-1 transition-all hover:border-primary/20 hover:shadow-cf-2">
+      <div className="group flex items-center gap-3 rounded-card border border-border bg-card p-3.5 shadow-cf-1 transition-all hover:border-primary/20 hover:shadow-cf-2">
         {/* Icon */}
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <Icon size={18} className={iconColor} />
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
+          <Icon size={17} />
         </div>
 
         {/* Info */}
@@ -118,9 +114,9 @@ export function FileCard({
           </p>
         </div>
 
-        {/* Actions */}
+        {/* Actions — visible on hover */}
         <TooltipProvider delayDuration={300}>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button

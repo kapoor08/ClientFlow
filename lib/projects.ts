@@ -376,7 +376,7 @@ export async function updateProjectForUser(
   }
 
   const existing = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, name: projects.name, status: projects.status, priority: projects.priority })
     .from(projects)
     .where(
       and(
@@ -407,13 +407,18 @@ export async function updateProjectForUser(
     })
     .where(eq(projects.id, projectId));
 
+  const projectChangedMeta: Record<string, unknown> = { name: input.name.trim() };
+  if (existing[0].status !== input.status) projectChangedMeta.status = input.status;
+  if ((existing[0].priority ?? null) !== (input.priority || null))
+    projectChangedMeta.priority = input.priority || "None";
+
   writeAuditLog({
     organizationId: access.organizationId,
     actorUserId: userId,
     action: "project.updated",
     entityType: "project",
     entityId: projectId,
-    metadata: { name: input.name.trim() },
+    metadata: projectChangedMeta,
   }).catch(console.error);
 
   // Determine the most specific event key based on what changed

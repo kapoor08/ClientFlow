@@ -10,10 +10,11 @@ type ActivityLogsPageProps = {
 
 const ActivityLogsPage = async ({ searchParams }: ActivityLogsPageProps) => {
   const session = await getServerSession();
-  const { entityType, dateFrom, dateTo, page, pageSize } =
+  const { q, entityType, dateFrom, dateTo, page, pageSize } =
     activitySearchParamsCache.parse(await searchParams);
 
   const result = await listActivityForUser(session!.user.id, {
+    query: q || undefined,
     entityType: entityType || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
@@ -24,7 +25,9 @@ const ActivityLogsPage = async ({ searchParams }: ActivityLogsPageProps) => {
   if (!result) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground">No active organization found.</p>
+        <p className="text-muted-foreground">
+          You do not have permission to view activity logs.
+        </p>
       </div>
     );
   }

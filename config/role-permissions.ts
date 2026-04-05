@@ -54,7 +54,7 @@ export const PORTAL_MODULES: ModuleDef[] = [
 
 /** Hrefs that owner/admin always see — not configurable for other roles */
 export const ADMIN_ONLY_HREFS = new Set([
-  "/settings", "/teams", "/billing", "/invoices", "/audit-logs", "/org-security", "/developer",
+  "/settings", "/teams", "/billing", "/invoices", "/activity-logs", "/org-security", "/developer",
 ]);
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────

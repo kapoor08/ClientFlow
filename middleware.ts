@@ -28,7 +28,6 @@ const PROTECTED_PREFIXES = [
   "/analytics",
   "/notifications",
   "/invitations",
-  "/audit-logs",
   "/org-security",
   "/developer",
   "/activity-logs",
