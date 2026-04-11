@@ -1,4 +1,5 @@
 import type { ProjectFormValues, ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
+import { PROJECT_STATUS_LABELS } from "@/helpers/project";
 
 export type ProjectListItem = {
   id: string;
@@ -41,3 +42,22 @@ export type ListProjectsParams = {
 
 export type CreateProjectData = ProjectFormValues;
 export type UpdateProjectData = ProjectFormValues;
+
+// ─── Display constants ────────────────────────────────────────────────────────
+
+export { PROJECT_STATUS_LABELS };
+
+export const PROJECT_STATUS_STYLES: Record<string, string> = {
+  planning: "bg-secondary text-muted-foreground",
+  in_progress: "bg-info/10 text-info",
+  on_hold: "bg-warning/10 text-warning",
+  completed: "bg-success/10 text-success",
+  cancelled: "bg-danger/10 text-danger",
+};
+
+export const PROJECT_PRIORITY_STYLES: Record<string, string> = {
+  low: "bg-neutral-300/50 text-neutral-500",
+  medium: "bg-info/10 text-info",
+  high: "bg-warning/10 text-warning",
+  urgent: "bg-danger/10 text-danger",
+};

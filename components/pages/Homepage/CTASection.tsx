@@ -60,7 +60,7 @@ const CTASection = () => {
           {/* Subtext */}
           <p className="mx-auto mt-5 max-w-lg text-[15px] leading-relaxed text-white/45">
             Join thousands of agencies already using ClientFlow to manage clients,
-            projects, and billing — all in one place.
+            projects, and billing - all in one place.
           </p>
 
           {/* CTA buttons */}

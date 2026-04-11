@@ -376,7 +376,7 @@ export async function getBillingContextForUser(
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // Real usage counts + monthly quotas + invoices — run in parallel
+  // Real usage counts + monthly quotas + invoices - run in parallel
   const [
     memberCountRows,
     projectCountRows,

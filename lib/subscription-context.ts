@@ -53,7 +53,7 @@ export async function getSubscriptionContextForUser(
   const isTrialExpired =
     isTrialing && trialEndsAt !== null && trialEndsAt < now;
 
-  // Paid plans (non-free) are managed by Stripe — trust Stripe's status.
+  // Paid plans (non-free) are managed by Stripe - trust Stripe's status.
   // Stripe transitions "trialing" → "active" (paid) or "past_due" (failed).
   // Only enforce our own trial expiry for the free plan soft-trial.
   const isPaidPlan = row.planCode !== "free";

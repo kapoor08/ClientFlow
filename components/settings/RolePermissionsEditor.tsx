@@ -139,7 +139,7 @@ function ActionCell({
   onChange: (v: boolean) => void;
 }) {
   if (!enabled) {
-    return <td className="px-4 py-3 text-center text-muted-foreground/40">—</td>;
+    return <td className="px-4 py-3 text-center text-muted-foreground/40">-</td>;
   }
   return (
     <td className="px-4 py-3 text-center">

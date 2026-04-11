@@ -416,7 +416,7 @@ export default function ApiKeysPage() {
           <DialogHeader>
             <DialogTitle>Your new API key</DialogTitle>
             <DialogDescription>
-              Copy this key now — it won&apos;t be shown again.
+              Copy this key now - it won&apos;t be shown again.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-card border border-warning/30 bg-warning/5 p-3">

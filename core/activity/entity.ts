@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "@/lib/pagination";
+import { ENTITY_TYPE_OPTIONS } from "@/helpers/activity";
 
 export type ActivityEntry = {
   id: string;
@@ -26,18 +27,7 @@ export type ActivityResponse = {
   pagination: PaginationMeta;
 };
 
-export const ENTITY_TYPE_OPTIONS = [
-  { value: "all", label: "All activity" },
-  { value: "client", label: "Clients" },
-  { value: "project", label: "Projects" },
-  { value: "task", label: "Tasks" },
-  { value: "file", label: "Files" },
-  { value: "invoice", label: "Invoices" },
-  { value: "time_entry", label: "Time Entries" },
-  { value: "invitation", label: "Invitations" },
-  { value: "membership", label: "Members" },
-  { value: "organization", label: "Organization" },
-] as const;
+export { ENTITY_TYPE_OPTIONS };
 
 const ACTION_LABELS: Record<string, string> = {
   // Clients
@@ -104,10 +94,10 @@ export function getEntityName(entry: ActivityEntry): string | null {
   const meta = entry.metadata;
   if (!meta) return null;
   if (typeof meta.name === "string" && meta.name) return meta.name;
-  // Invoices: show "INV-0001 — Title"
+  // Invoices: show "INV-0001 - Title"
   if (typeof meta.number === "string" && meta.number) {
     const title = typeof meta.title === "string" ? meta.title : null;
-    return title ? `${meta.number} — ${title}` : meta.number;
+    return title ? `${meta.number} - ${title}` : meta.number;
   }
   if (typeof meta.email === "string" && meta.email) return meta.email;
   return null;

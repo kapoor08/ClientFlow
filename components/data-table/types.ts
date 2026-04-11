@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export type SortDirection = "asc" | "desc";
 
 export type ColumnDef<T> = {
-  /** Unique key — must match the sortable field name when sortable: true */
+  /** Unique key - must match the sortable field name when sortable: true */
   key: string;
   header: string;
   sortable?: boolean;

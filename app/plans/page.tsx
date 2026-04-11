@@ -12,7 +12,7 @@ export default async function PlansRoute() {
 
   const sub = await getSubscriptionContextForUser(session.user.id);
 
-  // Already has active (non-expired) subscription — send to app
+  // Already has active (non-expired) subscription - send to app
   if (sub && sub.hasAccess && !sub.isTrialExpired) {
     redirect("/dashboard");
   }

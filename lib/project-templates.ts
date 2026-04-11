@@ -87,6 +87,8 @@ export async function updateProjectTemplateForUser(
 ): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
+  if (!ctx.canManageSettings && ctx.roleKey !== "manager")
+    throw new Error("You don't have permission to update templates.");
 
   const [existing] = await db
     .select({ id: projectTemplates.id })
@@ -108,6 +110,8 @@ export async function deleteProjectTemplateForUser(
 ): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
+  if (!ctx.canManageSettings && ctx.roleKey !== "manager")
+    throw new Error("You don't have permission to delete templates.");
 
   const [existing] = await db
     .select({ id: projectTemplates.id })

@@ -13,6 +13,8 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ProjectFile } from "@/core/files/entity";
+import { formatBytes } from "@/utils/file";
+import { formatDate } from "@/utils/date";
 import { FilePreviewModal } from "./FilePreviewModal";
 import {
   Tooltip,
@@ -59,21 +61,6 @@ function getIconBg(mimeType: string | null): string {
   return "bg-muted text-muted-foreground";
 }
 
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(iso));
-}
-
 type FileCardProps = {
   file: ProjectFile;
   canDelete: boolean;
@@ -114,7 +101,7 @@ export function FileCard({
           </p>
         </div>
 
-        {/* Actions — visible on hover */}
+        {/* Actions - visible on hover */}
         <TooltipProvider delayDuration={300}>
           <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <Tooltip>

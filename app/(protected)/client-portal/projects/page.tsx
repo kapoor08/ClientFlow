@@ -4,29 +4,16 @@ import { getOrganizationSettingsContextForUser } from "@/lib/organization-settin
 import { getPortalProjectsForUser } from "@/lib/client-portal";
 import { FolderKanban, Clock } from "lucide-react";
 import Link from "next/link";
+import {
+  PROJECT_STATUS_LABELS,
+  PROJECT_STATUS_STYLES,
+  PROJECT_PRIORITY_STYLES as PRIORITY_STYLES,
+} from "@/core/projects/entity";
+import { EmptyState } from "@/components/common";
 
-const STATUS_STYLES: Record<string, string> = {
-  planning: "bg-secondary text-muted-foreground",
-  active: "bg-info/10 text-info",
-  on_hold: "bg-warning/10 text-warning",
-  completed: "bg-success/10 text-success",
-  cancelled: "bg-danger/10 text-danger",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On Hold",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
-
-const PRIORITY_STYLES: Record<string, string> = {
-  low: "bg-neutral-300/50 text-neutral-500",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  urgent: "bg-danger/10 text-danger",
-};
+// Portal-specific override: legacy "active" key (canonical uses "in_progress")
+const STATUS_STYLES: Record<string, string> = { ...PROJECT_STATUS_STYLES, active: "bg-info/10 text-info" };
+const STATUS_LABELS: Record<string, string> = { ...PROJECT_STATUS_LABELS, active: "Active" };
 
 export default async function ClientPortalProjectsPage() {
   const session = await getServerSession();
@@ -50,17 +37,11 @@ export default async function ClientPortalProjectsPage() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-card border border-border bg-card py-20 text-center shadow-cf-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-            <FolderKanban size={20} className="text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">No projects yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Projects shared with you will appear here.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={FolderKanban}
+          title="No projects yet"
+          description="Projects shared with you will appear here."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (

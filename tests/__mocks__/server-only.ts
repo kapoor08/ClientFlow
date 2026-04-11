@@ -1,2 +1,2 @@
-// Stub for server-only — allows importing server modules in unit tests
+// Stub for server-only - allows importing server modules in unit tests
 export {};

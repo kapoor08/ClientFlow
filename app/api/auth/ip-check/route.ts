@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   let userId = session?.user?.id ?? null;
 
   // After password verification but before TOTP, BetterAuth has no full session
-  // cookie — only a pending 2FA state. Fall back to email-based lookup so we
+  // cookie - only a pending 2FA state. Fall back to email-based lookup so we
   // can check the IP allowlist before the MFA screen is shown.
   if (!userId) {
     const email = request.nextUrl.searchParams.get("email");

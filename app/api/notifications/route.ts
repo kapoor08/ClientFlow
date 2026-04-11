@@ -6,7 +6,7 @@ import {
 } from "@/lib/notifications";
 import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
 
-// GET /api/notifications — list with unread count
+// GET /api/notifications - list with unread count
 export async function GET() {
   try {
     const { userId } = await requireAuth();
@@ -28,7 +28,7 @@ export async function POST() {
   }
 }
 
-// DELETE /api/notifications — delete all notifications for the user
+// DELETE /api/notifications - delete all notifications for the user
 export async function DELETE() {
   try {
     const { userId } = await requireAuth();

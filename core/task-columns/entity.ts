@@ -1,3 +1,5 @@
+import { COLUMN_TYPE_OPTIONS } from "@/helpers/task";
+
 export type BoardColumn = {
   id: string;
   name: string;
@@ -20,13 +22,7 @@ export type CreateColumnData = {
 
 export type UpdateColumnData = Partial<CreateColumnData>;
 
-export const COLUMN_TYPE_OPTIONS = [
-  { value: "none", label: "None (optional)" },
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "testing_qa", label: "Testing / QA" },
-  { value: "completed", label: "Completed" },
-] as const;
+export { COLUMN_TYPE_OPTIONS };
 
 export const PRESET_COLORS = [
   "#71717a", "#3b82f6", "#22c55e", "#f59e0b",

@@ -17,7 +17,7 @@ export async function GET() {
   }
 }
 
-// PATCH /api/notifications/preferences — { eventKey, inAppEnabled?, emailEnabled? }
+// PATCH /api/notifications/preferences - { eventKey, inAppEnabled?, emailEnabled? }
 export async function PATCH(request: NextRequest) {
   try {
     const { userId } = await requireAuth();

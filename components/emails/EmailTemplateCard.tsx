@@ -209,7 +209,7 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
                     <div className="h-px bg-border" />
                     <div className="bg-muted/30 px-8 py-4 text-center">
                       <p className="text-[11px] text-muted-foreground">
-                        © 2026 ClientFlow — All rights reserved
+                        © 2026 ClientFlow - All rights reserved
                       </p>
                     </div>
                   </div>

@@ -57,10 +57,10 @@ export default async function AdminAuditLogsPage() {
                     )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                    {log.orgName ?? "—"}
+                    {log.orgName ?? "-"}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell font-mono text-xs text-muted-foreground">
-                    {log.ipAddress ?? "—"}
+                    {log.ipAddress ?? "-"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}

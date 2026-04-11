@@ -66,10 +66,14 @@ const SignIn = () => {
   const onSubmit = async (values: SignInFormValues) => {
     setApiError(null);
     try {
-      // Check if org requires SSO before attempting password auth
+      // Check if org requires SSO before attempting password auth.
+      // Fall back to allowing password auth if the check itself fails -
+      // a transient SSO endpoint outage shouldn't block all sign-ins.
       const ssoCheck = await fetch(
         `/api/auth/sso/check?email=${encodeURIComponent(values.email.trim())}`,
-      ).then((r) => r.json()) as { ssoRequired: boolean };
+      )
+        .then((r) => (r.ok ? r.json() : { ssoRequired: false }))
+        .catch(() => ({ ssoRequired: false })) as { ssoRequired: boolean };
 
       if (ssoCheck.ssoRequired) {
         router.push(
@@ -84,8 +88,8 @@ const SignIn = () => {
         callbackURL: redirectTo,
       });
 
-      // Check IP allowlist immediately after credentials are verified —
-      // before MFA screen or dashboard redirect — so a blocked IP never
+      // Check IP allowlist immediately after credentials are verified -
+      // before MFA screen or dashboard redirect - so a blocked IP never
       // progresses further in the auth flow.
       const ipCheck = await fetch(
         `/api/auth/ip-check?email=${encodeURIComponent(values.email.trim())}`,

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { plans } from "@/config/plans";
+import { toast } from "sonner";
 
 export default function PlansPage({ isExpired }: { isExpired: boolean }) {
   const router = useRouter();
@@ -23,8 +24,20 @@ export default function PlansPage({ isExpired }: { isExpired: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planCode }),
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(
+          (data as { error?: string }).error ?? "Failed to start checkout.",
+        );
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Checkout did not return a session URL.");
+      }
+    } catch {
+      toast.error("Failed to start checkout.");
     } finally {
       setLoadingPlan(null);
     }
@@ -33,8 +46,17 @@ export default function PlansPage({ isExpired }: { isExpired: boolean }) {
   async function handleSkip() {
     setSkipping(true);
     try {
-      await fetch("/api/billing/trial", { method: "POST" });
+      const res = await fetch("/api/billing/trial", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(
+          (data as { error?: string }).error ?? "Failed to start trial.",
+        );
+        return;
+      }
       router.push("/dashboard");
+    } catch {
+      toast.error("Failed to start trial.");
     } finally {
       setSkipping(false);
     }
@@ -168,7 +190,7 @@ export default function PlansPage({ isExpired }: { isExpired: boolean }) {
                 <Loader2 size={13} className="animate-spin" /> Starting trial…
               </span>
             ) : (
-              "Skip for now — start my 14-day free trial"
+              "Skip for now - start my 14-day free trial"
             )}
           </button>
         </div>

@@ -1,16 +1,37 @@
 "use client";
+
 import { useActionState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { contactMethods } from "@/config/contact";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import {
-  type ContactActionState,
-  submitContactFormAction,
-} from "./actions";
+  ControlledInput,
+  ControlledSelect,
+  ControlledTextarea,
+} from "@/components/form";
+import { Button } from "@/components/ui/button";
+import { contactMethods } from "@/config/contact";
+import { type ContactActionState, submitContactFormAction } from "./actions";
+
+const SUBJECT_OPTIONS = [
+  { value: "General Inquiry", label: "General Inquiry" },
+  { value: "Request a Demo", label: "Request a Demo" },
+  { value: "Sales / Enterprise", label: "Sales / Enterprise" },
+  { value: "Partnership", label: "Partnership" },
+  { value: "Support", label: "Support" },
+];
+
+const contactFormSchema = z.object({
+  name: z.string().trim().min(2, "Enter a valid name."),
+  email: z.string().trim().email("Enter a valid email address."),
+  company: z.string().trim().optional(),
+  subject: z.string().trim().min(1, "Select a subject."),
+  message: z.string().trim().min(10, "Add a bit more detail so we can help."),
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 const ContactPage = () => {
   const initialState: ContactActionState = {
@@ -22,6 +43,31 @@ const ContactPage = () => {
     initialState,
   );
   const submitted = state.status === "success";
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ContactFormValues>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      company: "",
+      subject: "General Inquiry",
+      message: "",
+    },
+  });
+
+  const onSubmit = (values: ContactFormValues) => {
+    const formData = new FormData();
+    formData.set("name", values.name);
+    formData.set("email", values.email);
+    formData.set("company", values.company ?? "");
+    formData.set("subject", values.subject);
+    formData.set("message", values.message);
+    formAction(formData);
+  };
 
   return (
     <>
@@ -66,92 +112,86 @@ const ContactPage = () => {
                   </p>
                 </div>
               ) : (
-                <form action={formAction} className="mt-5 space-y-3">
+                <form
+                  onSubmit={handleSubmit(onSubmit)}
+                  className="mt-5 space-y-4"
+                >
                   {state.status === "error" ? (
                     <div className="rounded-xl border border-error-border bg-error-surface px-4 py-3 text-sm text-error">
                       {state.message}
                     </div>
                   ) : null}
+
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor="name" className="text-[13px]">
-                        Full Name
-                      </Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        placeholder="Jane Doe"
-                        className="mt-1"
-                        autoComplete="name"
-                        disabled={isPending}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="text-[13px]">
-                        Work Email
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="jane@agency.com"
-                        className="mt-1"
-                        autoComplete="email"
-                        disabled={isPending}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="company" className="text-[13px]">
-                      Company
-                    </Label>
-                    <Input
-                      id="company"
-                      name="company"
-                      placeholder="Acme Agency"
-                      className="mt-1"
-                      autoComplete="organization"
+                    <ControlledInput
+                      name="name"
+                      label="Full Name*"
+                      control={control}
+                      error={errors.name}
+                      placeholder="Jane Doe"
+                      autoComplete="name"
                       disabled={isPending}
+                      className="mt-1"
+                      labelClassName="text-[13px]"
+                    />
+                    <ControlledInput
+                      name="email"
+                      label="Work Email*"
+                      type="email"
+                      control={control}
+                      error={errors.email}
+                      placeholder="jane@agency.com"
+                      autoComplete="email"
+                      disabled={isPending}
+                      className="mt-1"
+                      labelClassName="text-[13px]"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="subject" className="text-[13px]">
-                      Subject
-                    </Label>
-                    <select
-                      id="subject"
-                      name="subject"
-                      className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      defaultValue="General Inquiry"
-                      disabled={isPending}
-                    >
-                      <option>General Inquiry</option>
-                      <option>Request a Demo</option>
-                      <option>Sales / Enterprise</option>
-                      <option>Partnership</option>
-                      <option>Support</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="message" className="text-[13px]">
-                      Message
-                    </Label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      placeholder="Tell us how we can help..."
-                      rows={4}
-                      className="mt-1"
-                      disabled={isPending}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" size="sm" disabled={isPending}>
+
+                  <ControlledInput
+                    name="company"
+                    label="Company"
+                    control={control}
+                    error={errors.company}
+                    placeholder="Acme Agency"
+                    autoComplete="organization"
+                    disabled={isPending}
+                    className="mt-1"
+                    labelClassName="text-[13px]"
+                  />
+
+                  <ControlledSelect
+                    name="subject"
+                    label="Subject"
+                    control={control}
+                    error={errors.subject}
+                    options={SUBJECT_OPTIONS}
+                    disabled={isPending}
+                  />
+
+                  <ControlledTextarea
+                    name="message"
+                    label="Message*"
+                    control={control}
+                    error={errors.message}
+                    placeholder="Tell us how we can help..."
+                    rows={4}
+                    disabled={isPending}
+                    className="mt-1"
+                  />
+
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="cursor-pointer"
+                    disabled={isPending}
+                  >
                     {isPending ? (
                       <>
-                        <LoaderCircle size={14} className="mr-1.5 animate-spin" />
+                        <LoaderCircle
+                          size={14}
+                          className="mr-1.5 animate-spin"
+                        />
                         Sending...
                       </>
                     ) : (

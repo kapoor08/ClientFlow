@@ -136,7 +136,7 @@ function buildColumns(
             ? `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`
             : inv.status === "expired"
               ? `Expired ${formatDistanceToNow(expiresAt, { addSuffix: true })}`
-              : "—";
+              : "-";
         return <span className="text-xs text-muted-foreground">{label}</span>;
       },
     },

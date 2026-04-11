@@ -14,28 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LogTimeDialog } from "@/components/time-tracking/LogTimeDialog";
 import type { TimeEntryItem } from "@/lib/time-entries";
+import { formatDate, formatMinutes } from "@/utils/date";
 
 type TimesheetData = {
   entries: TimeEntryItem[];
   summary: { totalMinutes: number; entryCount: number };
 };
-
-function formatMinutes(mins: number): string {
-  if (mins === 0) return "0h";
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return `${m}m`;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function formatDate(d: Date | string | null): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 type RowProps = {
   entry: TimeEntryItem;
@@ -81,7 +65,7 @@ function TimeEntryRow({ entry, onDeleted }: RowProps) {
         {formatMinutes(entry.minutes)}
       </td>
       <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
-        {entry.description ?? "—"}
+        {entry.description ?? "-"}
       </td>
       <td className="px-4 py-3 text-right">
         <TooltipProvider delayDuration={300}>

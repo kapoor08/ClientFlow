@@ -4,7 +4,7 @@ import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
 
 type Params = { params: Promise<{ id: string }> };
 
-// PATCH /api/notifications/[id] — { isRead: boolean }
+// PATCH /api/notifications/[id] - { isRead: boolean }
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { userId } = await requireAuth();
@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 }
 
-// DELETE /api/notifications/[id] — delete a single notification
+// DELETE /api/notifications/[id] - delete a single notification
 export async function DELETE(_request: NextRequest, { params }: Params) {
   try {
     const { userId } = await requireAuth();

@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Building2, Calendar, FolderKanban } from "lucide-react";
+import { formatDate } from "@/utils/date";
 import { parseAsString, useQueryState } from "nuqs";
 import {
   DataTable,
@@ -55,15 +56,6 @@ const priorityDot: Record<ProjectPriority, string> = {
   urgent: "bg-danger",
 };
 
-function formatDate(value: Date | string | null): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
 function StatusBadge({ status }: { status: ProjectStatus }) {
   return (
     <span
@@ -75,7 +67,7 @@ function StatusBadge({ status }: { status: ProjectStatus }) {
 }
 
 function PriorityBadge({ priority }: { priority: ProjectPriority | null }) {
-  if (!priority) return <span className="text-xs text-muted-foreground">—</span>;
+  if (!priority) return <span className="text-xs text-muted-foreground">-</span>;
   return (
     <span
       className={`inline-flex w-fit items-center gap-1.5 rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${priorityStyles[priority]}`}
@@ -237,7 +229,7 @@ function ProjectGridCard({ project }: { project: ProjectListItem }) {
           </span>
           <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
             <Calendar size={11} className="shrink-0" />
-            <span>{project.startDate ? formatDate(project.startDate) : "—"}</span>
+            <span>{project.startDate ? formatDate(project.startDate) : "-"}</span>
           </div>
         </div>
         <div className="flex flex-col gap-1.5 px-4 py-3">
@@ -254,7 +246,7 @@ function ProjectGridCard({ project }: { project: ProjectListItem }) {
             }`}
           >
             <Calendar size={11} className="shrink-0" />
-            <span>{project.dueDate ? formatDate(project.dueDate) : "—"}</span>
+            <span>{project.dueDate ? formatDate(project.dueDate) : "-"}</span>
           </div>
         </div>
       </div>

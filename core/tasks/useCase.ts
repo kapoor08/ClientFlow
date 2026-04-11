@@ -5,7 +5,7 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
-import { listTasks, createTask, updateTask, deleteTask, moveTask, updateTaskAssignees } from "./repository";
+import { listTasks, createTask, updateTask, deleteTask, moveTask, reorderTasks, updateTaskAssignees } from "./repository";
 import type {
   TaskFilters,
   TaskListResponse,
@@ -87,6 +87,20 @@ export function useMoveTask(): UseMutationResult<
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: taskKeys.all });
       qc.invalidateQueries({ queryKey: ["task-activity", variables.taskId] });
+    },
+  });
+}
+
+export function useReorderTasks(): UseMutationResult<
+  void,
+  HttpError,
+  { columnId: string; orderedIds: string[] }
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ columnId, orderedIds }) => reorderTasks(columnId, orderedIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: taskKeys.all });
     },
   });
 }

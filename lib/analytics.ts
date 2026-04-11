@@ -400,22 +400,42 @@ export async function getAnalyticsSummaryForUser(
           ),
 
     // ─── Monthly hours logged ─────────────────────────────────────────────────
-    db
-      .select({
-        month: sql<string>`to_char(date_trunc('month', ${timeEntries.loggedAt}), 'Mon YY')`,
-        monthDate: sql<string>`date_trunc('month', ${timeEntries.loggedAt})`,
-        total: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
-      })
-      .from(timeEntries)
-      .where(
-        and(
-          eq(timeEntries.organizationId, orgId),
-          dateFrom ? gte(timeEntries.loggedAt, dateFrom) : undefined,
-          dateTo ? lte(timeEntries.loggedAt, dateTo) : undefined,
-        ),
-      )
-      .groupBy(sql`date_trunc('month', ${timeEntries.loggedAt})`)
-      .orderBy(sql`date_trunc('month', ${timeEntries.loggedAt}) asc`),
+    clientId || priority
+      ? db
+          .select({
+            month: sql<string>`to_char(date_trunc('month', ${timeEntries.loggedAt}), 'Mon YY')`,
+            monthDate: sql<string>`date_trunc('month', ${timeEntries.loggedAt})`,
+            total: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+          })
+          .from(timeEntries)
+          .innerJoin(projects, eq(timeEntries.projectId, projects.id))
+          .where(
+            and(
+              eq(timeEntries.organizationId, orgId),
+              clientId ? eq(projects.clientId, clientId) : undefined,
+              priority ? eq(projects.priority, priority) : undefined,
+              dateFrom ? gte(timeEntries.loggedAt, dateFrom) : undefined,
+              dateTo ? lte(timeEntries.loggedAt, dateTo) : undefined,
+            ),
+          )
+          .groupBy(sql`date_trunc('month', ${timeEntries.loggedAt})`)
+          .orderBy(sql`date_trunc('month', ${timeEntries.loggedAt}) asc`)
+      : db
+          .select({
+            month: sql<string>`to_char(date_trunc('month', ${timeEntries.loggedAt}), 'Mon YY')`,
+            monthDate: sql<string>`date_trunc('month', ${timeEntries.loggedAt})`,
+            total: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+          })
+          .from(timeEntries)
+          .where(
+            and(
+              eq(timeEntries.organizationId, orgId),
+              dateFrom ? gte(timeEntries.loggedAt, dateFrom) : undefined,
+              dateTo ? lte(timeEntries.loggedAt, dateTo) : undefined,
+            ),
+          )
+          .groupBy(sql`date_trunc('month', ${timeEntries.loggedAt})`)
+          .orderBy(sql`date_trunc('month', ${timeEntries.loggedAt}) asc`),
 
     // ─── Pending revenue (sent / draft invoices) ──────────────────────────────
     db

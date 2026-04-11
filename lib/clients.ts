@@ -477,6 +477,12 @@ export async function updateClientForUser(
     metadata: clientChangedMeta,
   }).catch(console.error);
 
+  dispatchWebhookEvent(access.organizationId, "client.updated", {
+    clientId,
+    name: values.name,
+    status: values.status,
+  }).catch(console.error);
+
   // Notify org members about status changes
   const memberIdsForUpdate = await getOrgMemberUserIds(access.organizationId);
   await dispatchNotification({

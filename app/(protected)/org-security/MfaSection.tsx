@@ -304,8 +304,8 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
               </p>
               <p className="text-xs text-muted-foreground">
                 {mfaEnabled
-                  ? "Enabled — your account is protected with TOTP."
-                  : "Not enabled — add an extra layer of security."}
+                  ? "Enabled - your account is protected with TOTP."
+                  : "Not enabled - add an extra layer of security."}
               </p>
             </div>
           </div>
@@ -330,7 +330,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
         </div>
       </div>
 
-      {/* Backup codes card — shown when MFA is enabled */}
+      {/* Backup codes card - shown when MFA is enabled */}
       {mfaEnabled && (
         <div className="mb-3 rounded-card border border-border bg-card p-5 shadow-cf-1">
           <div className="flex items-center justify-between">

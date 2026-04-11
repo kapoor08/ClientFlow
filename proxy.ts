@@ -66,7 +66,7 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIp(request);
 
@@ -127,13 +127,13 @@ export async function middleware(request: NextRequest) {
   );
 
   if (!sessionToken) {
-    // No session — redirect to sign-in, preserving the intended destination
+    // No session - redirect to sign-in, preserving the intended destination
     const signInUrl = new URL("/auth/sign-in", request.url);
     signInUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(signInUrl);
   }
 
-  // Session exists — allow through.
+  // Session exists - allow through.
   // Deep SSO enforcement (checking if the org requires SSO for this specific
   // user) is handled at the application layer in server components, since
   // middleware runs on the Edge Runtime without access to the database.

@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Smartphone, Tablet, LogOut, Loader2 } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,56 +9,8 @@ import {
   useRevokeAllSessions,
 } from "@/core/security/useCase";
 import type { SessionItem } from "@/core/security/entity";
-
-// ─── User-agent helpers ───────────────────────────────────────────────────────
-
-function parseDevice(ua: string | null): {
-  label: string;
-  Icon: typeof Monitor;
-} {
-  if (!ua) return { label: "Unknown device", Icon: Monitor };
-  const u = ua.toLowerCase();
-  if (u.includes("iphone") || u.includes("android") && u.includes("mobile")) {
-    return { label: "Mobile", Icon: Smartphone };
-  }
-  if (u.includes("ipad") || u.includes("tablet")) {
-    return { label: "Tablet", Icon: Tablet };
-  }
-  return { label: "Desktop", Icon: Monitor };
-}
-
-function parseBrowser(ua: string | null): string {
-  if (!ua) return "Unknown browser";
-  if (ua.includes("Edg/")) return "Edge";
-  if (ua.includes("OPR/") || ua.includes("Opera")) return "Opera";
-  if (ua.includes("Chrome/")) return "Chrome";
-  if (ua.includes("Safari/") && ua.includes("Version/")) return "Safari";
-  if (ua.includes("Firefox/")) return "Firefox";
-  return "Browser";
-}
-
-function parseOs(ua: string | null): string {
-  if (!ua) return "";
-  if (ua.includes("Windows NT 10")) return "Windows 10/11";
-  if (ua.includes("Windows NT")) return "Windows";
-  if (ua.includes("Mac OS X")) return "macOS";
-  if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
-  if (ua.includes("Android")) return "Android";
-  if (ua.includes("Linux")) return "Linux";
-  return "";
-}
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-// ─── Session card ─────────────────────────────────────────────────────────────
+import { formatTimeAgo } from "@/utils/date";
+import { parseBrowser, parseDevice, parseOs } from "@/utils/security";
 
 function SessionCard({ s }: { s: SessionItem }) {
   const { label, Icon } = parseDevice(s.userAgent);
@@ -88,7 +40,7 @@ function SessionCard({ s }: { s: SessionItem }) {
             {s.ipAddress ? ` · ${s.ipAddress}` : ""}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Last active {timeAgo(s.updatedAt)}
+            Last active {formatTimeAgo(s.updatedAt)}
           </p>
         </div>
       </div>
@@ -97,13 +49,20 @@ function SessionCard({ s }: { s: SessionItem }) {
           variant="outline"
           size="sm"
           disabled={revoke.isPending}
-          onClick={() => revoke.mutate(
-        { sessionId: s.id },
-        {
-          onSuccess: () => toast.success("Session revoked."),
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to revoke session."),
-        },
-      )}
+          onClick={() =>
+            revoke.mutate(
+              { sessionId: s.id },
+              {
+                onSuccess: () => toast.success("Session revoked."),
+                onError: (err) =>
+                  toast.error(
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to revoke session.",
+                  ),
+              },
+            )
+          }
           className="cursor-pointer"
         >
           {revoke.isPending ? (
@@ -118,14 +77,15 @@ function SessionCard({ s }: { s: SessionItem }) {
   );
 }
 
-// ─── Sessions section ─────────────────────────────────────────────────────────
-
 type SessionsSectionProps = {
   sessions: SessionItem[];
   isLoading: boolean;
 };
 
-export function SessionsSection({ sessions, isLoading }: SessionsSectionProps) {
+export function SessionsSection({
+  sessions,
+  isLoading,
+}: SessionsSectionProps) {
   const revokeAll = useRevokeAllSessions();
   const otherSessions = sessions.filter((s) => !s.isCurrent);
 
@@ -145,7 +105,10 @@ export function SessionsSection({ sessions, isLoading }: SessionsSectionProps) {
       <div className="mb-8 space-y-3">
         {isLoading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="rounded-card border border-border bg-card p-4 shadow-cf-1">
+            <div
+              key={i}
+              className="rounded-card border border-border bg-card p-4 shadow-cf-1"
+            >
               <div className="flex items-center gap-3">
                 <Skeleton className="h-10 w-10 rounded-lg" />
                 <div className="space-y-2">
@@ -169,10 +132,17 @@ export function SessionsSection({ sessions, isLoading }: SessionsSectionProps) {
             variant="destructive"
             size="sm"
             disabled={revokeAll.isPending}
-            onClick={() => revokeAll.mutate(undefined, {
-              onSuccess: () => toast.success("All other sessions signed out."),
-              onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to sign out sessions."),
-            })}
+            onClick={() =>
+              revokeAll.mutate(undefined, {
+                onSuccess: () => toast.success("All other sessions signed out."),
+                onError: (err) =>
+                  toast.error(
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to sign out sessions.",
+                  ),
+              })
+            }
             className="cursor-pointer"
           >
             {revokeAll.isPending ? (

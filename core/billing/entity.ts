@@ -51,7 +51,7 @@ export function formatPrice(
   cents: number | null,
   currencyCode = "USD",
 ): string {
-  if (cents === null) return "—";
+  if (cents === null) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currencyCode,
@@ -61,7 +61,7 @@ export function formatPrice(
 }
 
 export function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",

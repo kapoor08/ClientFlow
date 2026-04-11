@@ -12,30 +12,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import type { InvoiceListItem as InvoiceItem } from "@/core/invoices/entity";
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-secondary text-muted-foreground",
-  sent: "bg-info/10 text-info",
-  paid: "bg-success/10 text-success",
-  payment_failed: "bg-destructive/10 text-destructive",
-};
-
-function formatCents(cents: number | null, currency: string | null): string {
-  if (cents == null) return "—";
-  return (cents / 100).toLocaleString("en-US", {
-    style: "currency",
-    currency: currency ?? "USD",
-  });
-}
-
-function formatDate(d: Date | string | null): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { INVOICE_STATUS_STYLES as STATUS_STYLES } from "@/core/invoices/entity";
+import { formatDate } from "@/utils/date";
+import { formatCurrency } from "@/utils/currency";
 
 type Props = {
   invoice: InvoiceItem;
@@ -86,7 +65,7 @@ export function InvoiceRow({ invoice, onUpdated }: Props) {
 
   const statusLabel = invoice.status.replace("_", " ");
   const statusStyle = STATUS_STYLES[invoice.status] ?? "bg-secondary text-muted-foreground";
-  const amount = formatCents(
+  const amount = formatCurrency(
     invoice.status === "paid" ? invoice.amountPaidCents : invoice.amountDueCents,
     invoice.currencyCode,
   );
@@ -106,7 +85,7 @@ export function InvoiceRow({ invoice, onUpdated }: Props) {
         )}
       </td>
       <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
-        {invoice.clientName ?? "—"}
+        {invoice.clientName ?? "-"}
       </td>
       <td className="px-4 py-3 font-medium text-sm text-foreground">{amount}</td>
       <td className="px-4 py-3">

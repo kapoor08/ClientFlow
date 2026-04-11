@@ -275,7 +275,7 @@ export default function SsoPage() {
           <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2">
             <span className="h-2 w-2 rounded-full bg-success" />
             <span className="text-xs text-success font-medium">
-              SSO enforcement active — members will be redirected to your IdP on
+              SSO enforcement active - members will be redirected to your IdP on
               sign-in
             </span>
           </div>

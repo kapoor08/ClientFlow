@@ -85,7 +85,7 @@ export default async function AdminOrganizationsPage() {
                     {org.subscriptionStatus ? (
                       <StatusBadge status={org.subscriptionStatus} />
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>

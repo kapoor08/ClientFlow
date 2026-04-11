@@ -2,14 +2,14 @@ import Link from "next/link";
 import { ArrowUpRight, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DashboardActivity } from "@/core/dashboard/entity";
-import { formatActivity, formatTimeAgo } from "@/core/dashboard/entity";
+import { formatActivity } from "@/core/dashboard/entity";
+import { formatTimeAgo } from "@/utils/date";
+import { getInitials } from "@/utils/user";
 
 // ─── ActivityItem ─────────────────────────────────────────────────────────────
 
 function ActivityItem({ item }: { item: DashboardActivity }) {
-  const initials = item.actorName
-    ? item.actorName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+  const initials = getInitials(item.actorName);
 
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-border last:border-0">

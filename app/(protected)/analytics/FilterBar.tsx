@@ -3,19 +3,13 @@
 import { useTransition } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { DateRangeFilter, FiltersPopover } from "@/components/data-table";
+import { TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS } from "@/helpers/task";
 
 type ClientOption = {
   id: string;
   name: string;
   company: string | null;
 };
-
-const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "Urgent" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
 
 export function FilterBar({ clients }: { clients: ClientOption[] }) {
   const [, startTransition] = useTransition();

@@ -126,7 +126,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
               <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuItem
                   asChild
-                  className="hover:bg-primary! hover:text-sidebar-background cursor-pointer"
+                  className="cursor-pointer hover:bg-primary! hover:text-white! focus:bg-primary! focus:text-white! hover:[&_svg]:text-white! focus:[&_svg]:text-white!"
                 >
                   <Link href={viewer.dashboardHref}>
                     <LayoutDashboard size={16} />
@@ -140,7 +140,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                     void handleSignOut();
                   }}
                   disabled={signOut.isPending}
-                  className="hover:bg-danger! hover:text-sidebar-background! text-error cursor-pointer"
+                  className="cursor-pointer text-error hover:bg-danger! hover:text-white! focus:bg-danger! focus:text-white! hover:[&_svg]:text-white! focus:[&_svg]:text-white!"
                 >
                   <LogOut size={16} />
                   {signOut.isPending ? "Signing out..." : "Sign out"}
@@ -222,7 +222,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
                 <Button
                   size="sm"
                   asChild
-                  className="rounded-full cursor-pointer"
+                  className="rounded-full cursor-pointer hover:bg-primary/50!"
                 >
                   <Link
                     href={viewer.dashboardHref}

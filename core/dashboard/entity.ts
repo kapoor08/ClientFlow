@@ -79,29 +79,6 @@ export function formatDueDate(iso: string | null): DueLabel {
   };
 }
 
-export const PROJECT_STATUS_LABELS: Record<string, string> = {
-  planning: "Planning",
-  in_progress: "In Progress",
-  on_hold: "On Hold",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
-
-export const PROJECT_STATUS_STYLES: Record<string, string> = {
-  planning: "bg-secondary text-muted-foreground",
-  in_progress: "bg-info/10 text-info",
-  on_hold: "bg-warning/10 text-warning",
-  completed: "bg-success/10 text-success",
-  cancelled: "bg-danger/10 text-danger",
-};
-
-export const PRIORITY_STYLES: Record<string, string> = {
-  low: "bg-neutral-300/50 text-neutral-500",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  urgent: "bg-danger/10 text-danger",
-};
-
 const ACTIVITY_LABELS: Record<string, string> = {
   "client.created": "created a client",
   "client.updated": "updated a client",
@@ -123,30 +100,3 @@ export function formatActivity(action: string): string {
   return ACTIVITY_LABELS[action] ?? action.replace(".", " ");
 }
 
-export function formatTimeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-export const TASK_STATUS_LABELS: Record<string, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  review: "Review",
-  blocked: "Blocked",
-  done: "Done",
-};
-
-export const TASK_STATUS_STYLES: Record<string, string> = {
-  todo: "bg-secondary text-muted-foreground",
-  in_progress: "bg-info/10 text-info",
-  review: "bg-warning/10 text-warning",
-  blocked: "bg-danger/10 text-danger",
-  done: "bg-success/10 text-success",
-};

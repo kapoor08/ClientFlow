@@ -226,13 +226,13 @@ function main() {
   for (const template of templates) {
     const contentHtml = renderContent(template.previewBody);
 
-    // /emails/content/[slug].html — body fragment only
+    // /emails/content/[slug].html - body fragment only
     fs.writeFileSync(
       path.join(CONTENT_DIR, `${template.slug}.html`),
       contentHtml,
     );
 
-    // /emails/templates/[slug].html — full combined email
+    // /emails/templates/[slug].html - full combined email
     fs.writeFileSync(
       path.join(TEMPLATES_DIR, `${template.slug}.html`),
       buildTemplate(contentHtml, template.subject, template.audience),
@@ -248,9 +248,9 @@ function main() {
   // Remove stale flat HTML files from emails/ root
   const removed = cleanupRootHtmlFiles();
 
-  console.log(`✓ common/   — header.html + footer.html`);
-  console.log(`✓ content/  — ${templates.length} body fragments`);
-  console.log(`✓ templates/ — ${templates.length} combined emails + index.html`);
+  console.log(`✓ common/   - header.html + footer.html`);
+  console.log(`✓ content/  - ${templates.length} body fragments`);
+  console.log(`✓ templates/ - ${templates.length} combined emails + index.html`);
   if (removed > 0) console.log(`✓ Removed ${removed} stale files from emails/ root`);
 }
 

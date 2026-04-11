@@ -45,6 +45,16 @@ export async function moveTask(taskId: string, columnId: string | null): Promise
   return http<void>(`/api/tasks/${taskId}/move`, { method: "PATCH", body: { columnId } });
 }
 
+export async function reorderTasks(
+  columnId: string,
+  orderedIds: string[],
+): Promise<void> {
+  return http<void>(`/api/tasks/reorder`, {
+    method: "PATCH",
+    body: { columnId, orderedIds },
+  });
+}
+
 export async function updateTaskAssignees(
   taskId: string,
   userIds: string[],

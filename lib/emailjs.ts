@@ -56,9 +56,9 @@ async function callEmailJsApi(
 // ─── Transactional emails ─────────────────────────────────────────────────────
 //
 // Requires an EmailJS template with these variables:
-//   {{to_email}}     — recipient address
-//   {{subject}}      — email subject line
-//   {{html_content}} — full HTML body (set template body type to HTML in dashboard)
+//   {{to_email}}     - recipient address
+//   {{subject}}      - email subject line
+//   {{html_content}} - full HTML body (set template body type to HTML in dashboard)
 
 type TransactionalEmailInput = {
   to: string;

@@ -110,7 +110,7 @@ export function TimeEstimateInput({
   function commit() {
     const parsed = parseEstimate(draft);
     if (parsed === undefined) {
-      // invalid format — keep editing, highlight error
+      // invalid format - keep editing, highlight error
       setInvalid(true);
       inputRef.current?.focus();
       return;
@@ -177,7 +177,7 @@ export function TimeEstimateInput({
     >
       {displayValue || (
         <span className={displayPlaceholder ? "text-muted-foreground/50" : ""}>
-          {displayPlaceholder ?? (size === "sm" ? "—" : placeholder)}
+          {displayPlaceholder ?? (size === "sm" ? "-" : placeholder)}
         </span>
       )}
     </button>

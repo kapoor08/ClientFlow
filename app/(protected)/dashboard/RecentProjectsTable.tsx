@@ -5,8 +5,8 @@ import type { DashboardProject } from "@/core/dashboard/entity";
 import {
   PROJECT_STATUS_LABELS,
   PROJECT_STATUS_STYLES,
-  PRIORITY_STYLES,
-} from "@/core/dashboard/entity";
+  PROJECT_PRIORITY_STYLES as PRIORITY_STYLES,
+} from "@/core/projects/entity";
 
 // ─── ProjectRow ───────────────────────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
         </Link>
       </td>
       <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-        {project.clientName ?? "—"}
+        {project.clientName ?? "-"}
       </td>
       <td className="px-4 py-3">
         <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium ${statusStyle}`}>
@@ -39,7 +39,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
             {project.priority}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">-</span>
         )}
       </td>
       <td className="hidden px-4 py-3 lg:table-cell">
@@ -49,7 +49,7 @@ function ProjectRow({ project }: { project: DashboardProject }) {
             {new Date(project.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-xs text-muted-foreground">-</span>
         )}
       </td>
       <td className="px-4 py-3 text-right">

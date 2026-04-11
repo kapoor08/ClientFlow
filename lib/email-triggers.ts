@@ -71,7 +71,7 @@ function taskUrl(taskId: string) {
 }
 
 function formatDate(date?: Date | null) {
-  if (!date) return "—";
+  if (!date) return "-";
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",

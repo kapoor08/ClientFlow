@@ -8,7 +8,7 @@
 
 ClientFlow is a fully-featured, multi-tenant SaaS platform built for agencies, consultants, and service teams to manage clients, projects, tasks, billing, files, and collaboration from a single system.
 
-The platform is built to production standards — not as a demo. It demonstrates real-world SaaS engineering: strict tenant isolation, subscription monetization, event-driven processing, multi-channel notifications, external integrations, and a white-label client portal.
+The platform is built to production standards - not as a demo. It demonstrates real-world SaaS engineering: strict tenant isolation, subscription monetization, event-driven processing, multi-channel notifications, external integrations, and a white-label client portal.
 
 **Live:** [client-flow.in](https://client-flow.in)
 
@@ -51,7 +51,7 @@ The platform is built to production standards — not as a demo. It demonstrates
 
 ## Architecture
 
-ClientFlow uses a **modular monolith** with a shared-database, tenant-scoped multi-tenancy model. Every primary table carries an `organization_id`. All queries are tenant-scoped at the service layer — there is no cross-tenant data leakage.
+ClientFlow uses a **modular monolith** with a shared-database, tenant-scoped multi-tenancy model. Every primary table carries an `organization_id`. All queries are tenant-scoped at the service layer - there is no cross-tenant data leakage.
 
 ```
 app/
@@ -81,12 +81,12 @@ emails/templates/      # 43 HTML email templates
 - **Email / Password** authentication via BetterAuth
 - **Google OAuth** (configurable)
 - **Two-Factor Authentication (TOTP)** with backup code regeneration
-- **Single Sign-On (SSO)** — OIDC/SAML, Google Workspace, Azure AD, Okta
+- **Single Sign-On (SSO)** - OIDC/SAML, Google Workspace, Azure AD, Okta
 - **SSO enforcement** per organization (blocks non-SSO logins when enabled)
-- **Session management** — configurable timeout, per-session revocation, revoke-all
+- **Session management** - configurable timeout, per-session revocation, revoke-all
 - **IP allowlist** enforcement at middleware level
 - **Risky sign-in detection** with email alerts
-- **Rate limiting** — 10 req/10s on auth endpoints, 120 req/60s on all API routes (Upstash sliding window)
+- **Rate limiting** - 10 req/10s on auth endpoints, 120 req/60s on all API routes (Upstash sliding window)
 
 ---
 
@@ -95,9 +95,9 @@ emails/templates/      # 43 HTML email templates
 - Users can belong to multiple organizations with independent roles
 - **Organization switcher** in the app header
 - Per-organization **settings**: logo, brand color, timezone, currency, session timeout, SSO config, IP allowlist
-- **White-label branding** — brand color propagates across the full UI (buttons, badges, sidebar, backgrounds, gradients) via server-injected CSS variable overrides
-- **Custom role permissions** — per-role feature access configurable by org admins
-- **Member permission overrides** — individual permission exceptions per member
+- **White-label branding** - brand color propagates across the full UI (buttons, badges, sidebar, backgrounds, gradients) via server-injected CSS variable overrides
+- **Custom role permissions** - per-role feature access configurable by org admins
+- **Member permission overrides** - individual permission exceptions per member
 
 ---
 
@@ -121,8 +121,8 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 
 - Full **CRUD for clients** with detail pages and project associations
 - Full **CRUD for projects** with budget tracking, status, and member access
-- **Project templates** — create reusable project blueprints with pre-defined tasks
-- **Project-level membership** — control who sees each project
+- **Project templates** - create reusable project blueprints with pre-defined tasks
+- **Project-level membership** - control who sees each project
 - **Time entries** per project and task
 - **File uploads** (Cloudinary) attached to projects and tasks
 
@@ -136,7 +136,7 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 - **Subtasks** with individual completion tracking
 - **Task comments** with rich text (Tiptap) and @mention notifications
 - **File attachments** per task with signed URL delivery
-- **Task activity log** — full change history with old/new values
+- **Task activity log** - full change history with old/new values
 - **Comment limit enforcement** per plan
 
 ---
@@ -147,11 +147,11 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 - Stripe **Checkout** and **Customer Portal** integration
 - **Trial period** management
 - **Cancel-at-period-end** support
-- **Usage counters** — members, projects, clients, tasks, comments, files tracked monthly
-- **Plan limit enforcement** — 402 errors with upgrade prompts at quota boundaries
-- **Invoice management** — Stripe automated invoices + manual invoices with line items
+- **Usage counters** - members, projects, clients, tasks, comments, files tracked monthly
+- **Plan limit enforcement** - 402 errors with upgrade prompts at quota boundaries
+- **Invoice management** - Stripe automated invoices + manual invoices with line items
 - **Stripe webhook processing** with idempotency key storage and event logging
-- **Billing email notifications** — payment failures, expiring cards, plan changes, overdue reminders
+- **Billing email notifications** - payment failures, expiring cards, plan changes, overdue reminders
 
 ---
 
@@ -164,7 +164,7 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 | Web Push  | VAPID-signed push subscriptions              |
 | Real-Time | SSE stream via Upstash Redis pub/sub         |
 
-- **Per-event preferences** — users control in-app and email per notification type
+- **Per-event preferences** - users control in-app and email per notification type
 - **Bulk preference updates**
 - **30s polling fallback** when SSE is unavailable
 - **Exponential backoff** reconnection for SSE in production
@@ -177,7 +177,7 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 - **12 event types**: `project.created/updated/deleted`, `task.created/updated/completed`, `client.created/updated`, `invoice.paid/overdue`, `team.member_added/removed`
 - **HMAC-SHA256** signed payloads (`X-ClientFlow-Signature` header)
 - **3 retry attempts** with exponential backoff (1s, 2s, 4s delays)
-- **Test delivery** button in the UI — sends live signed ping to endpoint
+- **Test delivery** button in the UI - sends live signed ping to endpoint
 - Concurrent delivery via `Promise.allSettled`
 
 ---
@@ -198,11 +198,11 @@ Permissions enforced at API layer, service layer, and UI visibility level.
 
 A separate, role-gated interface for external clients:
 
-- `/client-portal` — Summary dashboard
-- `/client-portal/projects` — Read-only project list and details
-- `/client-portal/tasks` — Read-only task list
-- `/client-portal/files` — Access to shared project files
-- `/client-portal/invoices` — View and download invoices
+- `/client-portal` - Summary dashboard
+- `/client-portal/projects` - Read-only project list and details
+- `/client-portal/tasks` - Read-only task list
+- `/client-portal/files` - Access to shared project files
+- `/client-portal/invoices` - View and download invoices
 
 Portal inherits org branding (logo, brand color).
 
@@ -210,9 +210,9 @@ Portal inherits org branding (logo, brand color).
 
 ### Audit & Activity Logs
 
-- **Audit logs** — actor, action, entity type/ID, IP, user agent, metadata — admin-only
-- **Task audit logs** — field-level change history (oldValues / newValues)
-- **Activity logs** — broader activity feed accessible to team members
+- **Audit logs** - actor, action, entity type/ID, IP, user agent, metadata - admin-only
+- **Task audit logs** - field-level change history (oldValues / newValues)
+- **Activity logs** - broader activity feed accessible to team members
 - Date range filtering, search by action and entity
 - **CSV export** for both audit and activity logs
 
@@ -290,11 +290,11 @@ DATABASE_URL=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Email — Resend (primary when EMAILJS keys are absent)
+# Email - Resend (primary when EMAILJS keys are absent)
 RESEND_API_KEY=
 EMAIL_FROM=
 
-# Email — EmailJS (optional, takes priority over Resend when set)
+# Email - EmailJS (optional, takes priority over Resend when set)
 EMAILJS_PUBLIC_KEY=
 EMAILJS_PRIVATE_KEY=
 EMAILJS_SERVICE_ID=
@@ -335,7 +335,7 @@ UPSTASH_REDIS_URL=
 **File Storage:** Cloudinary
 **Domain:** client-flow.in (GoDaddy → Vercel DNS)
 
-The app is stateless by design — all session state, pub/sub, and rate limit state live in Upstash Redis. Horizontal scaling requires no additional configuration.
+The app is stateless by design - all session state, pub/sub, and rate limit state live in Upstash Redis. Horizontal scaling requires no additional configuration.
 
 ---
 
@@ -347,7 +347,7 @@ The app is stateless by design — all session state, pub/sub, and rate limit st
 
 **Billing isolation:** Billing logic is contained in its own schema domain and service files, structurally ready for extraction into an independent service.
 
-**Email provider flexibility:** A single `sendEmail()` function routes to EmailJS or Resend based on environment configuration — no call sites need to change when switching providers.
+**Email provider flexibility:** A single `sendEmail()` function routes to EmailJS or Resend based on environment configuration - no call sites need to change when switching providers.
 
 **SSE + polling:** Real-time notification delivery via SSE with Redis pub/sub in production. A 30-second polling fallback in `useNotifications` ensures notifications are never missed if SSE is unavailable.
 

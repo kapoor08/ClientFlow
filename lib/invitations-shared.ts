@@ -12,7 +12,7 @@ export const INVITATION_STATUS_OPTIONS: {
   { value: "revoked", label: "Revoked" },
 ];
 
-// Role hierarchy — lower number = higher authority
+// Role hierarchy - lower number = higher authority
 export const ROLE_HIERARCHY: Record<string, number> = {
   owner: 0,
   admin: 1,

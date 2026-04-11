@@ -11,22 +11,11 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_STYLES } from "@/core/projects/entity";
 
-const STATUS_STYLES: Record<string, string> = {
-  planning: "bg-secondary text-muted-foreground",
-  active: "bg-info/10 text-info",
-  on_hold: "bg-warning/10 text-warning",
-  completed: "bg-success/10 text-success",
-  cancelled: "bg-danger/10 text-danger",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  planning: "Planning",
-  active: "Active",
-  on_hold: "On Hold",
-  completed: "Completed",
-  cancelled: "Cancelled",
-};
+// Portal-specific override: legacy "active" key (canonical uses "in_progress")
+const STATUS_STYLES: Record<string, string> = { ...PROJECT_STATUS_STYLES, active: "bg-info/10 text-info" };
+const STATUS_LABELS: Record<string, string> = { ...PROJECT_STATUS_LABELS, active: "Active" };
 
 export default async function ClientPortalPage() {
   const session = await getServerSession();
@@ -169,7 +158,7 @@ export default async function ClientPortalPage() {
                           })}
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">

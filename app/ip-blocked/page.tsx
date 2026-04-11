@@ -14,7 +14,7 @@ export default async function IpBlockedPage() {
 
   // Only redirect away when a full session exists AND the IP is not actually
   // blocked. When there is no session (e.g. 2FA is enabled and the user was
-  // redirected here before completing TOTP), we must show the page — there is
+  // redirected here before completing TOTP), we must show the page - there is
   // no full session cookie yet, only a pending 2FA state.
   if (session?.user) {
     const [orgCtx, reqHeaders] = await Promise.all([

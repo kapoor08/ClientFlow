@@ -47,6 +47,8 @@ import {
 } from "@/components/files/FilePreviewModal";
 import type { PaginationMeta } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
+import { formatBytes } from "@/utils/file";
+import { formatDate } from "@/utils/date";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -76,20 +78,6 @@ function getIconBg(mimeType: string | null): string {
   return "bg-muted text-muted-foreground";
 }
 
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return "—";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(iso));
-}
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 
@@ -273,10 +261,10 @@ function buildColumns(
       cell: (file) =>
         file.clientId ? (
           <Link href={`/clients/${file.clientId}`} className="text-sm text-muted-foreground hover:text-primary">
-            {file.clientName ?? "—"}
+            {file.clientName ?? "-"}
           </Link>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         ),
     },
     {

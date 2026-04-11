@@ -5,7 +5,7 @@ import type { MemberPermissionOverrides } from "@/config/role-permissions";
 
 type RouteContext = { params: Promise<{ memberId: string }> };
 
-/** PATCH /api/team/[memberId]/permissions — set or clear member-level permission overrides */
+/** PATCH /api/team/[memberId]/permissions - set or clear member-level permission overrides */
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
   try {
     const { userId } = await requireAuth();

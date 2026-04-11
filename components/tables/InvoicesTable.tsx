@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { parseAsString, useQueryState } from "nuqs";
+import { formatDate } from "@/utils/date";
 import {
   DataTable,
   DateRangeFilter,
@@ -36,38 +37,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { InvoiceDetailModal } from "./InvoiceDetailModal";
 import type { InvoiceListItem } from "@/core/invoices/entity";
+import {
+  INVOICE_STATUS_STYLES as STATUS_STYLES,
+  INVOICE_STATUS_OPTIONS as STATUS_OPTIONS,
+} from "@/core/invoices/entity";
 import type { PaginationMeta } from "@/lib/pagination";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-secondary text-muted-foreground",
-  sent: "bg-info/10 text-info",
-  paid: "bg-success/10 text-success",
-  payment_failed: "bg-destructive/10 text-destructive",
-};
-
-const STATUS_OPTIONS = [
-  { value: "draft", label: "Draft" },
-  { value: "sent", label: "Sent" },
-  { value: "paid", label: "Paid" },
-  { value: "payment_failed", label: "Payment Failed" },
-];
-
 function formatCents(cents: number | null, currency: string | null): string {
-  if (cents == null) return "—";
+  if (cents == null) return "-";
   return (cents / 100).toLocaleString("en-US", {
     style: "currency",
     currency: currency ?? "USD",
-  });
-}
-
-function formatDate(d: string | null): string {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
   });
 }
 
@@ -211,7 +193,7 @@ function buildColumns(
       key: "clientName",
       header: "Client",
       cell: (inv) => (
-        <span className="text-sm text-muted-foreground">{inv.clientName ?? "—"}</span>
+        <span className="text-sm text-muted-foreground">{inv.clientName ?? "-"}</span>
       ),
     },
     {

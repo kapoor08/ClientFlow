@@ -42,7 +42,7 @@ function getPreviewKind(
   mimeType: string | null,
   fileName: string,
 ): PreviewKind {
-  // Check filename extension first — MIME type may be null or generic from the storage provider
+  // Check filename extension first - MIME type may be null or generic from the storage provider
   if (isMarkdown(mimeType, fileName)) return "markdown";
   if (!mimeType) return "unsupported";
   if (mimeType.startsWith("image/")) return "image";
@@ -133,7 +133,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
             </div>
           )}
 
-          {/* PDF — rendered inline by browser */}
+          {/* PDF - rendered inline by browser */}
           {kind === "pdf" && (
             <iframe
               src={file!.storageUrl}
@@ -142,7 +142,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
             />
           )}
 
-          {/* Office docs — Google Docs Viewer */}
+          {/* Office docs - Google Docs Viewer */}
           {kind === "office" && (
             <div className="flex h-[78vh] flex-col">
               <iframe
@@ -166,7 +166,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
             </div>
           )}
 
-          {/* Markdown — rendered with react-markdown */}
+          {/* Markdown - rendered with react-markdown */}
           {kind === "markdown" && (
             <div className="p-6">
               {textLoading ? (

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, count, desc, eq, isNull, not, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, isNull, isNotNull, lt, not, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { clients, invoices, projectFiles as projectFilesTable, projects, tasks } from "@/db/schema";
 import { user } from "@/db/auth-schema";
@@ -82,7 +82,7 @@ async function findLinkedClientId(
 /** Scope projects to the linked client record. Returns no rows when no client record is linked. */
 function projectFilter(orgId: string, clientId: string | null) {
   if (!clientId) {
-    // No client record linked to this user's email — show nothing rather than leaking all org data
+    // No client record linked to this user's email - show nothing rather than leaking all org data
     return sql`false`;
   }
   return and(
@@ -164,8 +164,8 @@ export async function getPortalHomeForUser(
           filter,
           isNull(tasks.deletedAt),
           not(inArray(tasks.status, DONE_STATUSES)),
-          // dueDate is in the past
-          eq(tasks.organizationId, orgId),
+          isNotNull(tasks.dueDate),
+          lt(tasks.dueDate, now),
         ),
       ),
 
@@ -374,6 +374,18 @@ export async function getPortalInvoicesForUser(
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
 
+  const orgId = context.organizationId;
+  const [userRow] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  if (!userRow) return null;
+
+  const clientId = await findLinkedClientId(orgId, userRow.email);
+  // No linked client - show nothing rather than leaking all org invoices
+  if (!clientId) return [];
+
   return db
     .select({
       id: invoices.id,
@@ -387,7 +399,12 @@ export async function getPortalInvoicesForUser(
       createdAt: invoices.createdAt,
     })
     .from(invoices)
-    .where(eq(invoices.organizationId, context.organizationId))
+    .where(
+      and(
+        eq(invoices.organizationId, orgId),
+        eq(invoices.clientId, clientId),
+      ),
+    )
     .orderBy(desc(invoices.createdAt));
 }
 

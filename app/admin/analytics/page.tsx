@@ -64,7 +64,7 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <div>
-      <PageHeader title="Analytics" description="Platform engagement — last 30 days" />
+      <PageHeader title="Analytics" description="Platform engagement - last 30 days" />
 
       {/* 30-day totals */}
       <div className="grid grid-cols-3 gap-4 mb-8">
@@ -109,7 +109,7 @@ export default async function AdminAnalyticsPage() {
                       <TableCell className="text-xs text-muted-foreground">
                         {row.date
                           ? new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                          : "—"}
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-right text-xs text-foreground">
                         {Number(row.tasksCreated ?? 0)}

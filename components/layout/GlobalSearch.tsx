@@ -505,7 +505,7 @@ export function GlobalSearch() {
                   </>
                 )}
 
-                {/* Nav groups — 2-column grid */}
+                {/* Nav groups - 2-column grid */}
                 {navGroups.map((group, i) => (
                   <div key={group.label}>
                     {i > 0 && <div className="my-2 h-px bg-border" />}

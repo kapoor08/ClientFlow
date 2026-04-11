@@ -11,7 +11,7 @@ import type { WebhookEvent } from "@/lib/webhooks-shared";
  * for the given organization.
  *
  * Each request is signed with HMAC-SHA256 on the raw body and delivered
- * concurrently (Promise.allSettled — one failure does not block others).
+ * concurrently (Promise.allSettled - one failure does not block others).
  * Requests time out after 10 seconds.
  */
 export async function dispatchWebhookEvent(
@@ -70,10 +70,10 @@ export async function dispatchWebhookEvent(
             delivered = true;
             break;
           }
-          // 4xx errors are permanent failures — no point retrying
+          // 4xx errors are permanent failures - no point retrying
           if (res.status >= 400 && res.status < 500) break;
         } catch {
-          // Network/timeout error — retry if attempts remain
+          // Network/timeout error - retry if attempts remain
         }
       }
 

@@ -119,7 +119,7 @@ export function MemberPermissionsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings2 size={18} />
-            Custom Permissions — {memberName}
+            Custom Permissions - {memberName}
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
             <span
@@ -182,7 +182,7 @@ export function MemberPermissionsDialog({
 }
 
 function ActionCell({ enabled, checked, onChange }: { enabled: boolean; checked: boolean; onChange: (v: boolean) => void }) {
-  if (!enabled) return <td className="px-4 py-2.5 text-center text-muted-foreground/40">—</td>;
+  if (!enabled) return <td className="px-4 py-2.5 text-center text-muted-foreground/40">-</td>;
   return (
     <td className="px-4 py-2.5 text-center">
       <Switch checked={checked} onCheckedChange={onChange} />

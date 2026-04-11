@@ -30,27 +30,27 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type RowActionsProps = {
-  /** Eye icon — navigates to view/detail page */
+  /** Eye icon - navigates to view/detail page */
   viewHref?: string;
-  /** Eye icon — opens a preview modal (use instead of viewHref for in-page previews) */
+  /** Eye icon - opens a preview modal (use instead of viewHref for in-page previews) */
   onPreview?: () => void;
-  /** Pencil icon — navigates to edit page */
+  /** Pencil icon - navigates to edit page */
   editHref?: string;
-  /** ExternalLink icon — opens URL in a new tab */
+  /** ExternalLink icon - opens URL in a new tab */
   openHref?: string;
-  /** Download icon — downloads a file */
+  /** Download icon - downloads a file */
   downloadHref?: string;
   /** Suggested filename for the downloaded file */
   downloadFileName?: string;
-  /** RefreshCw icon — resends an invitation or retries an action */
+  /** RefreshCw icon - resends an invitation or retries an action */
   onResend?: () => void;
   isResending?: boolean;
-  /** XCircle icon — revokes with a confirmation dialog */
+  /** XCircle icon - revokes with a confirmation dialog */
   onRevoke?: () => void;
   isRevoking?: boolean;
   /** Name shown in revoke confirmation: "Revoke invitation for {revokeLabel}?" */
   revokeLabel?: string;
-  /** Trash icon — deletes with a confirmation dialog */
+  /** Trash icon - deletes with a confirmation dialog */
   onDelete?: () => void;
   isDeleting?: boolean;
   /** Name shown in delete confirmation: 'Delete "{deleteLabel}"?' */
@@ -193,28 +193,28 @@ export function RowActions({
     <TooltipProvider>
       <div className="flex items-center gap-0.5">
 
-        {/* View — Eye as navigation link */}
+        {/* View - Eye as navigation link */}
         {viewHref && (
           <TipLink href={viewHref} label="View">
             <Eye size={14} />
           </TipLink>
         )}
 
-        {/* Preview — Eye as button (in-page modal) */}
+        {/* Preview - Eye as button (in-page modal) */}
         {onPreview && (
           <TipButton label="Preview" onClick={onPreview}>
             <Eye size={14} />
           </TipButton>
         )}
 
-        {/* Edit — Pencil as navigation link */}
+        {/* Edit - Pencil as navigation link */}
         {editHref && (
           <TipLink href={editHref} label="Edit">
             <Pencil size={14} />
           </TipLink>
         )}
 
-        {/* Open — ExternalLink opens in new tab */}
+        {/* Open - ExternalLink opens in new tab */}
         {openHref && (
           <TipLink href={openHref} label="Open" target="_blank" rel="noopener noreferrer">
             <ExternalLink size={14} />
@@ -234,7 +234,7 @@ export function RowActions({
           </TipLink>
         )}
 
-        {/* Resend — RefreshCw */}
+        {/* Resend - RefreshCw */}
         {onResend && (
           <TipButton label="Resend" onClick={onResend} disabled={isResending}>
             {isResending ? (
@@ -245,7 +245,7 @@ export function RowActions({
           </TipButton>
         )}
 
-        {/* Revoke — XCircle (destructive, confirmation required) */}
+        {/* Revoke - XCircle (destructive, confirmation required) */}
         {onRevoke && (
           <TipButton
             label="Revoke"
@@ -261,7 +261,7 @@ export function RowActions({
           </TipButton>
         )}
 
-        {/* Delete — Trash2 (destructive, confirmation required) */}
+        {/* Delete - Trash2 (destructive, confirmation required) */}
         {onDelete && (
           <TipButton
             label="Delete"

@@ -43,16 +43,16 @@ const TIMEZONES = [
 ];
 
 const CURRENCIES = [
-  { value: "USD", label: "USD — US Dollar" },
-  { value: "EUR", label: "EUR — Euro" },
-  { value: "GBP", label: "GBP — British Pound" },
-  { value: "CAD", label: "CAD — Canadian Dollar" },
-  { value: "AUD", label: "AUD — Australian Dollar" },
-  { value: "JPY", label: "JPY — Japanese Yen" },
-  { value: "INR", label: "INR — Indian Rupee" },
-  { value: "SGD", label: "SGD — Singapore Dollar" },
-  { value: "AED", label: "AED — UAE Dirham" },
-  { value: "CHF", label: "CHF — Swiss Franc" },
+  { value: "USD", label: "USD - US Dollar" },
+  { value: "EUR", label: "EUR - Euro" },
+  { value: "GBP", label: "GBP - British Pound" },
+  { value: "CAD", label: "CAD - Canadian Dollar" },
+  { value: "AUD", label: "AUD - Australian Dollar" },
+  { value: "JPY", label: "JPY - Japanese Yen" },
+  { value: "INR", label: "INR - Indian Rupee" },
+  { value: "SGD", label: "SGD - Singapore Dollar" },
+  { value: "AED", label: "AED - UAE Dirham" },
+  { value: "CHF", label: "CHF - Swiss Franc" },
 ];
 
 function slugify(value: string) {

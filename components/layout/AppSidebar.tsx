@@ -301,7 +301,7 @@ const AppSidebar = (props: AppSidebarProps) => {
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        {item.label} — upgrade to unlock
+                        {item.label} - upgrade to unlock
                       </TooltipContent>
                     </Tooltip>
                   ))}

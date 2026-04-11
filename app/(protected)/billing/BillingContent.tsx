@@ -22,7 +22,13 @@ export function BillingContent({ billing, showSuccess, showCanceled }: Props) {
     setPortalLoading(true);
     try {
       const res = await fetch("/api/billing/portal", { method: "POST" });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(
+          (json as { error?: string }).error ?? "Failed to open billing portal.",
+        );
+        return;
+      }
       if (json.url) {
         window.location.href = json.url;
       } else {

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type OrgOption = {
   id: string;
@@ -48,13 +49,22 @@ export function OrgSwitcher({
     if (org.id === activeOrgId || switching) return;
     setSwitching(org.id);
     try {
-      await fetch("/api/org/switch", {
+      const res = await fetch("/api/org/switch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organizationId: org.id }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(
+          (data as { error?: string }).error ?? "Failed to switch organization.",
+        );
+        return;
+      }
       router.push(getHomeHref(org.roleKey));
       router.refresh();
+    } catch {
+      toast.error("Failed to switch organization.");
     } finally {
       setSwitching(null);
     }

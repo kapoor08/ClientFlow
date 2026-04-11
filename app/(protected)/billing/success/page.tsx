@@ -17,7 +17,7 @@ export default async function BillingSuccessPage() {
 
   const ctx = await getOrganizationSettingsContextForUser(session.user.id);
 
-  // First-time purchase — send to onboarding
+  // First-time purchase - send to onboarding
   if (!ctx?.onboardingCompletedAt) {
     redirect("/onboarding");
   }

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { tasks, projects, taskAuditLogs, taskBoardColumns } from "@/db/schema";
 import { user } from "@/db/auth-schema";
@@ -36,6 +36,7 @@ export type TaskListItem = {
   attachmentCount: number;
   createdAt: Date;
   columnId: string | null;
+  position: number;
   refNumber: string | null;
   tags: string[];
 };
@@ -126,6 +127,7 @@ export async function listTasksForUser(
         )`,
         createdAt: tasks.createdAt,
         columnId: tasks.columnId,
+        position: tasks.position,
         refNumber: tasks.refNumber,
         tags: tasks.tags,
       })
@@ -133,7 +135,7 @@ export async function listTasksForUser(
       .leftJoin(projects, eq(tasks.projectId, projects.id))
       .leftJoin(user, eq(tasks.assigneeUserId, user.id))
       .where(whereClause)
-      .orderBy(orderBy)
+      .orderBy(asc(tasks.position), orderBy)
       .limit(pageSize)
       .offset(paginationOffset(page, pageSize)),
   ]);
@@ -143,6 +145,7 @@ export async function listTasksForUser(
       ...r,
       commentCount: Number(r.commentCount),
       attachmentCount: Number(r.attachmentCount),
+      position: r.position ?? 0,
     })),
     pagination: buildPaginationMeta(totalResult[0]?.total ?? 0, page, pageSize),
   };
@@ -533,6 +536,25 @@ export async function updateTaskForUser(
     metadata: changedMeta,
   }).catch(console.error);
 
+  // ─── Webhook dispatch ─────────────────────────────────────────────────────
+  dispatchWebhookEvent(context.organizationId, "task.updated", {
+    taskId,
+    title: taskTitle,
+    status: input.status,
+    priority: input.priority,
+    projectId: input.projectId,
+  }).catch(console.error);
+
+  // Fire task.completed when the task transitions into "done"
+  if (existing.status !== input.status && input.status === "done") {
+    dispatchWebhookEvent(context.organizationId, "task.completed", {
+      taskId,
+      title: taskTitle,
+      projectId: input.projectId,
+      completedAt: new Date().toISOString(),
+    }).catch(console.error);
+  }
+
   return { taskId };
 }
 
@@ -570,6 +592,44 @@ export async function deleteTaskForUser(
     entityId: taskId,
     metadata: { name: existing.title },
   }).catch(console.error);
+}
+
+export async function reorderTasksInColumnForUser(
+  userId: string,
+  columnId: string,
+  orderedIds: string[],
+): Promise<void> {
+  const context = await getOrganizationSettingsContextForUser(userId);
+  if (!context) throw new Error("No active organization found.");
+
+  if (orderedIds.length === 0) return;
+
+  // Verify all task IDs belong to this org and the target column.
+  // Tasks not matching are silently dropped from the update set.
+  const rows = await db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.organizationId, context.organizationId),
+        eq(tasks.columnId, columnId),
+        isNull(tasks.deletedAt),
+        inArray(tasks.id, orderedIds),
+      ),
+    );
+
+  const validIds = new Set(rows.map((r) => r.id));
+  const filtered = orderedIds.filter((id) => validIds.has(id));
+
+  // Persist new positions
+  await Promise.all(
+    filtered.map((id, index) =>
+      db
+        .update(tasks)
+        .set({ position: index, updatedAt: new Date() })
+        .where(eq(tasks.id, id)),
+    ),
+  );
 }
 
 export async function moveTaskColumnForUser(

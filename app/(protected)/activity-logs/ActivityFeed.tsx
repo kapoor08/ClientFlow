@@ -20,8 +20,10 @@ import {
 } from "@/core/activity/entity";
 import type { ActivityEntry } from "@/core/activity/entity";
 import type { PaginationMeta } from "@/lib/pagination";
-import { timeAgo } from "./ActivityItem";
 import { ActivityDetailModal } from "./ActivityDetailModal";
+import { formatDate, formatTimeAgo, formatMinutes } from "@/utils/date";
+import { getInitials } from "@/utils/user";
+import { formatCurrency } from "@/utils/currency";
 
 // ─── Filter options ───────────────────────────────────────────────────────────
 
@@ -31,43 +33,14 @@ const ENTITY_FILTER_OPTIONS = ENTITY_TYPE_OPTIONS.filter(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
-
-function getInitials(name: string | null): string {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Keys that are always skipped in the summary (shown elsewhere or redundant)
 const SKIP_KEYS = new Set(["id", "entityId", "name", "email", "overrides"]);
 
-function formatMinutes(v: number): string {
-  const h = Math.floor(v / 60);
-  const m = v % 60;
-  return [h > 0 ? `${h}h` : "", m > 0 ? `${m}m` : ""].filter(Boolean).join(" ") || "0m";
-}
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-}
-
 /** Format metadata into a short readable summary for the table cell */
 function formatMetaSummary(meta: Record<string, unknown> | null): string {
-  if (!meta) return "—";
+  if (!meta) return "-";
 
   const parts: string[] = [];
 
@@ -81,9 +54,9 @@ function formatMetaSummary(meta: Record<string, unknown> | null): string {
     if (k === "minutes" && typeof v === "number") {
       parts.push(formatMinutes(v));
     } else if (k === "amountCents" && typeof v === "number") {
-      parts.push(formatCents(v));
+      parts.push(formatCurrency(v));
     } else if (k === "number") {
-      // Invoice number — show as-is, prominent
+      // Invoice number - show as-is, prominent
       parts.push(String(v));
     } else if (k === "title" && parts.some((p) => p.startsWith("INV-"))) {
       // Skip title if invoice number already shown
@@ -104,7 +77,7 @@ function formatMetaSummary(meta: Record<string, unknown> | null): string {
     }
   }
 
-  return parts.length ? parts.join(" · ") : "—";
+  return parts.length ? parts.join(" · ") : "-";
 }
 
 // ─── Column builder (needs onPreview callback) ────────────────────────────────
@@ -119,10 +92,10 @@ function buildColumns(
       cell: (entry) => (
         <div>
           <p className="whitespace-nowrap font-mono text-xs text-foreground">
-            {formatDate(entry.createdAt)}
+            {formatDate(entry.createdAt, { withTime: true })}
           </p>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            {timeAgo(entry.createdAt)}
+            {formatTimeAgo(entry.createdAt)}
           </p>
         </div>
       ),
@@ -155,9 +128,13 @@ function buildColumns(
         const name = getEntityName(entry);
         return (
           <div>
-            <p className="text-sm text-foreground">{getActionLabel(entry.action)}</p>
+            <p className="text-sm text-foreground">
+              {getActionLabel(entry.action)}
+            </p>
             {name && (
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">{name}</p>
+              <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+                {name}
+              </p>
             )}
           </div>
         );
@@ -180,7 +157,7 @@ function buildColumns(
       header: "Details",
       hideOnTablet: true,
       cell: (entry) => (
-        <p className="max-w-[220px] truncate text-xs text-muted-foreground">
+        <p className="max-w-55 truncate text-xs text-muted-foreground">
           {formatMetaSummary(entry.metadata)}
         </p>
       ),
@@ -188,9 +165,7 @@ function buildColumns(
     {
       key: "id",
       header: "",
-      cell: (entry) => (
-        <RowActions onPreview={() => onPreview(entry)} />
-      ),
+      cell: (entry) => <RowActions onPreview={() => onPreview(entry)} />,
     },
   ];
 }
@@ -206,7 +181,12 @@ function ExportButton({ q, entityType }: { q: string; entityType: string }) {
   }
 
   return (
-    <Button variant="default" size="sm" className="cursor-pointer" onClick={handleExport}>
+    <Button
+      variant="default"
+      size="sm"
+      className="cursor-pointer"
+      onClick={handleExport}
+    >
       <Download size={13} className="mr-1" />
       Export CSV
     </Button>
@@ -222,7 +202,9 @@ type ActivityFeedProps = {
 
 export function ActivityFeed({ entries, pagination }: ActivityFeedProps) {
   const [, startTransition] = useTransition();
-  const [selectedEntry, setSelectedEntry] = useState<ActivityEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<ActivityEntry | null>(
+    null,
+  );
 
   const [q] = useQueryState(
     "q",

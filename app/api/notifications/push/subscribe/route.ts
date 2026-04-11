@@ -5,7 +5,7 @@ import {
 } from "@/lib/notifications";
 import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
 
-// POST — save a push subscription
+// POST - save a push subscription
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE — remove a push subscription
+// DELETE - remove a push subscription
 export async function DELETE(request: NextRequest) {
   try {
     const { userId } = await requireAuth();

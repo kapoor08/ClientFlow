@@ -39,10 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-function formatDDMMYYYY(iso: string): string {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
-}
 import { TiptapEditor } from "@/components/TiptapEditor";
 import {
   useTaskDetail,
@@ -68,7 +64,15 @@ import { TimeEstimateInput } from "@/components/form";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { http } from "@/core/infrastructure";
 import { formatActivityMessage } from "@/core/task-detail/entity";
-import { getInitials, PRIORITY_BADGE } from "@/core/tasks/entity";
+import { PRIORITY_BADGE } from "@/core/tasks/entity";
+import { TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS, TASK_STATUS_OPTIONS as STATUS_OPTIONS } from "@/helpers/task";
+import {
+  formatDateDayMonthYear,
+  formatDateTime,
+  formatTimeAgo,
+} from "@/utils/date";
+import { getFileCategory, type FileCategory } from "@/utils/file";
+import { getInitials } from "@/utils/user";
 import { TASK_TAG_OPTIONS } from "@/lib/tasks-shared";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { LogTimeDialog } from "@/components/time-tracking/LogTimeDialog";
@@ -115,47 +119,7 @@ type MemberOption = {
   roleName?: string;
 };
 
-const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "Urgent", color: "#ef4444" },
-  { value: "high", label: "High", color: "#f97316" },
-  { value: "medium", label: "Medium", color: "#f59e0b" },
-  { value: "low", label: "Low", color: "#71717a" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "todo", label: "To Do", color: "#3b82f6" },
-  { value: "in_progress", label: "In Progress", color: "#f59e0b" },
-  { value: "review", label: "Review", color: "#8b5cf6" },
-  { value: "blocked", label: "Blocked", color: "#ef4444" },
-  { value: "done", label: "Done", color: "#10b981" },
-];
-
 // ─── Relative time helper ──────────────────────────────────────────────────────
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatAbsolute(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 /** Renders a relative timestamp that re-evaluates every 30 s. */
 function RelativeTime({ iso, className }: { iso: string; className?: string }) {
@@ -164,7 +128,7 @@ function RelativeTime({ iso, className }: { iso: string; className?: string }) {
     const id = setInterval(() => tick((n) => n + 1), 30_000);
     return () => clearInterval(id);
   }, []);
-  return <span className={className}>{relativeTime(iso)}</span>;
+  return <span className={className}>{formatTimeAgo(iso)}</span>;
 }
 
 /** "edited" label with a tooltip showing the exact edit time. */
@@ -178,7 +142,7 @@ function EditedBadge({ updatedAt }: { updatedAt: string }) {
           </span>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <span>Edited {formatAbsolute(updatedAt)}</span>
+          <span>Edited {formatDateTime(updatedAt)}</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -379,75 +343,12 @@ function CommentBody({
 // ─── File preview ──────────────────────────────────────────────────────────────
 
 type PreviewFile = {
-  id: string; // attachment DB id — used by the proxy route
+  id: string; // attachment DB id - used by the proxy route
   src: string; // original Cloudinary URL (used for images/video/audio)
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
 };
-
-type FileCategory =
-  | "image"
-  | "pdf"
-  | "video"
-  | "audio"
-  | "office"
-  | "markdown"
-  | "csv"
-  | "text"
-  | "other";
-
-function getFileCategory(
-  mimeType: string | null,
-  fileName: string,
-): FileCategory {
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  if (mimeType?.startsWith("image/")) return "image";
-  if (mimeType === "application/pdf" || ext === "pdf") return "pdf";
-  if (mimeType?.startsWith("video/")) return "video";
-  if (mimeType?.startsWith("audio/")) return "audio";
-  if (
-    mimeType?.includes("spreadsheetml") ||
-    mimeType?.includes("ms-excel") ||
-    mimeType?.includes("wordprocessingml") ||
-    mimeType?.includes("presentationml") ||
-    mimeType?.includes("msword") ||
-    mimeType?.includes("powerpoint") ||
-    ["docx", "doc", "xlsx", "xls", "pptx", "ppt"].includes(ext)
-  )
-    return "office";
-  if (mimeType === "text/csv" || ext === "csv") return "csv";
-  if (mimeType === "text/markdown" || ext === "md" || ext === "mdx")
-    return "markdown";
-  if (
-    mimeType?.startsWith("text/") ||
-    mimeType === "application/json" ||
-    [
-      "txt",
-      "json",
-      "js",
-      "ts",
-      "jsx",
-      "tsx",
-      "html",
-      "css",
-      "xml",
-      "yaml",
-      "yml",
-      "sh",
-      "py",
-      "rb",
-      "go",
-      "java",
-      "c",
-      "cpp",
-      "h",
-      "rs",
-    ].includes(ext)
-  )
-    return "text";
-  return "other";
-}
 
 const FILE_TYPE_META: Record<
   FileCategory,
@@ -506,7 +407,7 @@ function getFileIcon(mimeType: string | null, fileName: string, size = 28) {
   return <Icon size={size} className={cn("shrink-0", iconCls)} />;
 }
 
-/** Card thumbnail used in the Files tab grid — colored bg + icon + ext label. */
+/** Card thumbnail used in the Files tab grid - colored bg + icon + ext label. */
 function FileTypeThumbnail({
   mimeType,
   fileName,
@@ -597,7 +498,7 @@ function FilePreviewModal({
   }, [file.src]);
 
   // Nested Radix Dialog so it gets its own portal + overlay outside the parent
-  // dialog's DismissableLayer — prevents Radix from treating clicks inside the
+  // dialog's DismissableLayer - prevents Radix from treating clicks inside the
   // preview as "outside" interactions on the task-detail dialog.
   return (
     <Dialog
@@ -1169,13 +1070,13 @@ export function TaskDetailSheet({
           {task?.title ?? "Task detail"}
         </DialogTitle>
 
-        {/* Full-height flex layout — own div so we're not fighting DialogContent's base `grid` class */}
+        {/* Full-height flex layout - own div so we're not fighting DialogContent's base `grid` class */}
         <div className="flex h-[90vh] flex-col overflow-hidden rounded-xl">
           {/* ── Modal header bar ── */}
           <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-2.5">
             <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
               <Folder size={11} className="shrink-0" />
-              <span className="truncate">{task?.projectName ?? "—"}</span>
+              <span className="truncate">{task?.projectName ?? "-"}</span>
               {task?.columnName && (
                 <>
                   <span className="text-border">/</span>
@@ -1245,9 +1146,9 @@ export function TaskDetailSheet({
                   />
                 </DialogHeader>
 
-                {/* Properties — 2-column grid */}
+                {/* Properties - 2-column grid */}
                 <div className="mb-5 rounded-card border border-border overflow-hidden text-sm">
-                  {/* Status — full width */}
+                  {/* Status - full width */}
                   <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                     <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
                       <AlertCircle size={11} /> Status
@@ -1363,7 +1264,7 @@ export function TaskDetailSheet({
                       </DropdownMenu>
                     </div>
 
-                    {/* Assignee — multi-select */}
+                    {/* Assignee - multi-select */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                       <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                         <User size={10} /> Assignee
@@ -1509,7 +1410,7 @@ export function TaskDetailSheet({
                             >
                               <CalendarDays size={12} />
                               {localDueDate
-                                ? formatDDMMYYYY(localDueDate)
+                                ? formatDateDayMonthYear(localDueDate)
                                 : "Set date"}
                             </button>
                           </PopoverTrigger>
@@ -1569,7 +1470,7 @@ export function TaskDetailSheet({
                       </button>
                     </div>
 
-                    {/* Reporter — static display */}
+                    {/* Reporter - static display */}
                     <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
                       <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                         <User size={10} /> Reporter
@@ -1591,7 +1492,7 @@ export function TaskDetailSheet({
                           </span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </div>
 
@@ -1897,7 +1798,7 @@ export function TaskDetailSheet({
                   ))}
                 </div>
 
-                {/* Feed — Comments & Logs tabs */}
+                {/* Feed - Comments & Logs tabs */}
                 {activeTab !== "files" && (
                   <div
                     ref={feedScrollRef}
@@ -2479,7 +2380,7 @@ export function TaskDetailSheet({
                   </div>
                 )}
 
-                {/* Comment input — Comments tab only */}
+                {/* Comment input - Comments tab only */}
                 {activeTab === "comments" && (
                   <div className="border-t border-border px-3 py-3">
                     <div className="rounded-lg border border-input bg-background overflow-hidden shadow-sm focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/20 transition-all">

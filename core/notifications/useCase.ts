@@ -43,7 +43,7 @@ export function useNotifications(): UseQueryResult<NotificationListResponse, Htt
 /**
  * Opens a persistent SSE connection to /api/notifications/stream.
  * Invalidates the notifications query instantly when a new notification arrives.
- * Falls back gracefully if the connection drops — the polling interval acts as backup.
+ * Falls back gracefully if the connection drops - the polling interval acts as backup.
  */
 export function useNotificationStream(): void {
   const qc = useQueryClient();

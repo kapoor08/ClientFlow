@@ -3,31 +3,16 @@ import { getServerSession } from "@/lib/get-session";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { getPortalTasksForUser } from "@/lib/client-portal";
 import { CheckSquare, Clock } from "lucide-react";
+import {
+  TASK_STATUS_LABELS,
+  STATUS_BADGE,
+  PRIORITY_BADGE as PRIORITY_STYLES,
+} from "@/core/tasks/entity";
+import { EmptyState } from "@/components/common";
 
-const STATUS_STYLES: Record<string, string> = {
-  todo: "bg-secondary text-muted-foreground",
-  in_progress: "bg-info/10 text-info",
-  review: "bg-warning/10 text-warning",
-  blocked: "bg-danger/10 text-danger",
-  done: "bg-success/10 text-success",
-  completed: "bg-success/10 text-success",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  review: "Review",
-  blocked: "Blocked",
-  done: "Done",
-  completed: "Done",
-};
-
-const PRIORITY_STYLES: Record<string, string> = {
-  low: "bg-neutral-300/50 text-neutral-500",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  urgent: "bg-danger/10 text-danger",
-};
+// Portal-specific override: legacy "completed" key (canonical uses "done")
+const STATUS_STYLES: Record<string, string> = { ...STATUS_BADGE, completed: STATUS_BADGE.done };
+const STATUS_LABELS: Record<string, string> = { ...TASK_STATUS_LABELS, completed: "Done" };
 
 export default async function ClientPortalTasksPage() {
   const session = await getServerSession();
@@ -54,17 +39,11 @@ export default async function ClientPortalTasksPage() {
       </div>
 
       {tasks.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-card border border-border bg-card py-20 text-center shadow-cf-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-            <CheckSquare size={20} className="text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">No tasks yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Tasks across your projects will appear here.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={CheckSquare}
+          title="No tasks yet"
+          description="Tasks across your projects will appear here."
+        />
       ) : (
         <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
           <table className="w-full text-sm">
@@ -97,7 +76,7 @@ export default async function ClientPortalTasksPage() {
                     {task.title}
                   </td>
                   <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-                    {task.projectName ?? "—"}
+                    {task.projectName ?? "-"}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -114,7 +93,7 @@ export default async function ClientPortalTasksPage() {
                         {task.priority}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </td>
                   <td className="hidden px-4 py-3 lg:table-cell">
@@ -127,7 +106,7 @@ export default async function ClientPortalTasksPage() {
                         })}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </td>
                 </tr>

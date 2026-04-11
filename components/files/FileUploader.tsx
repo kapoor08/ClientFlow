@@ -110,7 +110,7 @@ export function FileUploader({ projectId, canUpload }: FileUploaderProps) {
 
   return (
     <div className="space-y-4">
-      {/* Drop zone — only shown to users who can upload */}
+      {/* Drop zone - only shown to users who can upload */}
       {canUpload && (
         <div
           onDragOver={(e) => {
@@ -138,7 +138,7 @@ export function FileUploader({ projectId, canUpload }: FileUploaderProps) {
               </span>
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Images, PDFs, documents, spreadsheets — up to {MAX_SIZE_MB} MB
+              Images, PDFs, documents, spreadsheets - up to {MAX_SIZE_MB} MB
               each
             </p>
           </div>

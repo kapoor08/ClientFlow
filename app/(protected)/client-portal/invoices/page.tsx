@@ -3,6 +3,8 @@ import { getServerSession } from "@/lib/get-session";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { getPortalInvoicesForUser } from "@/lib/client-portal";
 import { Receipt, ExternalLink } from "lucide-react";
+import { formatCurrency } from "@/utils/currency";
+import { EmptyState } from "@/components/common";
 
 const STATUS_STYLES: Record<string, string> = {
   paid: "bg-success/10 text-success",
@@ -19,16 +21,6 @@ const STATUS_LABELS: Record<string, string> = {
   uncollectible: "Uncollectible",
   void: "Void",
 };
-
-function formatAmount(cents: number | null, currency: string | null): string {
-  if (cents === null) return "—";
-  const code = (currency ?? "usd").toUpperCase();
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: code,
-    minimumFractionDigits: 2,
-  }).format(cents / 100);
-}
 
 export default async function ClientPortalInvoicesPage() {
   const session = await getServerSession();
@@ -52,17 +44,11 @@ export default async function ClientPortalInvoicesPage() {
       </div>
 
       {invoices.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-card border border-border bg-card py-20 text-center shadow-cf-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-            <Receipt size={20} className="text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">No invoices yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Invoices will appear here once they are issued.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Receipt}
+          title="No invoices yet"
+          description="Invoices will appear here once they are issued."
+        />
       ) : (
         <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
           <table className="w-full text-sm">
@@ -108,8 +94,8 @@ export default async function ClientPortalInvoicesPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-foreground">
                     {inv.status === "paid"
-                      ? formatAmount(inv.amountPaidCents, inv.currencyCode)
-                      : formatAmount(inv.amountDueCents, inv.currencyCode)}
+                      ? formatCurrency(inv.amountPaidCents, inv.currencyCode)
+                      : formatCurrency(inv.amountDueCents, inv.currencyCode)}
                   </td>
                   <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
                     {inv.dueAt
@@ -118,7 +104,7 @@ export default async function ClientPortalInvoicesPage() {
                           day: "numeric",
                           year: "numeric",
                         })
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">
                     {inv.paidAt
@@ -127,7 +113,7 @@ export default async function ClientPortalInvoicesPage() {
                           day: "numeric",
                           year: "numeric",
                         })
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {inv.invoiceUrl ? (
@@ -141,7 +127,7 @@ export default async function ClientPortalInvoicesPage() {
                         View
                       </a>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </td>
                 </tr>

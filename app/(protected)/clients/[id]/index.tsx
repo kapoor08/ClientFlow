@@ -18,19 +18,11 @@ import { getClientNotes } from "@/lib/client-notes";
 import { ClientDetailCard } from "./ClientDetailCard";
 import { ClientLinkedProjects } from "./ClientLinkedProjects";
 import { ClientNotesSection } from "@/components/clients/ClientNotesSection";
+import { formatDate } from "@/utils/date";
 
 type ClientDetailPageProps = {
   params: Promise<{ id: string }>;
 };
-
-function formatDate(value: Date | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
-}
 
 const statusBadge: Record<string, string> = {
   active: "bg-success/10 text-success",

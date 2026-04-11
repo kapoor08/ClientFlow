@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { db } from "@/lib/db";
 import { organizationSettings, organizations, organizationMemberships } from "@/db/schema";
@@ -75,7 +75,7 @@ export async function getSsoContextForEmail(
       organizationSettings,
       eq(organizationSettings.organizationId, organizations.id),
     )
-    .where(eq(user.email, email))
+    .where(sql`lower(split_part(${user.email}, '@', 2)) = ${domain}`)
     .limit(1);
 
   for (const row of rows) {
@@ -208,7 +208,7 @@ export async function exchangeCodeForTokens(params: {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Token exchange failed: ${res.status} — ${text}`);
+    throw new Error(`Token exchange failed: ${res.status} - ${text}`);
   }
 
   return res.json() as Promise<OidcTokenResponse>;

@@ -120,7 +120,13 @@
       "when": 1775327526875,
       "tag": "0016_brown_rockslide",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775747331463,
+      "tag": "0017_brown_frightful_four",
+      "breakpoints": true
     }
   ]
-}  ]
 }

@@ -317,10 +317,10 @@ type DataTableProps<T> = {
   pagination?: PaginationMeta;
   /**
    * Provide a card render function to enable the list/grid view toggle.
-   * The returned node is rendered inside a grid item — wrap with a Link if the card should be navigable.
+   * The returned node is rendered inside a grid item - wrap with a Link if the card should be navigable.
    */
   gridCard?: (row: T) => ReactNode;
-  /** Number of grid columns — default 3 */
+  /** Number of grid columns - default 3 */
   gridCols?: 2 | 3 | 4;
   /**
    * Enable infinite scroll in grid view.
@@ -383,7 +383,7 @@ export function DataTable<T>({
         try {
           const pageSize = pagination?.pageSize ?? 12;
           const newItems = await loadMore(nextPage, pageSize);
-          if (generationRef.current !== gen) return; // stale — data was reset
+          if (generationRef.current !== gen) return; // stale - data was reset
           setAccumulatedItems((prev) => [...prev, ...newItems]);
           setNextPage((p) => p + 1);
           setHasMore(newItems.length >= pageSize);
@@ -398,7 +398,7 @@ export function DataTable<T>({
     return () => observer.disconnect();
   }, [infiniteScroll, loadMore, hasMore, isLoadingMore, nextPage, pagination?.pageSize]);
 
-  // Sort state — also resets page when changed
+  // Sort state - also resets page when changed
   const [{ sort, order }, setSort] = useQueryStates(
     {
       sort: parseAsString.withDefault(""),
@@ -408,7 +408,7 @@ export function DataTable<T>({
     { shallow: false, startTransition, clearOnDefault: true },
   );
 
-  // View mode — persisted in URL, only active when gridCard is provided
+  // View mode - persisted in URL, only active when gridCard is provided
   const [{ view: rawView }, setViewParams] = useQueryStates(
     {
       view: parseAsString.withDefault("list"),

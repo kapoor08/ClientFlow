@@ -1,22 +1,13 @@
 import { z } from "zod";
-
-export const TASK_STATUS_OPTIONS = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "review", label: "Review" },
-  { value: "blocked", label: "Blocked" },
-  { value: "done", label: "Done" },
-] as const;
-
-export const TASK_PRIORITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
-] as const;
-
-export type TaskStatus = (typeof TASK_STATUS_OPTIONS)[number]["value"];
-export type TaskPriority = (typeof TASK_PRIORITY_OPTIONS)[number]["value"];
+import {
+  TASK_PRIORITY_OPTIONS,
+  TASK_STATUS_OPTIONS,
+  TASK_TAG_VALUES,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/helpers/task";
+export { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS };
+export type { TaskPriority, TaskStatus };
 
 const taskStatusValues = TASK_STATUS_OPTIONS.map((o) => o.value) as [
   TaskStatus,
@@ -28,16 +19,7 @@ const taskPriorityValues = TASK_PRIORITY_OPTIONS.map((o) => o.value) as [
   ...TaskPriority[],
 ];
 
-export const TASK_TAG_OPTIONS = [
-  "bug",
-  "enhancement",
-  "feature",
-  "improvement",
-  "question",
-  "documentation",
-  "design",
-  "blocked",
-] as const;
+export const TASK_TAG_OPTIONS = TASK_TAG_VALUES;
 
 export const taskFormSchema = z.object({
   projectId: z.string().min(1, "Project is required."),

@@ -34,7 +34,12 @@ import {
 import { DateRangePicker } from "@/components/extended/date-range-picker";
 import { http } from "@/core/infrastructure";
 import { Check, ChevronDown, X } from "lucide-react";
-import { getInitials } from "@/core/tasks/entity";
+import {
+  TASK_FILTER_STATUS_OPTIONS as STATUS_OPTIONS,
+  TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
+  TASK_TAG_OPTIONS,
+} from "@/helpers/task";
+import { getInitials } from "@/utils/user";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,31 +64,7 @@ type MemberOption = { userId: string; name: string; email: string };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "Urgent" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "todo", label: "To Do" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "testing_qa", label: "Testing / QA" },
-  { value: "completed", label: "Completed" },
-  { value: "done", label: "Done" },
-];
-
-const TAG_OPTIONS = [
-  { value: "bug", label: "Bug" },
-  { value: "feature", label: "Feature" },
-  { value: "enhancement", label: "Enhancement" },
-  { value: "improvement", label: "Improvement" },
-  { value: "question", label: "Question" },
-  { value: "documentation", label: "Documentation" },
-  { value: "design", label: "Design" },
-  { value: "blocked", label: "Blocked" },
-];
+const TAG_OPTIONS = TASK_TAG_OPTIONS;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -286,7 +267,7 @@ export function FiltersDrawer({
 
         <div className="p-5 space-y-5">
 
-          {/* Project + Priority — same row */}
+          {/* Project + Priority - same row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <SectionLabel>Project</SectionLabel>
@@ -323,7 +304,7 @@ export function FiltersDrawer({
             </div>
           </div>
 
-          {/* Status — multi-select dropdown */}
+          {/* Status - multi-select dropdown */}
           <div className="space-y-1.5">
             <SectionLabel>Status</SectionLabel>
             <MultiSelectPopover
@@ -339,7 +320,7 @@ export function FiltersDrawer({
             />
           </div>
 
-          {/* Due Date — date range picker */}
+          {/* Due Date - date range picker */}
           <div className="space-y-1.5">
             <SectionLabel>Due Date</SectionLabel>
             <div className="[&>button]:w-full">
@@ -360,7 +341,7 @@ export function FiltersDrawer({
             </div>
           </div>
 
-          {/* Tags — multi-select dropdown */}
+          {/* Tags - multi-select dropdown */}
           <div className="space-y-1.5">
             <SectionLabel>Tags</SectionLabel>
             <MultiSelectPopover
@@ -376,7 +357,7 @@ export function FiltersDrawer({
             />
           </div>
 
-          {/* Assignee — popover with search, avatar, name, email */}
+          {/* Assignee - popover with search, avatar, name, email */}
           <div className="space-y-1.5">
             <SectionLabel>Assignee</SectionLabel>
             <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>

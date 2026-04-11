@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { InvoiceListItem } from "@/core/invoices/entity";
+import { INVOICE_STATUS_STYLES as STATUS_STYLES } from "@/core/invoices/entity";
+import { formatDate } from "@/utils/date";
 
 type InvoiceLineItem = {
   description: string;
@@ -28,22 +30,6 @@ function formatCents(cents: number, currency: string | null) {
   });
 }
 
-function formatDate(d: string | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-secondary text-muted-foreground",
-  sent: "bg-info/10 text-info",
-  paid: "bg-success/10 text-success",
-  payment_failed: "bg-destructive/10 text-destructive",
-};
-
 type Props = {
   invoiceId: string | null;
   onClose: () => void;
@@ -60,7 +46,10 @@ export function InvoiceDetailModal({ invoiceId, onClose }: Props) {
     }
     setLoading(true);
     fetch(`/api/invoices/${invoiceId}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => setInvoice(data as FullInvoice))
       .catch(() => setInvoice(null))
       .finally(() => setLoading(false));
@@ -79,7 +68,7 @@ export function InvoiceDetailModal({ invoiceId, onClose }: Props) {
           <DialogTitle>
             {loading || !invoice
               ? "Invoice Details"
-              : `${invoice.number ?? "Invoice"} — ${invoice.title ?? ""}`}
+              : `${invoice.number ?? "Invoice"} - ${invoice.title ?? ""}`}
           </DialogTitle>
         </DialogHeader>
 

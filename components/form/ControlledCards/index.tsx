@@ -31,13 +31,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { IconSelector } from "@/components/form/IconSelector";
 
 export interface FeatureCard {
   id: string;
   title: string;
   subtitle: string;
-  icon?: string;
 }
 
 export interface ControlledCardsProps {
@@ -51,7 +49,6 @@ export interface ControlledCardsProps {
   maxCards?: number;
   disableAdd?: boolean;
   disableRemove?: boolean;
-  showIconSelector?: boolean; // Enable icon selection for each card
 }
 
 interface SortableCardItemProps {
@@ -61,7 +58,6 @@ interface SortableCardItemProps {
   index: number;
   onRemove: () => void;
   canRemove: boolean;
-  showIconSelector?: boolean;
 }
 
 const SortableCardItem: React.FC<SortableCardItemProps> = ({
@@ -71,7 +67,6 @@ const SortableCardItem: React.FC<SortableCardItemProps> = ({
   index,
   onRemove,
   canRemove,
-  showIconSelector = false,
 }) => {
   // Get trigger function from form context
   const { trigger } = useFormContext();
@@ -84,11 +79,6 @@ const SortableCardItem: React.FC<SortableCardItemProps> = ({
   const { field: subtitleField, fieldState: subtitleFieldState } = useController({
     control,
     name: `${fieldName}.subtitle`,
-  });
-
-  const { field: iconField, fieldState: iconFieldState } = useController({
-    control,
-    name: `${fieldName}.icon`,
   });
 
   const {
@@ -141,15 +131,6 @@ const SortableCardItem: React.FC<SortableCardItemProps> = ({
         </div>
       </CardHeader>
       <CardContent className="pt-0 pb-2 px-3 space-y-2">
-        {showIconSelector && (
-          <IconSelector
-            value={iconField.value}
-            onChange={iconField.onChange}
-            label="Icon"
-            placeholder="Select an icon..."
-            error={iconFieldState.error?.message}
-          />
-        )}
         <div className="space-y-1">
           <Label htmlFor={`card-${fieldName}-title`} className="text-xs">
             Title *
@@ -217,7 +198,6 @@ export const ControlledCards: React.FC<ControlledCardsProps> = ({
   maxCards,
   disableAdd = false,
   disableRemove = false,
-  showIconSelector = false,
 }) => {
   const { fields, append, remove, move } = useFieldArray({
     control,
@@ -245,15 +225,11 @@ export const ControlledCards: React.FC<ControlledCardsProps> = ({
   };
 
   const handleAddCard = () => {
-    const newCard: any = {
+    append({
       id: `card-${Date.now()}`,
       title: "",
       subtitle: "",
-    };
-    if (showIconSelector) {
-      newCard.icon = "";
-    }
-    append(newCard);
+    });
   };
 
   const handleRemoveCard = (index: number) => {
@@ -286,7 +262,6 @@ export const ControlledCards: React.FC<ControlledCardsProps> = ({
                 index={index}
                 canRemove={!disableRemove && fields.length > minCards}
                 onRemove={() => handleRemoveCard(index)}
-                showIconSelector={showIconSelector}
               />
             ))}
           </SortableContext>

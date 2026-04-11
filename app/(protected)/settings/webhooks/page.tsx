@@ -13,14 +13,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { WebhookCard } from "./WebhookCard";
-import type { WebhookItem } from "./WebhookCard";
 import { CreateWebhookDialog } from "./CreateWebhookDialog";
+import { EmptyState } from "@/components/common";
+import type { WebhookItem } from "@/core/webhooks/entity";
+import {
+  useWebhooks,
+  useCreateWebhook,
+  useUpdateWebhook,
+  useDeleteWebhook,
+} from "@/core/webhooks/useCase";
 
 export default function WebhooksPage() {
-  const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WebhookItem | null>(null);
   const [name, setName] = useState("");
@@ -28,74 +33,51 @@ export default function WebhooksPage() {
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery<{ webhooks: WebhookItem[] }>({
-    queryKey: ["webhooks"],
-    queryFn: () => fetch("/api/webhooks").then((r) => r.json()),
-  });
+  const { data, isLoading } = useWebhooks();
+  const createMutation = useCreateWebhook();
+  const toggleMutation = useUpdateWebhook();
+  const deleteMutation = useDeleteWebhook();
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/webhooks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, url, events: selectedEvents }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(
-          (d as { error?: string }).error ?? "Failed to create webhook.",
-        );
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["webhooks"] });
-      setCreateOpen(false);
-      setName("");
-      setUrl("");
-      setSelectedEvents([]);
-      toast.success("Webhook created.");
-    },
-    onError: (err) => {
-      const message =
-        err instanceof Error ? err.message : "Failed to create webhook.";
-      setError(message);
-      toast.error(message);
-    },
-  });
+  function handleCreate() {
+    createMutation.mutate(
+      { name, url, events: selectedEvents },
+      {
+        onSuccess: () => {
+          setCreateOpen(false);
+          setName("");
+          setUrl("");
+          setSelectedEvents([]);
+          toast.success("Webhook created.");
+        },
+        onError: (err) => {
+          setError(err.message);
+          toast.error(err.message);
+        },
+      },
+    );
+  }
 
-  const toggleMutation = useMutation({
-    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
-      fetch(`/api/webhooks/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive }),
-      }),
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ["webhooks"] });
-      toast.success(
-        `Webhook ${variables.isActive ? "activated" : "deactivated"}.`,
-      );
-    },
-    onError: (err) =>
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update webhook.",
-      ),
-  });
+  function handleToggle(id: string, isActive: boolean) {
+    toggleMutation.mutate(
+      { id, data: { isActive } },
+      {
+        onSuccess: () => {
+          toast.success(`Webhook ${isActive ? "activated" : "deactivated"}.`);
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  }
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/webhooks/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["webhooks"] });
-      setDeleteTarget(null);
-      toast.success("Webhook deleted.");
-    },
-    onError: (err) =>
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete webhook.",
-      ),
-  });
+  function handleDelete(id: string) {
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        setDeleteTarget(null);
+        toast.success("Webhook deleted.");
+      },
+      onError: (err) => toast.error(err.message),
+    });
+  }
 
   const webhooks = data?.webhooks ?? [];
 
@@ -145,27 +127,17 @@ export default function WebhooksPage() {
             </div>
           ))
         ) : webhooks.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-card border border-border bg-card py-16 text-center shadow-cf-1">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-              <Zap size={20} className="text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                No webhooks yet
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Add a webhook to receive event notifications.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={Zap}
+            title="No webhooks yet"
+            description="Add a webhook to receive event notifications."
+          />
         ) : (
           webhooks.map((w) => (
             <WebhookCard
               key={w.id}
               webhook={w}
-              onToggle={(id, isActive) =>
-                toggleMutation.mutate({ id, isActive })
-              }
+              onToggle={handleToggle}
               onDelete={setDeleteTarget}
             />
           ))
@@ -181,7 +153,7 @@ export default function WebhooksPage() {
         onNameChange={setName}
         onUrlChange={setUrl}
         onToggleEvent={toggleEvent}
-        onSubmit={() => createMutation.mutate()}
+        onSubmit={handleCreate}
         onClose={() => setCreateOpen(false)}
       />
 
@@ -204,9 +176,7 @@ export default function WebhooksPage() {
             <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-white hover:bg-danger/90 cursor-pointer"
-              onClick={() =>
-                deleteTarget && deleteMutation.mutate(deleteTarget.id)
-              }
+              onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
             >
               Delete
             </AlertDialogAction>

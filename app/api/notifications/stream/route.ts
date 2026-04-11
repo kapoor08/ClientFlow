@@ -12,7 +12,7 @@ export async function GET() {
     const encoder = new TextEncoder();
 
     // One dedicated ioredis connection per SSE request (subscribe mode locks the
-    // connection — it cannot be shared with the publisher).
+    // connection - it cannot be shared with the publisher).
     const subscriber = new IORedis(process.env.UPSTASH_REDIS_URL!, {
       tls: {},
       maxRetriesPerRequest: 1,

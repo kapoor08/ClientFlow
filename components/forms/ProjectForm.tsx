@@ -234,7 +234,7 @@ export function ProjectForm({
           })}
         </div>
 
-        {/* Amount field — shown only when a budget type is selected */}
+        {/* Amount field - shown only when a budget type is selected */}
         {budgetTypeOption && (
           <div className="mt-4 max-w-xs">
             <ControlledInput

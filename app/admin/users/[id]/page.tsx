@@ -102,8 +102,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">No active sessions.</td></tr>
             ) : sessions.map((s) => (
               <tr key={s.id} className="border-b border-border last:border-0">
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{s.ipAddress ?? "—"}</td>
-                <td className="hidden px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate md:table-cell">{s.userAgent ?? "—"}</td>
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{s.ipAddress ?? "-"}</td>
+                <td className="hidden px-4 py-3 text-xs text-muted-foreground max-w-[200px] truncate md:table-cell">{s.userAgent ?? "-"}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(s.createdAt), { addSuffix: true })}
                 </td>

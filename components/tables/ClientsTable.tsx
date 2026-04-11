@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FolderKanban, Mail, Phone, User } from "lucide-react";
+import { formatDate } from "@/utils/date";
 import { parseAsString, useQueryState } from "nuqs";
 import {
   DataTable,
@@ -27,14 +28,6 @@ const statusBadge: Record<ClientListItem["status"], string> = {
   inactive: "bg-neutral-300/50 text-neutral-700",
   archived: "bg-neutral-300/50 text-neutral-500",
 };
-
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
-}
 
 function ClientAvatar({
   name,
@@ -104,7 +97,7 @@ function buildColumns(
       sortable: true,
       hideOnTablet: true,
       cell: (client) => (
-        <span className="text-muted-foreground">{client.company || "—"}</span>
+        <span className="text-muted-foreground">{client.company || "-"}</span>
       ),
     },
     {
@@ -117,7 +110,7 @@ function buildColumns(
             {client.contactName || "No primary contact"}
           </p>
           <p className="text-xs text-muted-foreground">
-            {client.contactEmail || client.contactPhone || "—"}
+            {client.contactEmail || client.contactPhone || "-"}
           </p>
         </div>
       ),

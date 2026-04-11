@@ -30,7 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useTasks, useMoveTask, useDeleteTask, useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
+import { useTasks, useMoveTask, useReorderTasks, useDeleteTask, useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
 import { useQuery } from "@tanstack/react-query";
 import { http } from "@/core/infrastructure";
 import { TimeEstimateInput } from "@/components/form";
@@ -61,11 +61,16 @@ import {
   useReorderColumns,
 } from "@/core/task-columns/useCase";
 import {
-  getInitials,
   formatDueShort,
   PRIORITY_BADGE,
   STATUS_BADGE,
 } from "@/core/tasks/entity";
+import {
+  TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
+  TASK_STATUS_OPTIONS as STATUS_OPTIONS,
+} from "@/helpers/task";
+import { getInitials } from "@/utils/user";
+import { getEstimateColor } from "@/utils/task";
 import type {
   TaskListItem,
   TaskListResponse,
@@ -493,48 +498,7 @@ function SortableColumn({
 
 // ─── List View ────────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  review: "Review",
-  blocked: "Blocked",
-  done: "Done",
-};
-
-const STATUS_OPTIONS = Object.entries(STATUS_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
-
-const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "Urgent" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
-
 type MemberOption = { userId: string; name: string; email: string };
-
-function getEstimateColor(task: TaskListItem): string {
-  if (!task.estimateMinutes) return "";
-  if (task.status === "done") return "text-success";
-
-  const now = Date.now();
-  // Use estimateSetAt (when the estimate was last set) as the baseline.
-  // Falls back to createdAt for tasks that predate this field.
-  const baseline = task.estimateSetAt
-    ? new Date(task.estimateSetAt).getTime()
-    : new Date(task.createdAt).getTime();
-  const elapsedMs = now - baseline;
-  const estimateMs = task.estimateMinutes * 60 * 1000;
-
-  if (elapsedMs >= estimateMs) return "text-danger";
-
-  // Orange when 75%+ of the estimate window has elapsed
-  if (elapsedMs >= estimateMs * 0.75) return "text-warning";
-
-  return "";
-}
 
 function TaskListView({
   tasks,
@@ -752,10 +716,10 @@ function TaskListView({
 
               {/* Project */}
               <TableCell className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                {task.projectName ?? "—"}
+                {task.projectName ?? "-"}
               </TableCell>
 
-              {/* Status — shadcn Select styled as badge */}
+              {/* Status - shadcn Select styled as badge */}
               <TableCell
                 className="px-4 py-3 whitespace-nowrap"
                 onClick={(e) => e.stopPropagation()}
@@ -781,7 +745,7 @@ function TaskListView({
                 </Select>
               </TableCell>
 
-              {/* Priority — shadcn Select styled as badge */}
+              {/* Priority - shadcn Select styled as badge */}
               <TableCell
                 className="px-4 py-3 whitespace-nowrap"
                 onClick={(e) => e.stopPropagation()}
@@ -817,7 +781,7 @@ function TaskListView({
                 </Select>
               </TableCell>
 
-              {/* Assignees — multi-select avatar group */}
+              {/* Assignees - multi-select avatar group */}
               <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <Popover onOpenChange={(open) => { if (!open) setMemberSearch(""); }}>
                   <PopoverTrigger asChild>
@@ -916,7 +880,7 @@ function TaskListView({
                 </Popover>
               </TableCell>
 
-              {/* Due — inline date picker */}
+              {/* Due - inline date picker */}
               <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <Popover>
                   <TooltipProvider delayDuration={400}>
@@ -963,7 +927,7 @@ function TaskListView({
                 </Popover>
               </TableCell>
 
-              {/* Estimate — TimeEstimateInput with elapsed-time color */}
+              {/* Estimate - TimeEstimateInput with elapsed-time color */}
               <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                 <TimeEstimateInput
                   value={task.estimateMinutes}
@@ -1036,6 +1000,7 @@ const TasksPage = ({
   const { data: tasksData } = useTasks({ pageSize: 200 }, initialData);
 
   const moveTaskMutation = useMoveTask();
+  const reorderTasksMutation = useReorderTasks();
   const reorderColumnsMutation = useReorderColumns();
   const deleteColumnMutation = useDeleteColumn();
   const deleteTaskMutation = useDeleteTask();
@@ -1134,7 +1099,7 @@ const TasksPage = ({
         targetColumnId !== null &&
         targetColumnId !== dragStartColumnId.current
       ) {
-        // Cross-column move — persist to backend
+        // Cross-column move - persist to backend
         moveTaskMutation.mutate({
           taskId: activeTask.id,
           columnId: targetColumnId,
@@ -1143,12 +1108,28 @@ const TasksPage = ({
         overData?.type === "task" &&
         String(active.id) !== String(over.id)
       ) {
-        // Same-column reorder — commit new position in local state
+        // Same-column reorder - commit new order locally and persist to backend
+        const reorderColumnId = dragStartColumnId.current;
         setLocalTasks((prev) => {
           const oldIndex = prev.findIndex((t) => t.id === String(active.id));
           const newIndex = prev.findIndex((t) => t.id === String(over.id));
           if (oldIndex === -1 || newIndex === -1) return prev;
-          return arrayMove(prev, oldIndex, newIndex);
+          const next = arrayMove(prev, oldIndex, newIndex);
+
+          // Persist the new in-column order. Only tasks with a real columnId
+          // (not the synthetic status fallback) can be reordered.
+          if (reorderColumnId) {
+            const orderedIds = next
+              .filter((t) => t.columnId === reorderColumnId)
+              .map((t) => t.id);
+            if (orderedIds.length > 0) {
+              reorderTasksMutation.mutate({
+                columnId: reorderColumnId,
+                orderedIds,
+              });
+            }
+          }
+          return next;
         });
       }
       dragStartColumnId.current = null;

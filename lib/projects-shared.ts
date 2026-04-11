@@ -1,19 +1,11 @@
 import { z } from "zod";
-
-export const PROJECT_STATUS_OPTIONS = [
-  { value: "planning", label: "Planning" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "on_hold", label: "On Hold" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-] as const;
-
-export const PROJECT_PRIORITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
-] as const;
+import {
+  PROJECT_PRIORITY_OPTIONS,
+  PROJECT_STATUS_OPTIONS,
+  type ProjectPriority,
+  type ProjectStatus,
+} from "@/helpers/project";
+export { PROJECT_PRIORITY_OPTIONS, PROJECT_STATUS_OPTIONS };
 
 export const BUDGET_TYPE_OPTIONS = [
   {
@@ -46,8 +38,7 @@ export const BUDGET_TYPE_OPTIONS = [
   },
 ] as const;
 
-export type ProjectStatus = (typeof PROJECT_STATUS_OPTIONS)[number]["value"];
-export type ProjectPriority = (typeof PROJECT_PRIORITY_OPTIONS)[number]["value"];
+export type { ProjectPriority, ProjectStatus };
 export type ProjectBudgetType = (typeof BUDGET_TYPE_OPTIONS)[number]["value"];
 
 const projectStatusValues = PROJECT_STATUS_OPTIONS.map((o) => o.value) as [

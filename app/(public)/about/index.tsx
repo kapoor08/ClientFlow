@@ -69,7 +69,7 @@ const AboutPage = () => {
                 tools.
               </p>
               <p>
-                We set out to build the platform we wished we had — one that
+                We set out to build the platform we wished we had - one that
                 unifies client management, project tracking, task workflows, and
                 invoicing into a single, thoughtfully designed system.
               </p>

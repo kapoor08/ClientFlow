@@ -92,15 +92,15 @@ export default async function AdminBillingPage() {
                       <StatusBadge status={s.status} colorMap={STATUS_COLORS} />
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground capitalize">
-                      {s.billingCycle ?? "—"}
+                      {s.billingCycle ?? "-"}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-sm font-medium text-foreground">
-                      {s.status === "active" ? fmt(mrr) : "—"}
+                      {s.status === "active" ? fmt(mrr) : "-"}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                       {s.currentPeriodEnd
                         ? formatDistanceToNow(new Date(s.currentPeriodEnd), { addSuffix: true })
-                        : "—"}
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 );

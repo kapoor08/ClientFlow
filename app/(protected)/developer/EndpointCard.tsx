@@ -73,7 +73,7 @@ function ParamTable({ params }: { params: ApiParam[] }) {
                     required
                   </span>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </td>
               <td className="px-3 py-2 text-muted-foreground">{p.description}</td>

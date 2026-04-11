@@ -52,6 +52,7 @@
     "drizzle-orm": "^0.45.1",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.35.0",
+    "geist": "^1.7.0",
     "input-otp": "^1.4.2",
     "ioredis": "^5.10.1",
     "jose": "^6.2.2",

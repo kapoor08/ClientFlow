@@ -271,7 +271,7 @@ async function handleInvoicePaid(stripeInvoice: Stripe.Invoice) {
         amountDue: amountFormatted,
         dueDate: stripeInvoice.due_date
           ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-          : "—",
+          : "-",
       },
       invoiceUrl: stripeInvoice.hosted_invoice_url ?? "",
     });
@@ -323,7 +323,7 @@ async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
         amountDue: amountFormatted,
         dueDate: stripeInvoice.due_date
           ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-          : "—",
+          : "-",
       },
       failureReason: "Your card was declined.",
       retryUrl: `${appUrl}/settings/billing`,
@@ -352,7 +352,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  // Idempotency — skip if already processed
+  // Idempotency - skip if already processed
   const existing = await db
     .select({ id: billingWebhookEvents.id })
     .from(billingWebhookEvents)

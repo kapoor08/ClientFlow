@@ -311,7 +311,7 @@ export function TeamMemberRow({ member: m, access, assignableRoles, orgRolePermi
                 day: "numeric",
                 year: "numeric",
               })
-            : "—"}
+            : "-"}
         </td>
 
         {/* Actions */}

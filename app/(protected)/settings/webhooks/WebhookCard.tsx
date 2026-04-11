@@ -22,16 +22,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
-export type WebhookItem = {
-  id: string;
-  name: string;
-  url: string;
-  secret: string;
-  events: string[];
-  isActive: boolean;
-  lastTriggeredAt: string | null;
-  createdAt: string;
-};
+import type { WebhookItem } from "@/core/webhooks/entity";
+export type { WebhookItem };
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);

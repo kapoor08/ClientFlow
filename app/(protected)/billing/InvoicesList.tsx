@@ -5,6 +5,7 @@ import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nu
 import { DateRangeFilter, FiltersPopover, RowActions } from "@/components/data-table";
 import type { BillingInvoiceItem } from "@/core/billing/entity";
 import { formatDate, formatPrice, getStatusStyle } from "@/core/billing/entity";
+import { BILLING_INVOICE_STATUS_OPTIONS as STATUS_OPTIONS } from "@/helpers/billing";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -22,14 +23,6 @@ import {
 import type { PaginationMeta } from "@/lib/pagination";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];
-
-const STATUS_OPTIONS = [
-  { value: "paid", label: "Paid" },
-  { value: "open", label: "Open" },
-  { value: "draft", label: "Draft" },
-  { value: "void", label: "Void" },
-  { value: "uncollectible", label: "Uncollectible" },
-];
 
 function buildPageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);

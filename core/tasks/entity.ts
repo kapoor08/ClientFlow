@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "@/lib/pagination";
+import { TASK_STATUS_LABELS } from "@/helpers/task";
 
 export type TaskAssignee = { userId: string; name: string | null };
 
@@ -19,6 +20,7 @@ export type TaskListItem = {
   attachmentCount: number;
   createdAt: string;
   columnId: string | null;
+  position: number;
   refNumber: string | null;
   tags: string[];
 };
@@ -56,16 +58,6 @@ export type UpdateTaskData = CreateTaskData & { status: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-export function getInitials(name: string | null | undefined): string {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
 export function formatDueShort(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -89,3 +81,5 @@ export const STATUS_BADGE: Record<string, string> = {
   blocked: "bg-danger/10 text-danger",
   done: "bg-success/10 text-success",
 };
+
+export { TASK_STATUS_LABELS };

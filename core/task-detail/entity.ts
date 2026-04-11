@@ -112,8 +112,8 @@ export function formatActivityMessage(
     }
 
     case "status.changed": {
-      const from = (ov.label as string) ?? "—";
-      const to = (nv.label as string) ?? "—";
+      const from = (ov.label as string) ?? "-";
+      const to = (nv.label as string) ?? "-";
       return `changed status from ${from} to ${to}`;
     }
 
@@ -211,7 +211,7 @@ export function formatActivityMessage(
       const mins = nv.minutes as number | null;
       const desc = nv.description as string | null;
       const formatted = mins ? formatEstimateMinutes(mins) : "time";
-      return desc ? `logged ${formatted} — ${desc}` : `logged ${formatted}`;
+      return desc ? `logged ${formatted} - ${desc}` : `logged ${formatted}`;
     }
 
     default:

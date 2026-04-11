@@ -51,7 +51,7 @@ const SsoPage = () => {
 
   const onSubmit = (values: SsoFormValues) => {
     setLoading(true);
-    // Redirect to the initiate endpoint — the browser follows the redirect chain
+    // Redirect to the initiate endpoint - the browser follows the redirect chain
     window.location.href = `/api/auth/sso/initiate?email=${encodeURIComponent(values.email.trim())}`;
   };
 

@@ -146,7 +146,7 @@ async function enforceMonthlyLimit(
   const limit = limitByKey[featureKey];
 
   if (limit === null) {
-    // Unlimited — increment async and continue
+    // Unlimited - increment async and continue
     incrementMonthlyUsage(organizationId, featureKey).catch(console.error);
     return null;
   }

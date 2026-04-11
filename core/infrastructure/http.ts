@@ -32,7 +32,7 @@ export async function http<TResponse>(
     body: body != null ? JSON.stringify(body) : undefined,
   });
 
-  // 204 No Content — return undefined without trying to parse JSON
+  // 204 No Content - return undefined without trying to parse JSON
   if (response.status === 204) {
     return undefined as TResponse;
   }

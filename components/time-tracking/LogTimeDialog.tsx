@@ -145,7 +145,7 @@ export function LogTimeDialog({
             )}
           </div>
 
-          {/* Task — read-only if pre-fixed, selectable otherwise */}
+          {/* Task - read-only if pre-fixed, selectable otherwise */}
           <div className="space-y-1.5">
             <Label>Task</Label>
             {taskId ? (

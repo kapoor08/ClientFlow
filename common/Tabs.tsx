@@ -1,4 +1,4 @@
-// Stub — full Tabs implementation not used in this project
+// Stub - full Tabs implementation not used in this project
 import type { ReactNode } from "react";
 
 export interface Tab {

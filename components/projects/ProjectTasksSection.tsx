@@ -30,11 +30,12 @@ import { http } from "@/core/infrastructure";
 import { TimeEstimateInput } from "@/components/form";
 import { useTasks, useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
 import {
-  getInitials,
   formatDueShort,
   PRIORITY_BADGE,
   STATUS_BADGE,
 } from "@/core/tasks/entity";
+import { getInitials } from "@/utils/user";
+import { getEstimateColor } from "@/utils/task";
 import type { TaskListItem } from "@/core/tasks/entity";
 import { CreateTaskDialog } from "@/app/(protected)/tasks/components/CreateTaskDialog";
 import { TaskDetailSheet } from "@/app/(protected)/tasks/components/TaskDetailSheet";
@@ -79,19 +80,6 @@ function buildPayload(
     estimateMinutes: "estimateMinutes" in overrides ? overrides.estimateMinutes : task.estimateMinutes,
     columnId: task.columnId ?? undefined,
   };
-}
-
-function getEstimateColor(task: TaskListItem): string {
-  if (!task.estimateMinutes) return "";
-  if (task.status === "done") return "text-success";
-  const baseline = task.estimateSetAt
-    ? new Date(task.estimateSetAt).getTime()
-    : new Date(task.createdAt).getTime();
-  const elapsedMs = Date.now() - baseline;
-  const estimateMs = task.estimateMinutes * 60 * 1000;
-  if (elapsedMs >= estimateMs) return "text-danger";
-  if (elapsedMs >= estimateMs * 0.8) return "text-warning";
-  return "text-success";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -231,7 +219,7 @@ export function ProjectTasksSection({ projectId, canWrite, currentUserId }: Prop
                       key={task.id}
                       className="group border-b border-border/60 last:border-0 hover:bg-secondary/30 transition-colors"
                     >
-                      {/* Task name — opens detail sheet */}
+                      {/* Task name - opens detail sheet */}
                       <td className="px-4 py-3">
                         <button
                           type="button"

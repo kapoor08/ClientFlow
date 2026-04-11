@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { plans } from "@/config/plans";
+import { toast } from "sonner";
 
 export function PlansDialog({
   open,
@@ -35,8 +36,20 @@ export function PlansDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planCode }),
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(
+          (data as { error?: string }).error ?? "Failed to start checkout.",
+        );
+        return;
+      }
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Checkout did not return a session URL.");
+      }
+    } catch {
+      toast.error("Failed to start checkout.");
     } finally {
       setLoadingPlan(null);
     }

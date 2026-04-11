@@ -1,4 +1,4 @@
-// Stub — full Modal implementation not used in this project
+// Stub - full Modal implementation not used in this project
 import type { ReactNode } from "react";
 
 interface ModalProps {

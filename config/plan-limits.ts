@@ -49,7 +49,7 @@ export const PLAN_LIMITS: Record<PlanCode, PlanLimits> = {
   },
 };
 
-// hrefs that are accessible per plan — null means all
+// hrefs that are accessible per plan - null means all
 export const PLAN_MODULE_HREFS: Record<PlanCode, string[] | null> = {
   free: [
     "/dashboard",

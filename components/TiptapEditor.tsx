@@ -28,7 +28,7 @@ type MentionState = {
   selectedIndex: number;
 };
 
-// ─── MentionList — rendered via createPortal inside the same React root ────────
+// ─── MentionList - rendered via createPortal inside the same React root ────────
 // Being in the same React tree means Radix's onPointerDownCapture fires for
 // clicks here, setting isPointerInsideReactTreeRef = true so the dialog never
 // treats these clicks as "outside interactions".
@@ -386,7 +386,7 @@ export function TiptapEditor({
         )}
       />
 
-      {/* Mention dropdown — rendered via createPortal so it lives in this React
+      {/* Mention dropdown - rendered via createPortal so it lives in this React
           tree. Radix's onPointerDownCapture fires for mousedown inside portals
           that share the same React root, setting isPointerInsideReactTreeRef=true
           and preventing the dialog from closing on mention item clicks. */}

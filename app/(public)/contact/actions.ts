@@ -68,7 +68,7 @@ export async function submitContactFormAction(
       }),
     ];
 
-    // EmailJS contact template — only when EmailJS is the configured provider
+    // EmailJS contact template - only when EmailJS is the configured provider
     if (process.env.EMAILJS_PUBLIC_KEY) {
       tasks.push(
         sendContactEmailViaEmailJs({ name, email, company, subject, message }),

@@ -40,7 +40,7 @@ const IntegrationsPage = () => {
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
               ClientFlow connects with the tools your agency already uses. No
-              context switching — just seamless workflows.
+              context switching - just seamless workflows.
             </p>
           </motion.div>
         </div>

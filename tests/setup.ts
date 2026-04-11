@@ -4,5 +4,5 @@ import "@testing-library/jest-dom";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const vi: any;
 
-// server-only is aliased in vitest.config.ts — no runtime mock needed here
+// server-only is aliased in vitest.config.ts - no runtime mock needed here
 void vi;

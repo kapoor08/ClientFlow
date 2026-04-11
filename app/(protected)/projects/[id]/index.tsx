@@ -24,6 +24,8 @@ import {
   type ProjectPriority,
   type ProjectBudgetType,
 } from "@/lib/projects-shared";
+import { formatDate } from "@/utils/date";
+import { formatCurrency } from "@/utils/currency";
 
 type ProjectDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -51,25 +53,8 @@ const priorityDot: Record<ProjectPriority, string> = {
   urgent: "bg-danger",
 };
 
-function formatDate(value: Date | null): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
-}
-
-function formatCurrency(cents: number | null): string {
-  if (cents === null) return "—";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(cents / 100);
-}
-
 function getBudgetTypeLabel(type: ProjectBudgetType | null): string {
-  if (!type) return "—";
+  if (!type) return "-";
   return BUDGET_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
 }
 
@@ -222,7 +207,7 @@ export default async function ProjectDetailPage({
             />
           </div>
 
-          {/* Completed date — only when relevant */}
+          {/* Completed date - only when relevant */}
           {project.completedAt && (
             <div className="flex items-center gap-2 rounded-card border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
               <CheckCircle2 size={15} />

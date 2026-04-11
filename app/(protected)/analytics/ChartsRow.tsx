@@ -1,4 +1,11 @@
-import { BarChart3, TrendingUp, DollarSign, CheckSquare, Clock, Receipt } from "lucide-react";
+import {
+  BarChart3,
+  TrendingUp,
+  DollarSign,
+  CheckSquare,
+  Clock,
+  Receipt,
+} from "lucide-react";
 import { RevenueChart } from "./RevenueChart";
 import { ChartCard, MonthlyChart, StatusDistribution } from "./ChartCard";
 import type { AnalyticsSummary } from "@/core/analytics/entity";
@@ -26,7 +33,9 @@ export function ChartsRow({
             <h2 className="font-display text-base font-semibold text-foreground">
               Projects Created
             </h2>
-            <span className="ml-auto text-xs text-muted-foreground">{dateLabel}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {dateLabel}
+            </span>
           </div>
           {summary.monthlyProjectCreation.length > 0 ? (
             <MonthlyChart data={summary.monthlyProjectCreation} />
@@ -64,7 +73,9 @@ export function ChartsRow({
             <h2 className="font-display text-base font-semibold text-foreground">
               Revenue
             </h2>
-            <span className="ml-auto text-xs text-muted-foreground">{dateLabel}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {dateLabel}
+            </span>
           </div>
           {summary.monthlyRevenue.length > 0 ? (
             <RevenueChart data={summary.monthlyRevenue} />
@@ -105,7 +116,9 @@ export function ChartsRow({
             <h2 className="font-display text-base font-semibold text-foreground">
               Hours Logged
             </h2>
-            <span className="ml-auto text-xs text-muted-foreground">{dateLabel}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {dateLabel}
+            </span>
           </div>
           {summary.monthlyHoursLogged.length > 0 ? (
             <MonthlyChart

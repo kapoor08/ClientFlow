@@ -27,6 +27,7 @@ import {
 import { DatePicker } from "@/components/form/DatePicker";
 import { useCreateTask } from "@/core/tasks/useCase";
 import { http } from "@/core/infrastructure";
+import { TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS } from "@/helpers/task";
 import { ChevronDown, User } from "lucide-react";
 
 type CreateTaskDialogProps = {
@@ -42,13 +43,6 @@ type CreateTaskDialogProps = {
 
 type ProjectOption = { id: string; name: string };
 type MemberOption = { userId: string; name: string; email: string };
-
-const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "Urgent", color: "#ef4444" },
-  { value: "high", label: "High", color: "#f97316" },
-  { value: "medium", label: "Medium", color: "#f59e0b" },
-  { value: "low", label: "Low", color: "#71717a" },
-];
 
 export function CreateTaskDialog({
   open,

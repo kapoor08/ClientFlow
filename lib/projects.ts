@@ -2,7 +2,7 @@ import "server-only";
 
 import { writeAuditLog } from "@/lib/audit";
 import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
-import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
@@ -186,6 +186,12 @@ export async function listProjectsForUser(
         dueDate: projects.dueDate,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
+        taskCount: sql<number>`(
+          SELECT COUNT(*) FROM tasks
+          WHERE tasks.project_id = ${projects.id}
+            AND tasks.deleted_at IS NULL
+            AND tasks.parent_task_id IS NULL
+        )`,
       })
       .from(projects)
       .leftJoin(clients, eq(projects.clientId, clients.id))
@@ -205,7 +211,7 @@ export async function listProjectsForUser(
       clientName: p.clientName ?? "Unknown Client",
       status: p.status as ProjectStatus,
       priority: p.priority as ProjectPriority | null,
-      taskCount: 0, // tasks module is a future enhancement
+      taskCount: Number(p.taskCount ?? 0),
     })),
     pagination,
   };
@@ -421,6 +427,14 @@ export async function updateProjectForUser(
     metadata: projectChangedMeta,
   }).catch(console.error);
 
+  dispatchWebhookEvent(access.organizationId, "project.updated", {
+    projectId,
+    name: input.name.trim(),
+    status: input.status,
+    priority: input.priority || null,
+    clientId: input.clientId,
+  }).catch(console.error);
+
   // Determine the most specific event key based on what changed
   const eventKey =
     input.status === "completed"
@@ -482,5 +496,10 @@ export async function deleteProjectForUser(userId: string, projectId: string) {
     entityType: "project",
     entityId: projectId,
     metadata: { name: existing[0].name },
+  }).catch(console.error);
+
+  dispatchWebhookEvent(access.organizationId, "project.deleted", {
+    projectId,
+    name: existing[0].name,
   }).catch(console.error);
 }

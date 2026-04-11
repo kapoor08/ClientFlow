@@ -17,7 +17,7 @@ export default async function globalSetup(_config: FullConfig) {
   const page = await context.newPage();
 
   // ── Step 1: ensure the test user exists ──────────────────────────────────
-  // Try signing in first — if the user already exists this is all we need.
+  // Try signing in first - if the user already exists this is all we need.
   await page.goto("/auth/sign-in");
   await page.getByLabel(/email/i).fill(TEST_EMAIL);
   await page.getByLabel(/password/i).fill(TEST_PASSWORD);
@@ -30,7 +30,7 @@ export default async function globalSetup(_config: FullConfig) {
   const signedIn = !afterSignIn.includes("/auth/");
 
   if (!signedIn) {
-    // Sign-in failed — user doesn't exist yet. Register first.
+    // Sign-in failed - user doesn't exist yet. Register first.
     await page.goto("/auth/sign-up");
     await page.getByLabel(/first name/i).fill(TEST_FIRST);
     await page.getByLabel(/last name/i).fill(TEST_LAST);
@@ -86,7 +86,7 @@ export default async function globalSetup(_config: FullConfig) {
   // ── Step 3: save session state ───────────────────────────────────────────
   await context.storageState({ path: "tests/e2e/.auth-state.json" });
   console.log(
-    `[globalSetup] Authenticated as ${TEST_EMAIL} — session saved to tests/e2e/.auth-state.json`,
+    `[globalSetup] Authenticated as ${TEST_EMAIL} - session saved to tests/e2e/.auth-state.json`,
   );
 
   await browser.close();

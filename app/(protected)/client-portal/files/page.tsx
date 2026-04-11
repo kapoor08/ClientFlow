@@ -1,24 +1,11 @@
 import { redirect } from "next/navigation";
+import { FileText, ExternalLink } from "lucide-react";
+import { EmptyState } from "@/components/common";
+import { getPortalFilesForUser } from "@/lib/client-portal";
 import { getServerSession } from "@/lib/get-session";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalFilesForUser } from "@/lib/client-portal";
-import { FileText, ExternalLink, FileImage, FileVideo, FileCode } from "lucide-react";
-
-function getFileIcon(mimeType: string | null) {
-  if (!mimeType) return FileText;
-  if (mimeType.startsWith("image/")) return FileImage;
-  if (mimeType.startsWith("video/")) return FileVideo;
-  if (mimeType.includes("pdf") || mimeType.includes("document")) return FileText;
-  if (mimeType.includes("spreadsheet") || mimeType.includes("csv")) return FileCode;
-  return FileText;
-}
-
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatDate } from "@/utils/date";
+import { formatBytes, getSimpleFileIcon } from "@/utils/file";
 
 export default async function ClientPortalFilesPage() {
   const session = await getServerSession();
@@ -30,7 +17,6 @@ export default async function ClientPortalFilesPage() {
   const files = await getPortalFilesForUser(session.user.id);
   if (!files) redirect("/dashboard");
 
-  // Group by project
   const grouped = files.reduce<Record<string, typeof files>>((acc, file) => {
     const key = file.projectName ?? "Other";
     if (!acc[key]) acc[key] = [];
@@ -50,17 +36,11 @@ export default async function ClientPortalFilesPage() {
       </div>
 
       {files.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-card border border-border bg-card py-20 text-center shadow-cf-1">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-            <FileText size={20} className="text-muted-foreground" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">No files yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Files shared with you will appear here.
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No files yet"
+          description="Files shared with you will appear here."
+        />
       ) : (
         <div className="space-y-6">
           {Object.entries(grouped).map(([projectName, projectFiles]) => (
@@ -71,7 +51,7 @@ export default async function ClientPortalFilesPage() {
               <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
                 <div className="divide-y divide-border">
                   {projectFiles.map((file) => {
-                    const Icon = getFileIcon(file.mimeType);
+                    const Icon = getSimpleFileIcon(file.mimeType, file.fileName);
                     return (
                       <div
                         key={file.id}
@@ -87,11 +67,7 @@ export default async function ClientPortalFilesPage() {
                           <p className="text-xs text-muted-foreground">
                             {formatBytes(file.sizeBytes)}
                             {file.sizeBytes ? " · " : ""}
-                            {new Date(file.createdAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            {formatDate(file.createdAt)}
                           </p>
                         </div>
                         <a

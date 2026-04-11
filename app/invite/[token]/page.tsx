@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, Building2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInvitationByToken } from "@/lib/invitations";
 import { getServerSession } from "@/lib/get-session";
-import { acceptInviteAction } from "@/lib/invite-actions";
+import { acceptInviteAction } from "./actions";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -73,10 +73,28 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
     );
   }
 
-  // Valid invite — require login
+  // Valid invite - require login
   const session = await getServerSession();
   if (!session) {
     redirect(`/auth/sign-in?redirectTo=/invite/${token}`);
+  }
+
+  // Enforce email binding: the signed-in account must match the invited email
+  if (session.user.email?.toLowerCase() !== invitation.email.toLowerCase()) {
+    return (
+      <InviteLayout>
+        <StatusCard
+          icon={<XCircle size={40} className="text-danger" />}
+          title="Wrong account"
+          description={`This invitation was sent to ${invitation.email}. You are signed in as ${session.user.email}. Please sign in with the correct account to accept.`}
+          action={
+            <Button asChild variant="outline">
+              <Link href={`/auth/sign-in?redirectTo=/invite/${token}`}>Sign in with a different account</Link>
+            </Button>
+          }
+        />
+      </InviteLayout>
+    );
   }
 
   // Bind the token into the server action

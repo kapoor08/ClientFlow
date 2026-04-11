@@ -16,6 +16,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ControlledInput, ControlledSelect } from "@/components/form";
+import {
+  PROJECT_TEMPLATE_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
+  PROJECT_TEMPLATE_STATUS_OPTIONS as STATUS_OPTIONS,
+} from "@/helpers/project";
 import type { ProjectTemplateTask } from "@/lib/project-templates";
 
 type TemplateItem = {
@@ -28,20 +32,6 @@ type TemplateItem = {
   createdAt: string;
   updatedAt: string;
 };
-
-const STATUS_OPTIONS = [
-  { value: "planning", label: "Planning" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "on_hold", label: "On Hold" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: "none", label: "No priority" },
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
-];
 
 const templateFormSchema = z.object({
   name: z.string().min(1, "Template name is required."),

@@ -10,7 +10,7 @@
  *   PLATFORM_ADMIN_PASSWORD Password              (default: "Admin@123456")
  *
  * If a user with the given email already exists, the script just sets
- * is_platform_admin = true on that row — no duplicate is created.
+ * is_platform_admin = true on that row - no duplicate is created.
  */
 
 import "dotenv/config";
@@ -128,7 +128,7 @@ async function main() {
     {
       name: result[0].name,
       email: result[0].email,
-      password: existing[0] ? "(existing — unchanged)" : config.password,
+      password: existing[0] ? "(existing - unchanged)" : config.password,
       is_platform_admin: result[0].is_platform_admin,
       email_verified: result[0].email_verified,
     },

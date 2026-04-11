@@ -47,8 +47,8 @@ export function OrgDetailTabs({ detail }: { detail: Detail }) {
             ["Slug", org.slug],
             ["Status", org.isActive ? "Active" : "Suspended"],
             ["Created", new Date(org.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })],
-            ["Timezone", org.timezone ?? "—"],
-            ["Currency", org.currencyCode ?? "—"],
+            ["Timezone", org.timezone ?? "-"],
+            ["Currency", org.currencyCode ?? "-"],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl border border-border bg-card p-4">
               <p className="text-xs text-muted-foreground mb-1">{label}</p>
@@ -88,7 +88,7 @@ export function OrgDetailTabs({ detail }: { detail: Detail }) {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {m.joinedAt ? formatDistanceToNow(new Date(m.joinedAt), { addSuffix: true }) : "—"}
+                    {m.joinedAt ? formatDistanceToNow(new Date(m.joinedAt), { addSuffix: true }) : "-"}
                   </td>
                 </tr>
               ))}
@@ -165,10 +165,10 @@ export function OrgDetailTabs({ detail }: { detail: Detail }) {
               {[
                 ["Plan", subscription.planName],
                 ["Status", subscription.status],
-                ["Billing cycle", subscription.billingCycle ?? "—"],
-                ["Current period end", subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "—"],
-                ["Stripe Customer ID", subscription.stripeCustomerId ?? "—"],
-                ["Stripe Subscription ID", subscription.stripeSubscriptionId ?? "—"],
+                ["Billing cycle", subscription.billingCycle ?? "-"],
+                ["Current period end", subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "-"],
+                ["Stripe Customer ID", subscription.stripeCustomerId ?? "-"],
+                ["Stripe Subscription ID", subscription.stripeSubscriptionId ?? "-"],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs text-muted-foreground mb-1">{label}</p>

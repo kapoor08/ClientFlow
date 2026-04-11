@@ -43,7 +43,7 @@ test.describe("Tasks", () => {
 
     await expect(page.locator("main")).toBeVisible({ timeout: 10_000 });
 
-    // Only interact with existing tasks — skip if none
+    // Only interact with existing tasks - skip if none
     const taskItem = page
       .locator("[data-task-id], tr[data-row], [role='row']")
       .filter({ hasText: /./u })

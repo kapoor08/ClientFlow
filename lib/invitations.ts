@@ -15,6 +15,7 @@ import { db } from "@/lib/db";
 import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
 import { onUserInvited, onInviteRevoked, onInviteAccepted } from "@/lib/email-triggers";
 import { dispatchNotification } from "@/lib/notifications";
+import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
 import {
   getAssignableRoleKeys,
   INVITE_EXPIRY_DAYS,
@@ -509,6 +510,7 @@ export async function acceptInvitationForUser(
   const [invitation] = await db
     .select({
       id: organizationInvitations.id,
+      email: organizationInvitations.email,
       organizationId: organizationInvitations.organizationId,
       roleId: organizationInvitations.roleId,
       roleKey: roles.key,
@@ -524,6 +526,20 @@ export async function acceptInvitationForUser(
   if (!invitation) throw new Error("Invalid or expired invitation link.");
   if (resolveStatus(invitation.status, invitation.expiresAt) !== "pending") {
     throw new Error("This invitation is no longer valid.");
+  }
+
+  // Enforce that only the invited email can accept
+  const [acceptorRow] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
+  if (!acceptorRow) throw new Error("User not found.");
+  if (acceptorRow.email.toLowerCase() !== invitation.email.toLowerCase()) {
+    throw new Error(
+      `This invitation was sent to ${invitation.email}. You are signed in as ${acceptorRow.email}. Please sign in with the correct account.`,
+    );
   }
 
   // Check if already a member
@@ -594,6 +610,13 @@ export async function acceptInvitationForUser(
     action: "invitation.accepted",
     entityType: "invitation",
     entityId: invitation.id,
+  }).catch(console.error);
+
+  dispatchWebhookEvent(invitation.organizationId, "team.member_added", {
+    userId,
+    email: invitation.email,
+    roleKey: invitation.roleKey ?? null,
+    invitationId: invitation.id,
   }).catch(console.error);
 
   return { organizationId: invitation.organizationId, roleKey: invitation.roleKey ?? null };

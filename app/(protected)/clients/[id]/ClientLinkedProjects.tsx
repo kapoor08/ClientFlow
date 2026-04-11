@@ -8,6 +8,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import type { ClientLinkedProject } from "@/lib/clients";
+import { formatDate } from "@/utils/date";
 
 const projectStatusBadge: Record<string, string> = {
   planning: "bg-neutral-300/50 text-neutral-700",
@@ -16,15 +17,6 @@ const projectStatusBadge: Record<string, string> = {
   completed: "bg-success/10 text-success",
   archived: "bg-neutral-300/50 text-neutral-500",
 };
-
-function formatDate(value: Date | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(value);
-}
 
 export function ClientLinkedProjects({
   linkedProjects,

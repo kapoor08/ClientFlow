@@ -199,7 +199,7 @@ export function CreateInvoiceDialog({
             <Label htmlFor="inv-title">Title *</Label>
             <Input
               id="inv-title"
-              placeholder="e.g. Web Design — March 2026"
+              placeholder="e.g. Web Design - March 2026"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required

@@ -4,7 +4,7 @@ import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
 
 type Params = { params: Promise<{ id: string }> };
 
-// PATCH /api/invitations/[id] — action-based: body { action: "revoke" | "resend" }
+// PATCH /api/invitations/[id] - action-based: body { action: "revoke" | "resend" }
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     const { userId } = await requireAuth();

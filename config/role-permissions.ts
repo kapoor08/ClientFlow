@@ -52,7 +52,7 @@ export const PORTAL_MODULES: ModuleDef[] = [
   { key: "portal-invoices", label: "Invoices", href: "/client-portal/invoices", hasCreate: false, hasEdit: false, hasDelete: false },
 ];
 
-/** Hrefs that owner/admin always see — not configurable for other roles */
+/** Hrefs that owner/admin always see - not configurable for other roles */
 export const ADMIN_ONLY_HREFS = new Set([
   "/settings", "/teams", "/billing", "/invoices", "/activity-logs", "/org-security", "/developer",
 ]);

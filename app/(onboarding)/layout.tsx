@@ -16,7 +16,7 @@ export default async function OnboardingLayout({
 
   const ctx = await getOrganizationSettingsContextForUser(session.user.id);
 
-  // Already completed — skip straight to the app
+  // Already completed - skip straight to the app
   if (ctx?.onboardingCompletedAt) redirect("/dashboard");
 
   return (

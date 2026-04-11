@@ -57,7 +57,7 @@ export default async function AdminApiKeysPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{k.orgName}</TableCell>
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
-                      {k.creatorName ?? "—"}
+                      {k.creatorName ?? "-"}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <StatusBadge status={statusLabel} colorMap={KEY_STATUS_COLORS} />

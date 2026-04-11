@@ -1,77 +1,14 @@
-import {
-  Activity,
-  Building2,
-  CalendarDays,
-  CheckSquare,
-  Clock,
-  FileText,
-  FolderKanban,
-  Mail,
-  Receipt,
-  Shield,
-  Users,
-} from "lucide-react";
+import { Activity, CalendarDays } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ActivityEntry } from "@/core/activity/entity";
+import { formatTimeAgo } from "@/utils/date";
+import { getInitials } from "@/utils/user";
 import {
   getActionLabel,
   getEntityName,
   getEntityBadgeStyle,
 } from "@/core/activity/entity";
-
-// ─── Entity meta ──────────────────────────────────────────────────────────────
-
-const ENTITY_ICON: Record<string, React.ElementType> = {
-  client: Users,
-  project: FolderKanban,
-  task: CheckSquare,
-  file: FileText,
-  invoice: Receipt,
-  time_entry: Clock,
-  invitation: Mail,
-  membership: Shield,
-  organization: Building2,
-};
-
-const ENTITY_ICON_BG: Record<string, string> = {
-  client: "bg-blue-100 text-blue-600",
-  project: "bg-violet-100 text-violet-600",
-  task: "bg-indigo-100 text-indigo-600",
-  file: "bg-amber-100 text-amber-600",
-  invoice: "bg-orange-100 text-orange-600",
-  time_entry: "bg-cyan-100 text-cyan-600",
-  invitation: "bg-emerald-100 text-emerald-600",
-  membership: "bg-rose-100 text-rose-600",
-  organization: "bg-slate-100 text-slate-600",
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-export function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function getInitials(name: string | null): string {
-  if (!name) return "?";
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import { ENTITY_ICON, ENTITY_ICON_BG } from "@/helpers/activity";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -116,7 +53,7 @@ export function ActivityItem({ entry, isLast }: ActivityItemProps) {
 
   return (
     <div className="relative flex gap-4 px-5 py-4 hover:bg-secondary/30 transition-colors">
-      {/* Timeline line — connects to next item */}
+      {/* Timeline line - connects to next item */}
       {!isLast && (
         <div className="absolute left-[2.325rem] top-13 bottom-0 w-px bg-border" />
       )}
@@ -162,7 +99,7 @@ export function ActivityItem({ entry, isLast }: ActivityItemProps) {
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CalendarDays size={11} />
               <span className="whitespace-nowrap">
-                {timeAgo(entry.createdAt)}
+                {formatTimeAgo(entry.createdAt)}
               </span>
             </div>
           </div>

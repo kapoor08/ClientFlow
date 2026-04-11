@@ -23,7 +23,7 @@ const FeaturesSection = () => {
             Everything your agency needs
           </h2>
           <p className="mt-3 text-[15px] text-muted-foreground max-w-md mx-auto">
-            From client onboarding to invoice delivery — ClientFlow covers the
+            From client onboarding to invoice delivery - ClientFlow covers the
             full lifecycle.
           </p>
         </motion.div>

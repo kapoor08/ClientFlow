@@ -50,7 +50,7 @@ function getMaxLength(country: Country): number {
       const f = new AsYouType(country);
       f.input(mk(n));
       const tpl = f.getTemplate();
-      // Ignore pure-digit templates ("xxxx…") — those mean the formatter gave up.
+      // Ignore pure-digit templates ("xxxx…") - those mean the formatter gave up.
       if (tpl && /[^x]/.test(tpl)) best = Math.max(best, tpl.length);
     }
   }
@@ -161,7 +161,7 @@ function PhoneCountrySelect({
             {value ? getFlagEmoji(value) : "🌐"}
           </span>
           <span className="text-xs font-medium tabular-nums">
-            {value ? `+${getCountryCallingCode(value)}` : "—"}
+            {value ? `+${getCountryCallingCode(value)}` : "-"}
           </span>
           <ChevronsUpDown size={11} className="text-muted-foreground" />
         </button>
@@ -212,7 +212,7 @@ function PhoneCountrySelect({
 //   "_invalid_" sentinel directly causes a console warning AND may clear the
 //   user's partial input.  By keeping a local `displayValue` state we can:
 //     • show the library "" (unchanged from before) when the user types partial
-//       digits — the library's own input state keeps the partial visible
+//       digits - the library's own input state keeps the partial visible
 //     • store "_invalid_" in field.value so Zod can reject it
 //   These two pieces of state never need to be the same string.
 
@@ -235,7 +235,7 @@ function PhoneField({
 }: PhoneFieldProps) {
   const hasRawInputRef = useRef(false);
 
-  // displayValue is what we pass to the library — always E.164 or "".
+  // displayValue is what we pass to the library - always E.164 or "".
   // We intentionally do NOT update it when the user is typing a partial number.
   // The library already maintains its own internal input state; by not changing
   // displayValue we avoid the library resetting the user's partially-typed text.
@@ -252,7 +252,7 @@ function PhoneField({
     }
   });
 
-  // maxLength for the HTML input — computed per country via AsYouType template.
+  // maxLength for the HTML input - computed per country via AsYouType template.
   const maxLengthRef = useRef(getMaxLength(defaultCountry));
 
   const trackRawInput = useCallback(
@@ -297,18 +297,18 @@ function PhoneField({
       value={displayValue}
       onChange={(val) => {
         if (val) {
-          // Valid E.164 — keep library and field in sync.
+          // Valid E.164 - keep library and field in sync.
           setDisplayValue(val);
           field.onChange(val);
         } else if (hasRawInputRef.current) {
           // Library returned undefined: user typed digits but the number is
-          // incomplete or invalid.  Do NOT update displayValue — the library's
+          // incomplete or invalid.  Do NOT update displayValue - the library's
           // own input state still shows the partial text, so leaving displayValue
           // unchanged prevents a controlled-value reset on re-render.
           // Store "_invalid_" so Zod's refine() rejects the field.
           field.onChange("_invalid_");
         } else {
-          // Truly empty — user cleared the field.
+          // Truly empty - user cleared the field.
           setDisplayValue("");
           field.onChange("");
         }

@@ -17,13 +17,13 @@ export default defineConfig({
   },
   projects: [
     {
-      // Public tests — no authentication required
+      // Public tests - no authentication required
       name: "public",
       testMatch: "**/auth.spec.ts",
       use: { ...devices["Desktop Chrome"] },
     },
     {
-      // Authenticated tests — reuse saved session state
+      // Authenticated tests - reuse saved session state
       name: "authenticated",
       testMatch: ["**/projects.spec.ts", "**/tasks.spec.ts", "**/invoices.spec.ts"],
       use: {

@@ -10,37 +10,22 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { formatBytes } from "@/utils/file";
+import { PROJECT_STATUS_LABELS, PROJECT_STATUS_STYLES } from "@/core/projects/entity";
+import { TASK_STATUS_LABELS, STATUS_BADGE as TASK_STATUS_STYLES } from "@/core/tasks/entity";
 
+// Union of project + task statuses (this page renders both), plus legacy "active" alias
 const STATUS_STYLES: Record<string, string> = {
-  planning: "bg-secondary text-muted-foreground",
+  ...PROJECT_STATUS_STYLES,
+  ...TASK_STATUS_STYLES,
   active: "bg-info/10 text-info",
-  in_progress: "bg-info/10 text-info",
-  on_hold: "bg-warning/10 text-warning",
-  review: "bg-warning/10 text-warning",
-  blocked: "bg-danger/10 text-danger",
-  completed: "bg-success/10 text-success",
-  done: "bg-success/10 text-success",
-  cancelled: "bg-danger/10 text-danger",
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  planning: "Planning",
+  ...PROJECT_STATUS_LABELS,
+  ...TASK_STATUS_LABELS,
   active: "Active",
-  in_progress: "In Progress",
-  on_hold: "On Hold",
-  review: "Review",
-  blocked: "Blocked",
-  completed: "Completed",
-  done: "Done",
-  cancelled: "Cancelled",
 };
-
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return "";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export default async function ClientPortalProjectDetailPage({
   params,
@@ -173,7 +158,7 @@ export default async function ClientPortalProjectDetailPage({
                             })}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">-</span>
                         )}
                       </td>
                     </tr>

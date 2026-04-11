@@ -15,12 +15,7 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
-import {
-  formatDistanceToNow,
-  isToday,
-  isYesterday,
-  isThisWeek,
-} from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,8 +28,7 @@ import {
   useDeleteAllNotifications,
 } from "@/core/notifications/useCase";
 import type { NotificationItem } from "@/core/notifications/entity";
-
-// ─── Icon / color maps ────────────────────────────────────────────────────────
+import { groupItemsByDateLabel } from "@/utils/notifications";
 
 const TYPE_ICON: Record<string, React.ElementType> = {
   task_assigned: CheckSquare,
@@ -62,33 +56,6 @@ const TYPE_COLOR: Record<string, string> = {
   role_changed: "bg-amber-100 text-amber-600",
 };
 
-// ─── Date group helpers ───────────────────────────────────────────────────────
-
-function getDateGroup(iso: string): string {
-  const d = new Date(iso);
-  if (isToday(d)) return "Today";
-  if (isYesterday(d)) return "Yesterday";
-  if (isThisWeek(d, { weekStartsOn: 1 })) return "This Week";
-  return "Older";
-}
-
-function groupByDate(
-  items: NotificationItem[],
-): { label: string; items: NotificationItem[] }[] {
-  const order = ["Today", "Yesterday", "This Week", "Older"];
-  const map = new Map<string, NotificationItem[]>();
-  for (const item of items) {
-    const g = getDateGroup(item.createdAt);
-    if (!map.has(g)) map.set(g, []);
-    map.get(g)!.push(item);
-  }
-  return order
-    .filter((g) => map.has(g))
-    .map((g) => ({ label: g, items: map.get(g)! }));
-}
-
-// ─── Single notification row ──────────────────────────────────────────────────
-
 function NotificationRow({
   n,
   onDelete,
@@ -108,19 +75,16 @@ function NotificationRow({
       className={`group relative flex cursor-pointer items-start gap-3.5 px-4 py-3.5 transition-colors hover:bg-secondary/40 ${!n.isRead ? "bg-primary/30" : ""}`}
       onClick={onClick}
     >
-      {/* Unread left accent */}
       {!n.isRead && (
         <div className="absolute inset-y-0 left-0 w-0.5 rounded-r-full bg-primary" />
       )}
 
-      {/* Icon */}
       <div
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${!n.isRead ? "bg-primary text-primary-foreground" : colorClass}`}
       >
         <Icon size={15} strokeWidth={2} />
       </div>
 
-      {/* Content */}
       <div className="min-w-0 flex-1 pt-0.5">
         <p
           className={`text-sm leading-snug ${!n.isRead ? "font-semibold text-foreground" : "font-medium text-foreground"}`}
@@ -135,7 +99,6 @@ function NotificationRow({
         </p>
       </div>
 
-      {/* Right-side actions */}
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {!n.isRead && (
           <button
@@ -167,8 +130,6 @@ function NotificationRow({
   );
 }
 
-// ─── NotificationFeed ─────────────────────────────────────────────────────────
-
 export function NotificationFeed() {
   const { data, isLoading } = useNotifications();
   const markRead = useMarkRead();
@@ -179,7 +140,7 @@ export function NotificationFeed() {
 
   const items = data?.items ?? [];
   const unreadCount = data?.unreadCount ?? 0;
-  const groups = groupByDate(items);
+  const groups = groupItemsByDateLabel(items);
 
   function handleMarkRead(id: string) {
     markRead.mutate(
@@ -229,7 +190,6 @@ export function NotificationFeed() {
 
   return (
     <div className="space-y-4">
-      {/* Action bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           {!isLoading && unreadCount > 0 && (
@@ -278,7 +238,6 @@ export function NotificationFeed() {
         </div>
       </div>
 
-      {/* Feed */}
       <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
         {isLoading ? (
           <div className="divide-y divide-border">
@@ -311,7 +270,6 @@ export function NotificationFeed() {
           <div>
             {groups.map((group, gi) => (
               <div key={group.label}>
-                {/* Group header */}
                 <div
                   className={`border-b border-border bg-secondary/30 px-4 py-2 ${gi > 0 ? "border-t" : ""}`}
                 >
@@ -319,7 +277,6 @@ export function NotificationFeed() {
                     {group.label}
                   </p>
                 </div>
-                {/* Group items */}
                 <div className="divide-y divide-border">
                   {group.items.map((n) => (
                     <NotificationRow

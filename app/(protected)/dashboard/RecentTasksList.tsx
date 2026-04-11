@@ -2,11 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DashboardTask } from "@/core/dashboard/entity";
-import {
-  formatDueDate,
-  TASK_STATUS_LABELS,
-  TASK_STATUS_STYLES,
-} from "@/core/dashboard/entity";
+import { formatDueDate } from "@/core/dashboard/entity";
+import { TASK_STATUS_LABELS, STATUS_BADGE as TASK_STATUS_STYLES } from "@/core/tasks/entity";
 
 // ─── TaskRow ──────────────────────────────────────────────────────────────────
 
@@ -27,7 +24,7 @@ function TaskRow({ task }: { task: DashboardTask }) {
         </Link>
       </td>
       <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
-        {task.projectName ?? "—"}
+        {task.projectName ?? "-"}
       </td>
       <td className="px-4 py-3">
         <span
