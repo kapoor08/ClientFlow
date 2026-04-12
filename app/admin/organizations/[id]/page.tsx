@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { getAdminOrgDetail } from "@/lib/admin-data";
-import { OrgDetailTabs } from "./OrgDetailTabs";
+import { getAdminOrgDetail } from "@/server/admin";
+import { OrgDetailTabs } from "@/components/admin";
 
 export default async function AdminOrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

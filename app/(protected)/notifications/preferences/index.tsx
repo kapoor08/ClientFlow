@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { PreferencesContent } from "./PreferencesContent";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { PreferencesContent } from "@/components/notifications";
 
 const NotificationPreferencesPage = () => {
   return (

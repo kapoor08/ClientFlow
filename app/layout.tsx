@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import ClientProviders from "@/components/providers/ClientProviders";
+import ClientProviders from "@/providers/ClientProviders";
 import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 

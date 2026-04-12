@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { db } from "@/lib/db";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { db } from "@/server/db/client";
 import { organizationMemberships, organizations } from "@/db/schema";
-import { setActiveOrgCookie } from "@/lib/active-org";
+import { setActiveOrgCookie } from "@/server/auth/active-org";
 
 export async function POST(req: Request) {
   try {

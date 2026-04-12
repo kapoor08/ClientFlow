@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@/server/db/client";
 import { session, account, user } from "@/db/auth-schema";
 import {
   getSsoContextBySlug,
@@ -9,8 +9,8 @@ import {
   exchangeCodeForTokens,
   verifyIdToken,
   fetchUserInfo,
-} from "@/lib/sso";
-import { bootstrapWorkspaceForUser } from "@/lib/organization-settings";
+} from "@/server/security/sso";
+import { bootstrapWorkspaceForUser } from "@/server/organization-settings";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const REDIRECT_URI = `${BASE_URL}/api/auth/sso/callback`;

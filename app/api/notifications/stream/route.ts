@@ -1,6 +1,6 @@
 import IORedis from "ioredis";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { notifChannel } from "@/lib/notification-stream";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { notifChannel } from "@/server/notifications/stream";
 
 export const dynamic = "force-dynamic";
 // Vercel Hobby: 60s max. Pro: 300s. Client auto-reconnects via EventSource.

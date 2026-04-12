@@ -1,4 +1,4 @@
-// Mock for @/lib/db - prevents actual DB connections during unit tests
+// Mock for @/server/db/client - prevents actual DB connections during unit tests
 // vi is a global injected by vitest; this file only runs in test context
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare const vi: any;

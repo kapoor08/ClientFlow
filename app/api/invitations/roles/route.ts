@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAssignableRolesForUser } from "@/lib/invitations";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { getAssignableRolesForUser } from "@/server/invitations";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

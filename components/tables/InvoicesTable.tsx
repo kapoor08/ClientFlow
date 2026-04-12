@@ -41,7 +41,7 @@ import {
   INVOICE_STATUS_STYLES as STATUS_STYLES,
   INVOICE_STATUS_OPTIONS as STATUS_OPTIONS,
 } from "@/core/invoices/entity";
-import type { PaginationMeta } from "@/lib/pagination";
+import type { PaginationMeta } from "@/utils/pagination";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

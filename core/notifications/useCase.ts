@@ -23,7 +23,7 @@ import type {
   NotificationListResponse,
   NotificationPreferencesResponse,
 } from "./entity";
-import type { NotificationEventKey } from "@/lib/notifications-shared";
+import type { NotificationEventKey } from "@/schemas/notifications";
 
 export const notificationKeys = {
   all: ["notifications"] as const,

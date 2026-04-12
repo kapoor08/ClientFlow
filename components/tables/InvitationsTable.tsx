@@ -19,8 +19,8 @@ import {
   useResendInvitation,
 } from "@/core/invitations/useCase";
 import type { InvitationListItem } from "@/core/invitations/entity";
-import { INVITATION_STATUS_OPTIONS } from "@/lib/invitations-shared";
-import type { PaginationMeta } from "@/lib/pagination";
+import { INVITATION_STATUS_OPTIONS } from "@/schemas/invitations";
+import type { PaginationMeta } from "@/utils/pagination";
 
 // ─── Status / role config ─────────────────────────────────────────────────────
 

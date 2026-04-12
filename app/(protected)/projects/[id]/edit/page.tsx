@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { ProjectForm } from "@/components/forms/ProjectForm";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { ProjectForm } from "@/components/forms/projects";
 import {
   getProjectForEditForUser,
   getProjectModuleAccessForUser,
-} from "@/lib/projects";
-import { listClientsForUser } from "@/lib/clients";
-import { getServerSession } from "@/lib/get-session";
+} from "@/server/projects";
+import { listClientsForUser } from "@/server/clients";
+import { getServerSession } from "@/server/auth/session";
 
 type EditProjectPageProps = {
   params: Promise<{ id: string }>;

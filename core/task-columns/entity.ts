@@ -1,4 +1,4 @@
-import { COLUMN_TYPE_OPTIONS } from "@/helpers/task";
+import { COLUMN_TYPE_OPTIONS } from "@/constants/task";
 
 export type BoardColumn = {
   id: string;

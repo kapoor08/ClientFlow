@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { InviteForm } from "@/components/forms/InviteForm";
-import { getInvitationsModuleAccessForUser } from "@/lib/invitations";
-import { getServerSession } from "@/lib/get-session";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { InviteForm } from "@/components/forms/invitations";
+import { getInvitationsModuleAccessForUser } from "@/server/invitations";
+import { getServerSession } from "@/server/auth/session";
 
 export default async function NewInvitationPage() {
   const session = await getServerSession();

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import PlanCards from "@/components/common/PlanCards";
+import PlanCards from "@/components/shared/PlanCards";
 
 const PricingPage = () => {
   return (

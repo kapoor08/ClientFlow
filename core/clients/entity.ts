@@ -1,5 +1,5 @@
-import type { ClientFormValues, ClientStatus } from "@/lib/clients-shared";
-import type { PaginationMeta } from "@/lib/pagination";
+import type { ClientFormValues, ClientStatus } from "@/schemas/clients";
+import type { PaginationMeta } from "@/utils/pagination";
 
 export type { ClientFormValues, ClientStatus };
 

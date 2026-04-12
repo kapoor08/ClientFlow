@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getOrganizationSettingsContextForUser,
   updateSsoConfigForUser,
-} from "@/lib/organization-settings";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+} from "@/server/organization-settings";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 export async function GET() {
   try {

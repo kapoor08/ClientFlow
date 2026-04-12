@@ -39,14 +39,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { parseAsString, useQueryState } from "nuqs";
 import { useDeleteFile } from "@/core/files/useCase";
-import { loadMoreFilesAction } from "@/app/(protected)/files/actions";
+import { loadMoreFilesAction } from "@/server/actions/files";
 import type { OrgFileListItem } from "@/core/files/entity";
 import {
   FilePreviewModal,
   type PreviewFile,
 } from "@/components/files/FilePreviewModal";
-import type { PaginationMeta } from "@/lib/pagination";
-import { cn } from "@/lib/utils";
+import type { PaginationMeta } from "@/utils/pagination";
+import { cn } from "@/utils/cn";
 import { formatBytes } from "@/utils/file";
 import { formatDate } from "@/utils/date";
 

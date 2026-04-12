@@ -1,5 +1,5 @@
-import type { ProjectFormValues, ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
-import { PROJECT_STATUS_LABELS } from "@/helpers/project";
+import type { ProjectFormValues, ProjectStatus, ProjectPriority } from "@/schemas/projects";
+import { PROJECT_STATUS_LABELS } from "@/constants/project";
 
 export type ProjectListItem = {
   id: string;

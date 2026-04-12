@@ -20,7 +20,7 @@ import {
   type MemberPermissionOverrides,
   type ModulePermissions,
 } from "@/config/role-permissions";
-import { ROLE_BADGE } from "@/app/(protected)/teams/TeamMemberRow";
+import { ROLE_BADGE } from "@/components/teams";
 
 type Props = {
   open: boolean;

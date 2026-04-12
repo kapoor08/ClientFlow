@@ -3,9 +3,9 @@ import {
   getProjectDetailForUser,
   updateProjectForUser,
   deleteProjectForUser,
-} from "@/lib/projects";
-import { projectFormSchema } from "@/lib/projects-shared";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+} from "@/server/projects";
+import { projectFormSchema } from "@/schemas/projects";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = {
   params: Promise<{ id: string }>;

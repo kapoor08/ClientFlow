@@ -1,4 +1,4 @@
-import type { PaginationMeta } from "@/lib/pagination";
+import type { PaginationMeta } from "@/utils/pagination";
 
 export type BillingInvoiceItem = {
   id: string;

@@ -2,10 +2,8 @@
 
 import { Code2, Key, AlertCircle } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { cn } from "@/lib/utils";
-import { API_SECTIONS } from "./api-docs-data";
-import { ApiDocsSidebar } from "./ApiDocsSidebar";
-import { ApiSection } from "./ApiSection";
+import { cn } from "@/utils/cn";
+import { API_SECTIONS, ApiDocsSidebar, ApiSection } from "@/components/developer";
 
 // ─── Error codes table ────────────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ControlledInput } from "@/components/form";
-import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import AuthNotice from "@/components/auth/AuthNotice";
 import { authRoutes } from "@/core/auth";
 

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ShieldCheck, ExternalLink, MailCheck, KeyRound, Users } from "lucide-react";
-import { listAdminUsers } from "@/lib/admin-data";
-import { AdminUserActions } from "./AdminUserActions";
+import { listAdminUsers } from "@/server/admin";
+import { AdminUserActions } from "@/components/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/common/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

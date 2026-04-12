@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { and, eq } from "drizzle-orm";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { db } from "@/lib/db";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { db } from "@/server/db/client";
 import { outboundWebhooks } from "@/db/schema";
 
 type Params = { params: Promise<{ webhookId: string }> };

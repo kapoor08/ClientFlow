@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteSubtaskForUser } from "@/lib/task-subtasks";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { deleteSubtaskForUser } from "@/server/task-subtasks";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string; subtaskId: string }> };
 

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { DateRangePicker } from "@/components/extended/date-range-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 export function DateRangeFilter() {
   const [, startTransition] = useTransition();

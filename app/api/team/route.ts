@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { listTeamMembersForUser } from "@/lib/team";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listTeamMembersForUser } from "@/server/team";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

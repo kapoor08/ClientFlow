@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, Palette, Key, HardDrive, Webhook, ShieldCheck, ShieldUser } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 
 const SETTINGS_NAV = [
   { href: "/settings", label: "Organization", icon: Building2, exact: true },

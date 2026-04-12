@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revokeApiKeyForUser, deleteApiKeyForUser } from "@/lib/api-keys";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { revokeApiKeyForUser, deleteApiKeyForUser } from "@/server/api-keys";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type Params = { params: Promise<{ keyId: string }> };
 

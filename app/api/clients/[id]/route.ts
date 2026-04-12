@@ -3,9 +3,9 @@ import {
   getClientDetailForUser,
   updateClientForUser,
   deleteClientForUser,
-} from "@/lib/clients";
-import { clientFormSchema } from "@/lib/clients-shared";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+} from "@/server/clients";
+import { clientFormSchema } from "@/schemas/clients";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = {
   params: Promise<{ id: string }>;

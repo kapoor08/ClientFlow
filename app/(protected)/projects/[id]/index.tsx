@@ -12,18 +12,17 @@ import {
   Pencil,
   Tag,
 } from "lucide-react";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { FileUploader } from "@/components/files/FileUploader";
-import { ProjectTasksSection } from "@/components/projects/ProjectTasksSection";
-import { ProjectTimesheetSection } from "./TimesheetSection";
-import { getProjectDetailForUser } from "@/lib/projects";
-import { getServerSession } from "@/lib/get-session";
+import { ProjectTasksSection, ProjectTimesheetSection } from "@/components/projects";
+import { getProjectDetailForUser } from "@/server/projects";
+import { getServerSession } from "@/server/auth/session";
 import {
   BUDGET_TYPE_OPTIONS,
   type ProjectStatus,
   type ProjectPriority,
   type ProjectBudgetType,
-} from "@/lib/projects-shared";
+} from "@/schemas/projects";
 import { formatDate } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 

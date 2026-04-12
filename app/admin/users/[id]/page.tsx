@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { getAdminUserDetail, revokeUserSession } from "@/lib/admin-data";
+import { getAdminUserDetail, revokeUserSession } from "@/server/admin";
 import { MailCheck, KeyRound, ShieldCheck } from "lucide-react";
-import { RevokeSessionButton } from "./RevokeSessionButton";
+import { RevokeSessionButton } from "@/components/admin";
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

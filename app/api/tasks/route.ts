@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listTasksForUser, createTaskForUser } from "@/lib/tasks";
-import { taskFormSchema } from "@/lib/tasks-shared";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
+import { listTasksForUser, createTaskForUser } from "@/server/tasks";
+import { taskFormSchema } from "@/schemas/tasks";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
 
 export async function GET(request: NextRequest) {
   try {

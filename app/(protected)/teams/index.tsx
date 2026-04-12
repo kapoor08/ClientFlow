@@ -4,8 +4,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamMembers } from "@/core/team/useCase";
 import type { TeamListResponse } from "@/core/team/entity";
 import type { RolePermissionsConfig } from "@/config/role-permissions";
-import { TeamMemberRow, SkeletonRow } from "./TeamMemberRow";
-import { SendInviteModal } from "@/app/(protected)/invitations/SendInviteModal";
+import { TeamMemberRow, SkeletonRow } from "@/components/teams";
+import { SendInviteModal } from "@/components/invitations";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

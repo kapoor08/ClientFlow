@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth } from "@/server/api/helpers";
 import {
   getRolePermissionsForOrg,
   updateRolePermissionsForUser,
-} from "@/lib/role-permissions";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+} from "@/server/auth/permissions";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import type { RolePermissionsConfig } from "@/config/role-permissions";
 
 export async function GET() {

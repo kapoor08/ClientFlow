@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateProjectTemplateForUser, deleteProjectTemplateForUser } from "@/lib/project-templates";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { updateProjectTemplateForUser, deleteProjectTemplateForUser } from "@/server/project-templates";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type Params = { params: Promise<{ templateId: string }> };
 

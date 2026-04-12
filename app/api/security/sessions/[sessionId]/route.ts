@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revokeSessionForCurrentUser } from "@/lib/security";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { revokeSessionForCurrentUser } from "@/server/security/data";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ sessionId: string }> };
 

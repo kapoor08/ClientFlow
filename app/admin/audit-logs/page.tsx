@@ -1,8 +1,8 @@
 import { formatDistanceToNow } from "date-fns";
 import { ClipboardList } from "lucide-react";
-import { listAdminAuditLogs } from "@/lib/admin-data";
+import { listAdminAuditLogs } from "@/server/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/common/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

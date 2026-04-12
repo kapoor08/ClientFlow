@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listTaskAttachments, saveTaskAttachment } from "@/lib/task-attachments";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listTaskAttachments, saveTaskAttachment } from "@/server/task-attachments";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 import { z } from "zod";
 
 type RouteContext = { params: Promise<{ id: string }> };

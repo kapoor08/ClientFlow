@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Building2, ExternalLink } from "lucide-react";
-import { listAdminOrganizations } from "@/lib/admin-data";
-import { AdminOrgActions } from "./AdminOrgActions";
+import { listAdminOrganizations } from "@/server/admin";
+import { AdminOrgActions } from "@/components/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resendInvitationForUser, revokeInvitationForUser } from "@/lib/invitations";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { resendInvitationForUser, revokeInvitationForUser } from "@/server/invitations";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type Params = { params: Promise<{ id: string }> };
 

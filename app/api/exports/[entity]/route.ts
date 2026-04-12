@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { db } from "@/lib/db";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { db } from "@/server/db/client";
 import { clients, projects, tasks, invoices, organizationMemberships, roles } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { and, desc, eq, isNull } from "drizzle-orm";

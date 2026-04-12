@@ -1,4 +1,4 @@
-import { BILLING_INVOICE_STATUS_OPTIONS } from "@/helpers/billing";
+import { BILLING_INVOICE_STATUS_OPTIONS } from "@/constants/billing";
 
 export type InvoiceListItem = {
   id: string;

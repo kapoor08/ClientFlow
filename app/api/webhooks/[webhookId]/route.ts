@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateWebhookForUser, deleteWebhookForUser } from "@/lib/webhooks";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { updateWebhookForUser, deleteWebhookForUser } from "@/server/webhooks/data";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type Params = { params: Promise<{ webhookId: string }> };
 

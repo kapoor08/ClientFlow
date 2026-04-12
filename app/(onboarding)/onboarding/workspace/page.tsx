@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
+import { getServerSession } from "@/server/auth/session";
 import { Users } from "lucide-react";
-import WorkspaceStepForm from "./WorkspaceStepForm";
+import { WorkspaceStepForm } from "@/components/forms/onboarding";
 
 export default async function OnboardingWorkspacePage() {
   const session = await getServerSession();

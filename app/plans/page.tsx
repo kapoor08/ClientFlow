@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getSubscriptionContextForUser } from "@/lib/subscription-context";
-import PlansPage from "./PlansPage";
+import { getServerSession } from "@/server/auth/session";
+import { getSubscriptionContextForUser } from "@/server/subscription/context";
+import { PlansPage } from "@/components/plans";
 
 export default async function PlansRoute() {
   const session = await getServerSession();

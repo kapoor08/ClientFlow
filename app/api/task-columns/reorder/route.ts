@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { reorderBoardColumnsForUser } from "@/lib/task-columns";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { reorderBoardColumnsForUser } from "@/server/task-columns";
 
 export async function PATCH(request: Request) {
   try {

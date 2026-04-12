@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { listSessionsForCurrentUser } from "@/lib/security";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listSessionsForCurrentUser } from "@/server/security/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

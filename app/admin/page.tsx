@@ -6,10 +6,10 @@ import {
   FolderOpen,
   Briefcase,
 } from "lucide-react";
-import { getAdminDashboardStats } from "@/lib/admin-data";
+import { getAdminDashboardStats } from "@/server/admin";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/common/StatusBadge";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 
 function KpiCard({
   label,

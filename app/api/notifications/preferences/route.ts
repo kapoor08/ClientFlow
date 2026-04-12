@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getNotificationPreferencesForUser,
   updateNotificationPreferenceForUser,
-} from "@/lib/notifications";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import type { NotificationEventKey } from "@/lib/notifications-shared";
+} from "@/server/notifications/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import type { NotificationEventKey } from "@/schemas/notifications";
 
 // GET /api/notifications/preferences
 export async function GET() {

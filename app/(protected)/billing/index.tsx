@@ -1,8 +1,8 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { getBillingContextForUser } from "@/lib/billing";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { getBillingContextForUser } from "@/server/billing";
 import { billingSearchParamsCache } from "@/core/billing/searchParams";
-import { BillingContent } from "./BillingContent";
+import { BillingContent } from "@/components/billing";
 
 type BillingPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;

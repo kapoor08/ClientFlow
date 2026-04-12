@@ -1,5 +1,5 @@
-import type { PaginationMeta } from "@/lib/pagination";
-import { ENTITY_TYPE_OPTIONS } from "@/helpers/activity";
+import type { PaginationMeta } from "@/utils/pagination";
+import { ENTITY_TYPE_OPTIONS } from "@/constants/activity";
 
 export type ActivityEntry = {
   id: string;

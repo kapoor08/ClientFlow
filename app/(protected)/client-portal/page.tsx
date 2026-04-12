@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalHomeForUser } from "@/lib/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getPortalHomeForUser } from "@/server/client-portal";
 import {
   FolderKanban,
   CheckSquare,

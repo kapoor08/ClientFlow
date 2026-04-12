@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { finishOnboardingAction } from "./onboarding/actions";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { finishOnboardingAction } from "@/server/actions/onboarding";
 
 export default async function OnboardingLayout({
   children,

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { ClientForm } from "@/components/forms/ClientForm";
-import { getClientForEditForUser, getClientModuleAccessForUser } from "@/lib/clients";
-import { getClientNotes } from "@/lib/client-notes";
-import { getServerSession } from "@/lib/get-session";
-import { ClientNotesSection } from "@/components/clients/ClientNotesSection";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { ClientForm } from "@/components/forms/clients";
+import { getClientForEditForUser, getClientModuleAccessForUser } from "@/server/clients";
+import { getClientNotes } from "@/server/client-notes";
+import { getServerSession } from "@/server/auth/session";
+import { ClientNotesSection } from "@/components/clients";
 
 type EditClientPageProps = {
   params: Promise<{ id: string }>;

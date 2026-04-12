@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Building2, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getInvitationByToken } from "@/lib/invitations";
-import { getServerSession } from "@/lib/get-session";
-import { acceptInviteAction } from "./actions";
+import { getInvitationByToken } from "@/server/invitations";
+import { getServerSession } from "@/server/auth/session";
+import { acceptInviteAction } from "@/server/actions/invite";
 
 type Props = {
   params: Promise<{ token: string }>;

@@ -14,9 +14,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { WebhookCard } from "./WebhookCard";
-import { CreateWebhookDialog } from "./CreateWebhookDialog";
-import { EmptyState } from "@/components/common";
+import { WebhookCard, CreateWebhookDialog } from "@/components/settings";
+import { EmptyState } from "@/components/shared";
 import type { WebhookItem } from "@/core/webhooks/entity";
 import {
   useWebhooks,

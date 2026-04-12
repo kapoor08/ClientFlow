@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { getDashboardContextForUser } from "@/lib/dashboard";
-import { DashboardStats } from "./DashboardStats";
-import { RevenueTrendChart } from "./RevenueTrendChart";
-import { RecentTasksList } from "./RecentTasksList";
-import { RecentProjectsTable } from "./RecentProjectsTable";
-import { RecentActivityList } from "./RecentActivityList";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { getDashboardContextForUser } from "@/server/dashboard";
+import {
+  DashboardStats,
+  RevenueTrendChart,
+  RecentTasksList,
+  RecentProjectsTable,
+  RecentActivityList,
+} from "@/components/dashboard";
 
 const DashboardPage = async () => {
   const session = await getServerSession();

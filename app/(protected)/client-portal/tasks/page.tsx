@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalTasksForUser } from "@/lib/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getPortalTasksForUser } from "@/server/client-portal";
 import { CheckSquare, Clock } from "lucide-react";
 import {
   TASK_STATUS_LABELS,
   STATUS_BADGE,
   PRIORITY_BADGE as PRIORITY_STYLES,
 } from "@/core/tasks/entity";
-import { EmptyState } from "@/components/common";
+import { EmptyState } from "@/components/shared";
 
 // Portal-specific override: legacy "completed" key (canonical uses "done")
 const STATUS_STYLES: Record<string, string> = { ...STATUS_BADGE, completed: STATUS_BADGE.done };

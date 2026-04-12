@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { listClientsForUser } from "@/lib/clients";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { listClientsForUser } from "@/server/clients";
 import { ClientsTable } from "@/components/tables/ClientsTable";
 import { clientsSearchParamsCache } from "@/core/clients/searchParams";
 

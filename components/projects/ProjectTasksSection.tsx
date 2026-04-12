@@ -25,7 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 import { http } from "@/core/infrastructure";
 import { TimeEstimateInput } from "@/components/form";
 import { useTasks, useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
@@ -37,8 +37,7 @@ import {
 import { getInitials } from "@/utils/user";
 import { getEstimateColor } from "@/utils/task";
 import type { TaskListItem } from "@/core/tasks/entity";
-import { CreateTaskDialog } from "@/app/(protected)/tasks/components/CreateTaskDialog";
-import { TaskDetailSheet } from "@/app/(protected)/tasks/components/TaskDetailSheet";
+import { CreateTaskDialog, TaskDetailSheet } from "@/components/tasks";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

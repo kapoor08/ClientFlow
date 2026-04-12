@@ -1,4 +1,4 @@
-import type { ProjectTemplateTask } from "@/lib/project-templates";
+import type { ProjectTemplateTask } from "@/server/project-templates";
 
 export type { ProjectTemplateTask };
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteFileForUser } from "@/lib/files";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { deleteFileForUser } from "@/server/files";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

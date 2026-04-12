@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listProjectsForUser, createProjectForUser } from "@/lib/projects";
-import { projectFormSchema } from "@/lib/projects-shared";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listProjectsForUser, createProjectForUser } from "@/server/projects";
+import { projectFormSchema } from "@/schemas/projects";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET(request: NextRequest) {
   try {

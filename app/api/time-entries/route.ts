@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { logTimeForUser, type LogTimeInput } from "@/lib/time-entries";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { logTimeForUser, type LogTimeInput } from "@/server/time-entries";
 
 export async function POST(request: Request) {
   try {

@@ -3,8 +3,8 @@ import {
   listNotificationsForUser,
   markAllNotificationsReadForUser,
   deleteAllNotificationsForUser,
-} from "@/lib/notifications";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+} from "@/server/notifications/data";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 // GET /api/notifications - list with unread count
 export async function GET() {

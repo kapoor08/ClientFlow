@@ -1,5 +1,5 @@
-import type { PaginationMeta } from "@/lib/pagination";
-import { TASK_STATUS_LABELS } from "@/helpers/task";
+import type { PaginationMeta } from "@/utils/pagination";
+import { TASK_STATUS_LABELS } from "@/constants/task";
 
 export type TaskAssignee = { userId: string; name: string | null };
 

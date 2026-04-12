@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateTaskForUser, deleteTaskForUser } from "@/lib/tasks";
-import { getTaskDetailForUser } from "@/lib/task-detail";
-import { taskFormSchema } from "@/lib/tasks-shared";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { updateTaskForUser, deleteTaskForUser } from "@/server/tasks";
+import { getTaskDetailForUser } from "@/server/task-detail";
+import { taskFormSchema } from "@/schemas/tasks";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

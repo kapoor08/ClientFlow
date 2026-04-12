@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getRolePermissionsForOrg } from "@/lib/role-permissions";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getRolePermissionsForOrg } from "@/server/auth/permissions";
 import { RolePermissionsEditor } from "@/components/settings/RolePermissionsEditor";
 import { authRoutes } from "@/core/auth";
 

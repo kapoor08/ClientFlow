@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { db } from "@/lib/db";
+import { stripe } from "@/server/third-party/stripe";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { db } from "@/server/db/client";
 import { subscriptions, organizationCurrentSubscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 

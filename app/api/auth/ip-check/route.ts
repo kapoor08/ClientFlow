@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { auth } from "@/server/auth/auth";
+import { db } from "@/server/db/client";
 import { user as userTable } from "@/db/auth-schema";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { isIpAllowed, getClientIp } from "@/lib/ip-allowlist";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { isIpAllowed, getClientIp } from "@/server/security/ip-allowlist";
 
 export async function GET(request: NextRequest) {
   // Try full session first (handles post-login and post-MFA cases)

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { getServerSession } from "@/lib/get-session";
-import { listTasksForUser } from "@/lib/tasks";
+import { getServerSession } from "@/server/auth/session";
+import { listTasksForUser } from "@/server/tasks";
 import {
   listBoardColumnsForUser,
   ensureDefaultColumns,
   deduplicateColumns,
-} from "@/lib/task-columns";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+} from "@/server/task-columns";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import TasksPage from ".";
 import type { TaskListResponse } from "@/core/tasks/entity";
 import type { BoardColumnsResponse } from "@/core/task-columns/entity";

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { listClientsForUser } from "@/lib/clients";
-import { listProjectsForUser } from "@/lib/projects";
-import { listTasksForUser } from "@/lib/tasks";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { listClientsForUser } from "@/server/clients";
+import { listProjectsForUser } from "@/server/projects";
+import { listTasksForUser } from "@/server/tasks";
 
 export async function GET(request: Request) {
   try {

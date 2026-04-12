@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { markNotificationReadForUser, deleteNotificationForUser } from "@/lib/notifications";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { markNotificationReadForUser, deleteNotificationForUser } from "@/server/notifications/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type Params = { params: Promise<{ id: string }> };
 

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 import {
   listBoardColumnsForUser,
   createBoardColumnForUser,
-} from "@/lib/task-columns";
+} from "@/server/task-columns";
 
 export async function GET() {
   try {

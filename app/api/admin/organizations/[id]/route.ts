@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/get-session";
-import { suspendOrganization, activateOrganization, deleteOrganization } from "@/lib/admin-data";
+import { getServerSession } from "@/server/auth/session";
+import { suspendOrganization, activateOrganization, deleteOrganization } from "@/server/admin";
 
 async function guardAdmin() {
   const session = await getServerSession();

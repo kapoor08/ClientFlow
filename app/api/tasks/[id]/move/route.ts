@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { moveTaskColumnForUser } from "@/lib/tasks";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { moveTaskColumnForUser } from "@/server/tasks";
 
 export async function PATCH(
   request: Request,

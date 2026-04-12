@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SubscriptionActivator } from "./SubscriptionActivator";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { SubscriptionActivator } from "@/components/billing";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 
 export const metadata: Metadata = {
   title: "Payment Successful",

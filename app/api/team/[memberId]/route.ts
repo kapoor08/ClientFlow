@@ -3,12 +3,12 @@ import {
   updateMemberRoleForUser,
   updateMemberStatusForUser,
   removeMemberForUser,
-} from "@/lib/team";
-import { writeAuditLog } from "@/lib/audit";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { onRoleChanged } from "@/lib/email-triggers";
-import { db } from "@/lib/db";
+} from "@/server/team";
+import { writeAuditLog } from "@/server/security/audit";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { onRoleChanged } from "@/server/email/triggers";
+import { db } from "@/server/db/client";
 import { eq } from "drizzle-orm";
 import { organizationMemberships, organizations, roles } from "@/db/schema";
 import { user } from "@/db/auth-schema";

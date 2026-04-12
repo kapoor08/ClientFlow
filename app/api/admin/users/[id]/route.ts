@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/get-session";
-import { deleteUser } from "@/lib/admin-data";
+import { getServerSession } from "@/server/auth/session";
+import { deleteUser } from "@/server/admin";
 
 async function guardAdmin() {
   const session = await getServerSession();

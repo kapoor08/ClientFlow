@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { deleteTimeEntryForUser } from "@/lib/time-entries";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { deleteTimeEntryForUser } from "@/server/time-entries";
 
 type Params = { params: Promise<{ id: string }> };
 

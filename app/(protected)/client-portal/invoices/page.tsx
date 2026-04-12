@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalInvoicesForUser } from "@/lib/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getPortalInvoicesForUser } from "@/server/client-portal";
 import { Receipt, ExternalLink } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
-import { EmptyState } from "@/components/common";
+import { EmptyState } from "@/components/shared";
 
 const STATUS_STYLES: Record<string, string> = {
   paid: "bg-success/10 text-success",

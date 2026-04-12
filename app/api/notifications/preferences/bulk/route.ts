@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { bulkUpdateNotificationPreferencesForUser } from "@/lib/notifications";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { bulkUpdateNotificationPreferencesForUser } from "@/server/notifications/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 // POST /api/notifications/preferences/bulk - { inAppEnabled?, emailEnabled? }
 export async function POST(request: NextRequest) {

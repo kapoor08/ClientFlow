@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { stripe, STRIPE_PRICE_MAP } from "@/lib/stripe";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { stripe, STRIPE_PRICE_MAP } from "@/server/third-party/stripe";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 
 export async function POST(req: Request) {
   const session = await getServerSession();

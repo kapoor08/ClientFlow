@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import {
   CheckCircle2,
   FolderKanban,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { finishOnboardingAction } from "../actions";
+import { finishOnboardingAction } from "@/server/actions/onboarding";
 
 const quickLinks = [
   {

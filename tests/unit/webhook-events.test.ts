@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { WEBHOOK_EVENTS } from "@/lib/webhooks-shared";
+import { WEBHOOK_EVENTS } from "@/schemas/webhooks";
 
 /**
  * Guards the webhook event matrix against drift between the declared list

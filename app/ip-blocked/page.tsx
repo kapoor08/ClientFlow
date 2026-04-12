@@ -5,9 +5,9 @@ import Image from "next/image";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SignOutButton from "@/components/auth/SignOutButton";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { isIpAllowed, getClientIp } from "@/lib/ip-allowlist";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { isIpAllowed, getClientIp } from "@/server/security/ip-allowlist";
 
 export default async function IpBlockedPage() {
   const session = await getServerSession();

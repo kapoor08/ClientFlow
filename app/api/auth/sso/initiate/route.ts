@@ -5,7 +5,7 @@ import {
   getSsoContextBySlug,
   discoverOidcEndpoints,
   buildOidcAuthorizationUrl,
-} from "@/lib/sso";
+} from "@/server/security/sso";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const REDIRECT_URI = `${BASE_URL}/api/auth/sso/callback`;

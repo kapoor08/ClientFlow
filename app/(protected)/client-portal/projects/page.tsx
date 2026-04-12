@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalProjectsForUser } from "@/lib/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getPortalProjectsForUser } from "@/server/client-portal";
 import { FolderKanban, Clock } from "lucide-react";
 import Link from "next/link";
 import {
@@ -9,7 +9,7 @@ import {
   PROJECT_STATUS_STYLES,
   PROJECT_PRIORITY_STYLES as PRIORITY_STYLES,
 } from "@/core/projects/entity";
-import { EmptyState } from "@/components/common";
+import { EmptyState } from "@/components/shared";
 
 // Portal-specific override: legacy "active" key (canonical uses "in_progress")
 const STATUS_STYLES: Record<string, string> = { ...PROJECT_STATUS_STYLES, active: "bg-info/10 text-info" };

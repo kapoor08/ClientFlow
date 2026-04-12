@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 import {
   getInvoiceForUser,
   updateInvoiceForUser,
   markInvoicePaidForUser,
   markInvoiceSentForUser,
   deleteInvoiceForUser,
-} from "@/lib/invoices";
+} from "@/server/invoices";
 
 type Params = { params: Promise<{ id: string }> };
 

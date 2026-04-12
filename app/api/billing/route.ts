@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getBillingContextForUser } from "@/lib/billing";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { getBillingContextForUser } from "@/server/billing";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 import { billingSearchParamsCache } from "@/core/billing/searchParams";
 
 export async function GET(request: Request) {

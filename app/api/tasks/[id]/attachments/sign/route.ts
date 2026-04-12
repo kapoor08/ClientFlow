@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSignedUploadParamsForTask } from "@/lib/task-attachments";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { getSignedUploadParamsForTask } from "@/server/task-attachments";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

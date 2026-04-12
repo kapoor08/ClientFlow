@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnalyticsSummaryForUser } from "@/lib/analytics";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { getAnalyticsSummaryForUser } from "@/server/analytics";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET(request: NextRequest) {
   try {

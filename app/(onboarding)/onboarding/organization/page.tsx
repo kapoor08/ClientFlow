@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import OrganizationStepForm from "./OrganizationStepForm";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { OrganizationStepForm } from "@/components/forms/onboarding";
 import { Building2 } from "lucide-react";
 
 export default async function OnboardingOrganizationPage() {

@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   listClientsForUser,
   createClientForUser,
-} from "@/lib/clients";
-import { clientFormSchema } from "@/lib/clients-shared";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+} from "@/server/clients";
+import { clientFormSchema } from "@/schemas/clients";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET(request: NextRequest) {
   try {

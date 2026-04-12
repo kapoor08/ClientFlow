@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSsoContextForEmail } from "@/lib/sso";
+import { getSsoContextForEmail } from "@/server/security/sso";
 
 /**
  * GET /api/auth/sso/check?email=user@company.com

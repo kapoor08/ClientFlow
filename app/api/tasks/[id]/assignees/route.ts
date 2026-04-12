@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateTaskAssigneesForUser } from "@/lib/task-assignees";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { updateTaskAssigneesForUser } from "@/server/task-assignees";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 import { z } from "zod";
 
 const schema = z.object({ userIds: z.array(z.string()).default([]) });

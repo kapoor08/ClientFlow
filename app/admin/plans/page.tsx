@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db } from "@/server/db/client";
 import { plans, planFeatureLimits, planFeatureFlags } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { PLAN_LIMITS } from "@/config/plan-limits";

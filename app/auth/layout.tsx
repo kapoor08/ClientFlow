@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { authRoutes } from "@/core/auth";
-import { getServerSession } from "@/lib/get-session";
+import { getServerSession } from "@/server/auth/session";
 
 export default async function AuthLayout({
   children,

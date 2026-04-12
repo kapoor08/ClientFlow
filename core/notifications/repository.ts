@@ -4,7 +4,7 @@ import type {
   NotificationPreferencesResponse,
   PushSubscribeInput,
 } from "./entity";
-import type { NotificationEventKey } from "@/lib/notifications-shared";
+import type { NotificationEventKey } from "@/schemas/notifications";
 
 export async function fetchNotifications(): Promise<NotificationListResponse> {
   return http<NotificationListResponse>("/api/notifications");

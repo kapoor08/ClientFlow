@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { updateMemberPermissionOverridesForUser } from "@/lib/team";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { updateMemberPermissionOverridesForUser } from "@/server/team";
 import type { MemberPermissionOverrides } from "@/config/role-permissions";
 
 type RouteContext = { params: Promise<{ memberId: string }> };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/utils/auth-client";
 import {
   requestPasswordReset,
   resendVerificationEmail,

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 import {
   updateBoardColumnForUser,
   deleteBoardColumnForUser,
-} from "@/lib/task-columns";
+} from "@/server/task-columns";
 
 export async function PATCH(
   request: Request,

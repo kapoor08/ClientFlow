@@ -1,8 +1,8 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { listActivityForUser } from "@/lib/activity";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { listActivityForUser } from "@/server/activity";
 import { activitySearchParamsCache } from "@/core/activity/searchParams";
-import { ActivityFeed } from "./ActivityFeed";
+import { ActivityFeed } from "@/components/activity-logs";
 
 type ActivityLogsPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;

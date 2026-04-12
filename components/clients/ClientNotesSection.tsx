@@ -18,12 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CLIENT_NOTE_TYPES, type ClientNote } from "@/lib/client-notes-shared";
+import { CLIENT_NOTE_TYPES, type ClientNote } from "@/schemas/client-notes";
 import {
   addClientNoteAction,
   editClientNoteAction,
   removeClientNoteAction,
-} from "@/app/(protected)/clients/[id]/notes-actions";
+} from "@/server/actions/client-notes";
 
 // ─── Type badge ───────────────────────────────────────────────────────────────
 

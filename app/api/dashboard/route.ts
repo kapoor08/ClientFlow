@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getDashboardContextForUser } from "@/lib/dashboard";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { getDashboardContextForUser } from "@/server/dashboard";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

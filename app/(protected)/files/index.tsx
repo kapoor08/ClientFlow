@@ -1,8 +1,8 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { FilesTable } from "@/components/tables/FilesTable";
-import { getServerSession } from "@/lib/get-session";
-import { listAllFilesForUser } from "@/lib/files";
-import { listProjectsForUser } from "@/lib/projects";
+import { getServerSession } from "@/server/auth/session";
+import { listAllFilesForUser } from "@/server/files";
+import { listProjectsForUser } from "@/server/projects";
 import { filesSearchParamsCache } from "@/core/files/searchParams";
 
 type FilesPageProps = {

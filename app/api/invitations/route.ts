@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listInvitationsForOrg, sendInvitationForUser } from "@/lib/invitations";
-import { inviteFormSchema } from "@/lib/invitations-shared";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
+import { listInvitationsForOrg, sendInvitationForUser } from "@/server/invitations";
+import { inviteFormSchema } from "@/schemas/invitations";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
 
 export async function GET(request: NextRequest) {
   try {

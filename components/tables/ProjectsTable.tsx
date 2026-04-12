@@ -15,14 +15,14 @@ import {
 } from "@/components/data-table";
 import { toast } from "sonner";
 import { useDeleteProject } from "@/core/projects/useCase";
-import { loadMoreProjectsAction } from "@/app/(protected)/projects/actions";
+import { loadMoreProjectsAction } from "@/server/actions/projects";
 import {
   PROJECT_STATUS_OPTIONS,
   PROJECT_PRIORITY_OPTIONS,
-} from "@/lib/projects-shared";
-import type { PaginationMeta } from "@/lib/pagination";
-import type { ProjectListItem } from "@/lib/projects";
-import type { ProjectStatus, ProjectPriority } from "@/lib/projects-shared";
+} from "@/schemas/projects";
+import type { PaginationMeta } from "@/utils/pagination";
+import type { ProjectListItem } from "@/server/projects";
+import type { ProjectStatus, ProjectPriority } from "@/schemas/projects";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseIdToken, buildOidcAuthorizationUrl } from "@/lib/sso";
+import { parseIdToken, buildOidcAuthorizationUrl } from "@/server/security/sso";
 
 // Helper: build a minimal base64url-encoded JWT (unsigned)
 function makeIdToken(payload: Record<string, unknown>): string {

@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { getPortalProjectDetailForUser } from "@/lib/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { getPortalProjectDetailForUser } from "@/server/client-portal";
 import {
   ChevronLeft,
   Clock,

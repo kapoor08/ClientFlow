@@ -1,11 +1,11 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { listInvoicesForUser } from "@/lib/invoices";
-import { listClientsForUser } from "@/lib/clients";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { listInvoicesForUser } from "@/server/invoices";
+import { listClientsForUser } from "@/server/clients";
 import { invoicesSearchParamsCache } from "@/core/invoices/searchParams";
 import { InvoicesTable } from "@/components/tables/InvoicesTable";
-import { CreateInvoiceButton } from "./CreateInvoiceButton";
+import { CreateInvoiceButton } from "@/components/invoices";
 
 type InvoicesPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;

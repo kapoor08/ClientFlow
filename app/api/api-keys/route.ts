@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listApiKeysForUser, createApiKeyForUser } from "@/lib/api-keys";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listApiKeysForUser, createApiKeyForUser } from "@/server/api-keys";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

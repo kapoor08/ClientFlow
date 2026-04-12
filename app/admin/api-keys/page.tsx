@@ -1,10 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
 import { FileKey2 } from "lucide-react";
-import { listAdminApiKeys } from "@/lib/admin-data";
-import { ApiKeyActions } from "./ApiKeyActions";
+import { listAdminApiKeys } from "@/server/admin";
+import { ApiKeyActions } from "@/components/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

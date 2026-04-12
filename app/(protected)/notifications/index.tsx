@@ -1,5 +1,5 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { NotificationFeed } from "./NotificationFeed";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { NotificationFeed } from "@/components/notifications";
 
 const NotificationsPage = () => {
   return (

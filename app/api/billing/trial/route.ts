@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { db } from "@/lib/db";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { db } from "@/server/db/client";
 import {
   plans,
   subscriptions,

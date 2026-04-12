@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Upload, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 import {
   useUploadFile,
   useDeleteFile,

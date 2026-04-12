@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listWebhooksForUser, createWebhookForUser } from "@/lib/webhooks";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listWebhooksForUser, createWebhookForUser } from "@/server/webhooks/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

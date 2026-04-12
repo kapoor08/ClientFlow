@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 import {
   listInvoicesForUser,
   createInvoiceForUser,
   type InvoiceFormValues,
-} from "@/lib/invoices";
+} from "@/server/invoices";
 
 export async function GET() {
   try {

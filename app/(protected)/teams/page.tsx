@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { getServerSession } from "@/lib/get-session";
-import { listTeamMembersForUser } from "@/lib/team";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { getServerSession } from "@/server/auth/session";
+import { listTeamMembersForUser } from "@/server/team";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import TeamsPage from ".";
 import type { TeamListResponse } from "@/core/team/entity";
 

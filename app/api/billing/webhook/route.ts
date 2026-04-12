@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe";
-import { db } from "@/lib/db";
+import { stripe } from "@/server/third-party/stripe";
+import { db } from "@/server/db/client";
 import {
   plans,
   subscriptions,
@@ -18,8 +18,8 @@ import {
   onPaymentFailed,
   onInvoiceAvailable,
   onSubscriptionChanged,
-} from "@/lib/email-triggers";
-import { dispatchWebhookEvent } from "@/lib/webhook-dispatch";
+} from "@/server/email/triggers";
+import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

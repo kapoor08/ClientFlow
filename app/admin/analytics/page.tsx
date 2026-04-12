@@ -1,10 +1,10 @@
-import { db } from "@/lib/db";
+import { db } from "@/server/db/client";
 import { analyticsDailyOrgMetrics, organizations } from "@/db/schema";
 import { desc, gte, eq, isNull, sum } from "drizzle-orm";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/common/EmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

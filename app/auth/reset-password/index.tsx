@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AuthNotice from "@/components/auth/AuthNotice";
-import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { authRoutes, getAuthErrorMessage, useResetPassword } from "@/core/auth";

@@ -1,7 +1,7 @@
 import { AlertTriangle, Building2 } from "lucide-react";
-import OrganizationSettingsForm from "./OrganizationSettingsForm";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { OrganizationSettingsForm } from "@/components/settings";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 
 const OrgSettingsPage = async () => {
   const session = await getServerSession();

@@ -3,9 +3,11 @@
 import { Shield } from "lucide-react";
 import { useSessions } from "@/core/security/useCase";
 import { useAuthSession } from "@/core/auth/useCase";
-import { MfaSection } from "./MfaSection";
-import { SecurityPoliciesSection } from "./SecurityPoliciesSection";
-import { SessionsSection } from "./SessionsSection";
+import {
+  MfaSection,
+  SecurityPoliciesSection,
+  SessionsSection,
+} from "@/components/security";
 
 const SecurityPage = () => {
   const { data, isLoading } = useSessions();

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   listSubtasksForTask,
   createSubtaskForUser,
-} from "@/lib/task-subtasks";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+} from "@/server/task-subtasks";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

@@ -13,7 +13,7 @@ import {
 } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { contactMethods } from "@/config/contact";
-import { type ContactActionState, submitContactFormAction } from "./actions";
+import { type ContactActionState, submitContactFormAction } from "@/server/actions/contact";
 
 const SUBJECT_OPTIONS = [
   { value: "General Inquiry", label: "General Inquiry" },

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { ProjectForm } from "@/components/forms/ProjectForm";
-import { getProjectModuleAccessForUser } from "@/lib/projects";
-import { listClientsForUser } from "@/lib/clients";
-import { getServerSession } from "@/lib/get-session";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { ProjectForm } from "@/components/forms/projects";
+import { getProjectModuleAccessForUser } from "@/server/projects";
+import { listClientsForUser } from "@/server/clients";
+import { getServerSession } from "@/server/auth/session";
 
 export default async function NewProjectPage() {
   const session = await getServerSession();

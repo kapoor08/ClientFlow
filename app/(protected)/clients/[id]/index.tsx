@@ -11,13 +11,15 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { getClientDetailForUser } from "@/lib/clients";
-import { getClientNotes } from "@/lib/client-notes";
-import { ClientDetailCard } from "./ClientDetailCard";
-import { ClientLinkedProjects } from "./ClientLinkedProjects";
-import { ClientNotesSection } from "@/components/clients/ClientNotesSection";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { getClientDetailForUser } from "@/server/clients";
+import { getClientNotes } from "@/server/client-notes";
+import {
+  ClientDetailCard,
+  ClientLinkedProjects,
+  ClientNotesSection,
+} from "@/components/clients";
 import { formatDate } from "@/utils/date";
 
 type ClientDetailPageProps = {

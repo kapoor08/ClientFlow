@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listProjectTemplatesForUser, createProjectTemplateForUser } from "@/lib/project-templates";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listProjectTemplatesForUser, createProjectTemplateForUser } from "@/server/project-templates";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET() {
   try {

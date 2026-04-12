@@ -1,12 +1,14 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { getServerSession } from "@/lib/get-session";
-import { getAnalyticsSummaryForUser } from "@/lib/analytics";
-import { listClientsForUser } from "@/lib/clients";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { getServerSession } from "@/server/auth/session";
+import { getAnalyticsSummaryForUser } from "@/server/analytics";
+import { listClientsForUser } from "@/server/clients";
 import { analyticsSearchParamsCache } from "@/core/analytics/searchParams";
-import { FilterBar } from "./FilterBar";
-import { KpiGrid } from "./KpiGrid";
-import { ChartsRow } from "./ChartsRow";
-import { RecentProjectsSection } from "./RecentProjectsSection";
+import {
+  FilterBar,
+  KpiGrid,
+  ChartsRow,
+  RecentProjectsSection,
+} from "@/components/analytics";
 
 type AnalyticsPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;

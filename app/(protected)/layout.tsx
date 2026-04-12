@@ -3,17 +3,17 @@ import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
-import AppShell from "@/components/layout/AppShell";
+import AppShell from "@/components/layout/app/AppShell";
 import { authRoutes } from "@/core/auth";
-import { auth } from "@/lib/auth";
-import { getServerSession } from "@/lib/get-session";
-import { getSubscriptionContextForUser } from "@/lib/subscription-context";
+import { auth } from "@/server/auth/auth";
+import { getServerSession } from "@/server/auth/session";
+import { getSubscriptionContextForUser } from "@/server/subscription/context";
 import {
   getOrganizationSettingsContextForUser,
   listOrganizationsForUser,
-} from "@/lib/organization-settings";
-import { getActiveOrgIdFromCookie } from "@/lib/active-org";
-import { isIpAllowed, getClientIp } from "@/lib/ip-allowlist";
+} from "@/server/organization-settings";
+import { getActiveOrgIdFromCookie } from "@/server/auth/active-org";
+import { isIpAllowed, getClientIp } from "@/server/security/ip-allowlist";
 
 export default async function ProtectedLayout({
   children,
@@ -41,6 +41,13 @@ export default async function ProtectedLayout({
 
   if (!sub || !sub.hasAccess) {
     redirect("/plans");
+  }
+
+  // Onboarding gate — first-time owners/admins/managers/members land here
+  // after sign-up and subscription/trial activation. Clients are invited
+  // into an existing org and skip this flow.
+  if (orgCtx && !orgCtx.onboardingCompletedAt && sub.roleKey !== "client") {
+    redirect("/onboarding");
   }
 
   // Enforce org-level email verification policy from DB setting

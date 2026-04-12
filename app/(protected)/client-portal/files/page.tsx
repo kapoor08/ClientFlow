@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { FileText, ExternalLink } from "lucide-react";
-import { EmptyState } from "@/components/common";
-import { getPortalFilesForUser } from "@/lib/client-portal";
-import { getServerSession } from "@/lib/get-session";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
+import { EmptyState } from "@/components/shared";
+import { getPortalFilesForUser } from "@/server/client-portal";
+import { getServerSession } from "@/server/auth/session";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { formatDate } from "@/utils/date";
 import { formatBytes, getSimpleFileIcon } from "@/utils/file";
 

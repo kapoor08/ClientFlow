@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
-import { updateOrganizationBrandingForUser } from "@/lib/organization-settings";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { updateOrganizationBrandingForUser } from "@/server/organization-settings";
 
 export async function PATCH(request: NextRequest) {
   try {

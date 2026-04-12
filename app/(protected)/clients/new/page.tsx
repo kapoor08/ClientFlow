@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
-import { ClientForm } from "@/components/forms/ClientForm";
-import { getClientModuleAccessForUser } from "@/lib/clients";
-import { getServerSession } from "@/lib/get-session";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { ClientForm } from "@/components/forms/clients";
+import { getClientModuleAccessForUser } from "@/server/clients";
+import { getServerSession } from "@/server/auth/session";
 
 export default async function NewClientPage() {
   const session = await getServerSession();

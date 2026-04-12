@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { db } from "@/server/db/client";
 import { user, session } from "@/db/auth-schema";
-import { bootstrapWorkspaceForUser } from "@/lib/organization-settings";
+import { bootstrapWorkspaceForUser } from "@/server/organization-settings";
 
 /**
  * POST /api/test/create-session

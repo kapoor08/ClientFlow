@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listActivityForUser } from "@/lib/activity";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { listActivityForUser } from "@/server/activity";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 function escapeCsv(value: unknown): string {
   const str = value == null ? "" : String(value);

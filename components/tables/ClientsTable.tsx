@@ -16,10 +16,10 @@ import {
 import { toast } from "sonner";
 import { getUserInitials } from "@/core/auth";
 import { useDeleteClient } from "@/core/clients/useCase";
-import { CLIENT_STATUS_OPTIONS } from "@/lib/clients-shared";
-import { loadMoreClientsAction } from "@/app/(protected)/clients/actions";
-import type { PaginationMeta } from "@/lib/pagination";
-import type { ClientListItem } from "@/lib/clients";
+import { CLIENT_STATUS_OPTIONS } from "@/schemas/clients";
+import { loadMoreClientsAction } from "@/server/actions/clients";
+import type { PaginationMeta } from "@/utils/pagination";
+import type { ClientListItem } from "@/server/clients";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 

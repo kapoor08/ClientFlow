@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { getOrganizationSettingsContextForUser } from "@/lib/organization-settings";
-import { db } from "@/lib/db";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { db } from "@/server/db/client";
 import { taskAttachments } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import { cloudinary } from "@/lib/cloudinary";
+import { cloudinary } from "@/server/third-party/cloudinary";
 
 /**
  * Cloudinary URL format:

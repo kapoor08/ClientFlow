@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import AuthNotice from "@/components/auth/AuthNotice";
-import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { Button } from "@/components/ui/button";
 import {
   authRoutes,

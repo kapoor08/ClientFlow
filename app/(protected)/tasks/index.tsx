@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useQueryState } from "nuqs";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import {
   DndContext,
   DragOverlay,
@@ -21,7 +21,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/cn";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -68,7 +68,7 @@ import {
 import {
   TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
   TASK_STATUS_OPTIONS as STATUS_OPTIONS,
-} from "@/helpers/task";
+} from "@/constants/task";
 import { getInitials } from "@/utils/user";
 import { getEstimateColor } from "@/utils/task";
 import type {
@@ -79,13 +79,16 @@ import type {
   BoardColumn,
   BoardColumnsResponse,
 } from "@/core/task-columns/entity";
-import { EditColumnDialog } from "./components/EditColumnDialog";
-import { FiltersDrawer, type ExtendedFilters } from "./components/FiltersDrawer";
-import { CreateTaskDialog } from "./components/CreateTaskDialog";
-import { TaskDetailSheet } from "./components/TaskDetailSheet";
-import { DeleteTaskDialog } from "./components/DeleteTaskDialog";
-import { DeleteColumnDialog } from "./components/DeleteColumnDialog";
-import { MoveToProjectDialog } from "./components/MoveToProjectDialog";
+import {
+  EditColumnDialog,
+  FiltersDrawer,
+  type ExtendedFilters,
+  CreateTaskDialog,
+  TaskDetailSheet,
+  DeleteTaskDialog,
+  DeleteColumnDialog,
+  MoveToProjectDialog,
+} from "@/components/tasks";
 import {
   Search,
   Plus,

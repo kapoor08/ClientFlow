@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authRatelimit, apiRatelimit } from "@/lib/rate-limit";
+import { authRatelimit, apiRatelimit } from "@/server/rate-limit";
 
 /**
  * BetterAuth sets "better-auth.session_token" in development (HTTP).

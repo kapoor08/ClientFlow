@@ -14,9 +14,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { TemplateCard } from "./TemplateCard";
-import { TemplateFormDialog } from "./TemplateFormDialog";
-import { EmptyState } from "@/components/common";
+import { TemplateCard, TemplateFormDialog } from "@/components/projects";
+import { EmptyState } from "@/components/shared";
 import type { ProjectTemplate } from "@/core/project-templates/entity";
 import {
   useProjectTemplates,

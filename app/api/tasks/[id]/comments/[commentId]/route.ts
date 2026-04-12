@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateTaskComment, deleteTaskComment } from "@/lib/task-comments";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { updateTaskComment, deleteTaskComment } from "@/server/task-comments";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string; commentId: string }> };
 

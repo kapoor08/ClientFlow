@@ -1,4 +1,4 @@
-import type { InvitationStatus, InviteFormValues } from "@/lib/invitations-shared";
+import type { InvitationStatus, InviteFormValues } from "@/schemas/invitations";
 
 export type InvitationListItem = {
   id: string;

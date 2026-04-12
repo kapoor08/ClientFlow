@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSignedUploadParams, getSignedUploadParamsForFolder } from "@/lib/files";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { getSignedUploadParams, getSignedUploadParamsForFolder } from "@/server/files";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 export async function GET(request: NextRequest) {
   try {

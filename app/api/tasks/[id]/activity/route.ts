@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listTaskActivity } from "@/lib/task-comments";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+import { listTaskActivity } from "@/server/task-comments";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 type RouteContext = { params: Promise<{ id: string }> };
 

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Plus, LayoutTemplate } from "lucide-react";
-import { listProjectsForUser } from "@/lib/projects";
+import { listProjectsForUser } from "@/server/projects";
 import { projectsSearchParamsCache } from "@/core/projects/searchParams";
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { ProjectsTable } from "@/components/tables/ProjectsTable";
-import { getServerSession } from "@/lib/get-session";
+import { getServerSession } from "@/server/auth/session";
 
 type ProjectsPageProps = {
   searchParams: Promise<Record<string, string | string[]>>;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listActivityForUser } from "@/lib/activity";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
+import { listActivityForUser } from "@/server/activity";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
 
 export async function GET(request: NextRequest) {
   try {

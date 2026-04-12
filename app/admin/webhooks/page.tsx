@@ -1,10 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
 import { Webhook } from "lucide-react";
-import { listAdminWebhooks } from "@/lib/admin-data";
-import { WebhookActions } from "./WebhookActions";
+import { listAdminWebhooks } from "@/server/admin";
+import { WebhookActions } from "@/components/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

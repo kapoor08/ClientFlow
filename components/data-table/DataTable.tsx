@@ -52,8 +52,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import type { PaginationMeta } from "@/lib/pagination";
+import { cn } from "@/utils/cn";
+import type { PaginationMeta } from "@/utils/pagination";
 import type { ColumnDef } from "./types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50];

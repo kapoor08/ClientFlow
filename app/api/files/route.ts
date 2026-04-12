@@ -3,9 +3,9 @@ import {
   listFilesForProject,
   listAllFilesForUser,
   saveFileForUser,
-} from "@/lib/files";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
-import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
+} from "@/server/files";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { DEFAULT_PAGE_SIZE } from "@/utils/pagination";
 import { z } from "zod";
 
 const saveFileSchema = z.object({

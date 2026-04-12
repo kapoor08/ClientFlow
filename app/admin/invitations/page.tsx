@@ -1,10 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
 import { Mail } from "lucide-react";
-import { listAdminInvitations } from "@/lib/admin-data";
-import { RevokeInvitationButton } from "./RevokeInvitationButton";
+import { listAdminInvitations } from "@/server/admin";
+import { RevokeInvitationButton } from "@/components/admin";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/common/StatusBadge";
-import { EmptyState } from "@/components/common/EmptyState";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Table,
   TableBody,

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   savePushSubscriptionForUser,
   deletePushSubscriptionForUser,
-} from "@/lib/notifications";
-import { requireAuth, apiErrorResponse, ApiError } from "@/lib/api-helpers";
+} from "@/server/notifications/data";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 
 // POST - save a push subscription
 export async function POST(request: NextRequest) {

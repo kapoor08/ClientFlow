@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AuthNotice from "@/components/auth/AuthNotice";
-import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
+import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { verifyTwoFactorCode } from "@/core/auth/repository";
 import { toast } from "sonner";
-import GooogleIcon from "@/assets/GoogleIcon";
+import GooogleIcon from "@/components/ui/google-icon";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address." }),

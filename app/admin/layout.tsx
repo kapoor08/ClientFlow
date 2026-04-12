@@ -1,8 +1,8 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { getServerSession } from "@/lib/get-session";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { getServerSession } from "@/server/auth/session";
+import { AdminShell } from "@/components/layout/admin/AdminShell";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();

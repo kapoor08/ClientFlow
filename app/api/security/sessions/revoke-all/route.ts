@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { revokeAllOtherSessionsForCurrentUser } from "@/lib/security";
-import { requireAuth, apiErrorResponse } from "@/lib/api-helpers";
+import { revokeAllOtherSessionsForCurrentUser } from "@/server/security/data";
+import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 
 export async function POST() {
   try {

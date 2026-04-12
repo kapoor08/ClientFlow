@@ -1,8 +1,8 @@
-import { ListPageLayout } from "@/components/layout/ListPageLayout";
+import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { InvitationsTable } from "@/components/tables/InvitationsTable";
-import { SendInviteModal } from "./SendInviteModal";
-import { listInvitationsForOrg } from "@/lib/invitations";
-import { getServerSession } from "@/lib/get-session";
+import { SendInviteModal } from "@/components/invitations";
+import { listInvitationsForOrg } from "@/server/invitations";
+import { getServerSession } from "@/server/auth/session";
 import { invitationsSearchParamsCache } from "@/core/invitations/searchParams";
 import { redirect } from "next/navigation";
 

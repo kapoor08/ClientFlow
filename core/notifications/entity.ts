@@ -1,7 +1,7 @@
 import type {
   NotificationEventKey,
   NotificationPreference,
-} from "@/lib/notifications-shared";
+} from "@/schemas/notifications";
 
 export type { NotificationEventKey, NotificationPreference };
 
