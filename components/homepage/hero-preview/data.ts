@@ -181,10 +181,10 @@ export const HERO_INVOICES = [
 // ─── Notifications ──────────────────────────────────────────────────────────
 
 export const HERO_NOTIFICATIONS = [
-  { title: "Task assigned to you", body: "Design homepage mockup — Website Redesign", time: "2m ago", unread: true, type: "task_assigned" },
+  { title: "Task assigned to you", body: "Design homepage mockup - Website Redesign", time: "2m ago", unread: true, type: "task_assigned" },
   { title: "Invoice #1082 paid", body: "Acme Corp paid $4,500", time: "2h ago", unread: true, type: "invite_accepted" },
   { title: "New comment on task", body: "Sarah: \"Looks great, approved!\"", time: "4h ago", unread: true, type: "task_comment_added" },
-  { title: "Project deadline approaching", body: "Mobile App v2 — due in 3 days", time: "6h ago", unread: false, type: "task_due_soon" },
+  { title: "Project deadline approaching", body: "Mobile App v2 - due in 3 days", time: "6h ago", unread: false, type: "task_due_soon" },
   { title: "Team member joined", body: "Alex joined as Developer", time: "1d ago", unread: false, type: "invite_accepted" },
 ];
 

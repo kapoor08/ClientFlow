@@ -26,4 +26,4 @@ types/
 └── ui/           # UI-specific types (ColumnDef, SortState, etc.)
 ```
 
-Currently empty — extract types here as the codebase grows.
+Currently empty - extract types here as the codebase grows.

@@ -43,7 +43,7 @@ export default async function ProtectedLayout({
     redirect("/plans");
   }
 
-  // Onboarding gate — first-time owners/admins/managers/members land here
+  // Onboarding gate - first-time owners/admins/managers/members land here
   // after sign-up and subscription/trial activation. Clients are invited
   // into an existing org and skip this flow.
   if (orgCtx && !orgCtx.onboardingCompletedAt && sub.roleKey !== "client") {
