@@ -482,6 +482,24 @@
   background: hsl(120 40% 45%);
 }
 
+.hero-preview-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.hero-preview-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.hero-preview-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hero-preview-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: hsl(var(--border));
+}
+
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);

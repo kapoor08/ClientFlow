@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ChevronRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useHomeMotion } from "@/hooks/use-home-motion";
-import HeroDashboardPreview from "./HeroDashboardPreview";
+import HeroPreview from "@/components/hero-preview/HeroPreview";
 
 const HeroSection = () => {
   const motionFx = useHomeMotion();
@@ -80,9 +80,9 @@ const HeroSection = () => {
 
         <motion.div
           {...motionFx.hero.mockup}
-          className="mx-auto mt-12 max-w-5xl"
+          className="mx-auto mt-12 max-w-full"
         >
-          <HeroDashboardPreview />
+          <HeroPreview />
         </motion.div>
       </div>
     </section>

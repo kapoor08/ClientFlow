@@ -35,7 +35,7 @@ export const PROJECT_TEMPLATE_STATUS_OPTIONS = [
   { value: "planning", label: "Planning" },
   { value: "in_progress", label: "In Progress" },
   { value: "on_hold", label: "On Hold" },
-] as const;
+];
 
 export const PROJECT_TEMPLATE_PRIORITY_OPTIONS = [
   { value: "none", label: "No priority" },

@@ -11,9 +11,9 @@ import {
 // ─── ProjectRow ───────────────────────────────────────────────────────────────
 
 function ProjectRow({ project }: { project: DashboardProject }) {
-  const statusLabel = PROJECT_STATUS_LABELS[project.status] ?? project.status;
+  const statusLabel = (PROJECT_STATUS_LABELS as Record<string, string>)[project.status] ?? project.status;
   const statusStyle = PROJECT_STATUS_STYLES[project.status] ?? "bg-secondary text-muted-foreground";
-  const priorityStyle = project.priority ? PRIORITY_STYLES[project.priority] : null;
+  const priorityStyle = project.priority ? (PRIORITY_STYLES as Record<string, string>)[project.priority] : null;
 
   return (
     <tr className="group border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">

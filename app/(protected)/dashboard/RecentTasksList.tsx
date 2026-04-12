@@ -9,9 +9,9 @@ import { TASK_STATUS_LABELS, STATUS_BADGE as TASK_STATUS_STYLES } from "@/core/t
 
 function TaskRow({ task }: { task: DashboardTask }) {
   const { label, isOverdue } = formatDueDate(task.dueDate);
-  const statusLabel = TASK_STATUS_LABELS[task.status] ?? task.status;
+  const statusLabel = (TASK_STATUS_LABELS as Record<string, string>)[task.status] ?? task.status;
   const statusStyle =
-    TASK_STATUS_STYLES[task.status] ?? "bg-secondary text-muted-foreground";
+    (TASK_STATUS_STYLES as Record<string, string>)[task.status] ?? "bg-secondary text-muted-foreground";
 
   return (
     <tr className="group border-b border-border last:border-0 hover:bg-secondary/30 transition-colors">
