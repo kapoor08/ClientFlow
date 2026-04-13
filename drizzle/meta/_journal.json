@@ -127,6 +127,13 @@
       "when": 1775747331463,
       "tag": "0017_brown_frightful_four",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776100687530,
+      "tag": "0018_free_ravenous",
+      "breakpoints": true
     }
   ]
 }

@@ -91,7 +91,7 @@ export function AdminUserActions({ userId, userName }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={deleteOpen ? undefined : setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete user account?</AlertDialogTitle>
@@ -100,7 +100,7 @@ export function AdminUserActions({ userId, userName }: Props) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteOpen(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-danger text-white hover:bg-danger/90" onClick={handleDelete}>
               Delete
             </AlertDialogAction>

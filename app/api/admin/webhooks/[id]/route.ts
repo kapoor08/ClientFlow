@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/server/auth/session";
-import { deactivateWebhook, deleteWebhook } from "@/server/admin";
-
-async function guardAdmin() {
-  const session = await getServerSession();
-  return session?.user?.isPlatformAdmin === true;
-}
+import { guardAdmin } from "@/server/auth/admin-guard";
+import { deactivateWebhook, deleteWebhook } from "@/server/admin/webhooks";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await guardAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

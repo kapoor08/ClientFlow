@@ -1,5 +1,8 @@
 "use server";
 
+import { sql } from "drizzle-orm";
+import { db } from "@/server/db/client";
+import { contactSubmissions } from "@/db/schema";
 import { sendContactEmailViaEmailJs } from "@/server/third-party/emailjs";
 import { onContactFormSubmitted } from "@/server/email/triggers";
 
@@ -56,6 +59,17 @@ export async function submitContactFormAction(
 
   try {
     const tasks: Promise<unknown>[] = [
+      // Persist to database
+      db.insert(contactSubmissions).values({
+        id: sql`gen_random_uuid()`,
+        name,
+        email,
+        company: company || null,
+        subject,
+        message,
+        status: "new",
+      }),
+
       // Branded HTML templates (internal alert + visitor acknowledgement)
       onContactFormSubmitted({
         name,

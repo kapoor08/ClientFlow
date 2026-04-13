@@ -199,3 +199,77 @@ export const rateLimitBuckets = pgTable(
     ),
   ],
 );
+
+// ── Platform admin operational tables ────────────────────────────────────────
+
+export const impersonationSessions = pgTable("impersonation_sessions", {
+  id: text("id").primaryKey(),
+  platformAdminUserId: text("platform_admin_user_id")
+    .notNull()
+    .references(() => user.id),
+  targetUserId: text("target_user_id")
+    .notNull()
+    .references(() => user.id),
+  targetOrganizationId: text("target_organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  sessionToken: text("session_token").notNull().unique(),
+  reason: text("reason"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  endedAt: timestamp("ended_at"),
+  createdAt: createdAt(),
+});
+
+export const platformAdminActions = pgTable("platform_admin_actions", {
+  id: text("id").primaryKey(),
+  platformAdminUserId: text("platform_admin_user_id")
+    .notNull()
+    .references(() => user.id),
+  impersonatedAsUserId: text("impersonated_as_user_id").references(() => user.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id"),
+  organizationId: text("organization_id").references(() => organizations.id),
+  beforeSnapshot: jsonb("before_snapshot"),
+  afterSnapshot: jsonb("after_snapshot"),
+  reason: text("reason"),
+  ipAddress: text("ip_address"),
+  createdAt: createdAt(),
+});
+
+// ── Platform-wide analytics tables ───────────────────────────────────────────
+
+export const platformAnalyticsDailyMetrics = pgTable(
+  "platform_analytics_daily_metrics",
+  {
+    id: text("id").primaryKey(),
+    metricDate: timestamp("metric_date").notNull().unique(),
+    newSignups: integer("new_signups").default(0).notNull(),
+    activeOrgs: integer("active_orgs").default(0).notNull(),
+    dau: integer("dau").default(0).notNull(),
+    mau: integer("mau").default(0).notNull(),
+    newSubscriptions: integer("new_subscriptions").default(0).notNull(),
+    canceledSubscriptions: integer("canceled_subscriptions").default(0).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+);
+
+export const platformAnalyticsMonthlyMetrics = pgTable(
+  "platform_analytics_monthly_metrics",
+  {
+    id: text("id").primaryKey(),
+    metricMonth: timestamp("metric_month").notNull().unique(),
+    mrrCents: integer("mrr_cents").default(0).notNull(),
+    arrCents: integer("arr_cents").default(0).notNull(),
+    newOrgs: integer("new_orgs").default(0).notNull(),
+    churnedOrgs: integer("churned_orgs").default(0).notNull(),
+    churnRate: numeric("churn_rate"),
+    trialConversionRate: numeric("trial_conversion_rate"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import type { getAdminOrgDetail } from "@/server/admin";
+import type { getAdminOrgDetail } from "@/server/admin/organizations";
 
 type Detail = NonNullable<Awaited<ReturnType<typeof getAdminOrgDetail>>>;
 

@@ -28,6 +28,7 @@ import {
   CheckSquare,
   FileText,
   Receipt,
+  LifeBuoy,
 } from "lucide-react";
 
 const ALL_PORTAL_NAV_ITEMS = [
@@ -36,6 +37,7 @@ const ALL_PORTAL_NAV_ITEMS = [
   { icon: CheckSquare, label: "Tasks", href: "/client-portal/tasks" },
   { icon: FileText, label: "Files", href: "/client-portal/files" },
   { icon: Receipt, label: "Invoices", href: "/client-portal/invoices" },
+  { icon: LifeBuoy, label: "Support", href: "/client-portal/support" },
 ];
 
 // ── Types ──────────────────────────────────────────────────────────────────────
