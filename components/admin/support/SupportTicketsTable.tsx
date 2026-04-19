@@ -68,6 +68,19 @@ function SlaIndicator({ ticket }: { ticket: AdminTicketRow }) {
 
 const columns: ColumnDef<AdminTicketRow>[] = [
   {
+    key: "actions",
+    header: "Actions",
+    headerClassName: "w-10",
+    cell: (t) => (
+      <Link
+        href={`/admin/support/${t.id}`}
+        className="flex items-center rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      >
+        <ExternalLink size={13} />
+      </Link>
+    ),
+  },
+  {
     key: "subject",
     header: "Subject",
     cell: (t) => (
@@ -108,19 +121,6 @@ const columns: ColumnDef<AdminTicketRow>[] = [
       <span className="text-xs text-muted-foreground">
         {formatDistanceToNow(new Date(t.lastActivityAt), { addSuffix: true })}
       </span>
-    ),
-  },
-  {
-    key: "actions",
-    header: "",
-    headerClassName: "w-10",
-    cell: (t) => (
-      <Link
-        href={`/admin/support/${t.id}`}
-        className="flex items-center justify-end rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-      >
-        <ExternalLink size={13} />
-      </Link>
     ),
   },
 ];

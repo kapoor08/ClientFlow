@@ -325,6 +325,78 @@ export async function deleteOrganization(orgId: string, adminUserId: string) {
   });
 }
 
+// ─── Bulk operations ─────────────────────────────────────────────────────────
+
+export async function bulkSuspendOrganizations(
+  orgIds: string[],
+  reason: string,
+  adminUserId: string,
+): Promise<number> {
+  if (orgIds.length === 0) return 0;
+  const now = new Date();
+
+  await db
+    .update(organizations)
+    .set({
+      isActive: false,
+      status: "suspended",
+      suspendedAt: now,
+      suspendedReason: reason,
+      suspendedByAdminUserId: adminUserId,
+      updatedAt: now,
+    })
+    .where(and(inArray(organizations.id, orgIds), isNull(organizations.deletedAt)));
+
+  await db.insert(platformAdminActions).values(
+    orgIds.map((orgId) => ({
+      id: sql`gen_random_uuid()`,
+      platformAdminUserId: adminUserId,
+      action: "suspend_organization",
+      entityType: "organization",
+      entityId: orgId,
+      organizationId: orgId,
+      afterSnapshot: { reason, suspendedAt: now.toISOString(), bulk: true },
+    })),
+  );
+
+  return orgIds.length;
+}
+
+export async function bulkRestoreOrganizations(
+  orgIds: string[],
+  adminUserId: string,
+): Promise<number> {
+  if (orgIds.length === 0) return 0;
+  const now = new Date();
+
+  await db
+    .update(organizations)
+    .set({
+      isActive: true,
+      status: "active",
+      restoredAt: now,
+      suspendedAt: null,
+      suspendedReason: null,
+      suspendedByAdminUserId: null,
+      updatedAt: now,
+    })
+    .where(and(inArray(organizations.id, orgIds), isNull(organizations.deletedAt)));
+
+  await db.insert(platformAdminActions).values(
+    orgIds.map((orgId) => ({
+      id: sql`gen_random_uuid()`,
+      platformAdminUserId: adminUserId,
+      action: "restore_organization",
+      entityType: "organization",
+      entityId: orgId,
+      organizationId: orgId,
+      afterSnapshot: { restoredAt: now.toISOString(), bulk: true },
+    })),
+  );
+
+  return orgIds.length;
+}
+
 export async function forceLogoutAllOrgMembers(orgId: string, adminUserId: string) {
   const memberIds = await db
     .select({ userId: organizationMemberships.userId })

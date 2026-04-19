@@ -20,38 +20,17 @@ import {
   onSubscriptionChanged,
 } from "@/server/email/triggers";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import {
+  getSubscriptionPeriod,
+  getSubscriptionIdFromInvoice,
+  resolveSubscriptionChangeType,
+} from "@/server/billing/webhook-helpers";
+import { logger } from "@/server/observability/logger";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function createId() {
   return crypto.randomUUID();
-}
-
-/**
- * In Stripe API 2024-09-30+, current_period_start/end were moved from the
- * top-level Subscription object to each SubscriptionItem. This helper reads
- * from the item level first and falls back to the (now-removed) top-level
- * field so the code works across API versions.
- */
-function getSubscriptionPeriod(stripeSub: Stripe.Subscription): {
-  periodStart: number | undefined;
-  periodEnd: number | undefined;
-  trialEnd: number | null;
-} {
-  const item = stripeSub.items?.data?.[0] as
-    | (Stripe.SubscriptionItem & { current_period_start?: number; current_period_end?: number })
-    | undefined;
-  const sub = stripeSub as unknown as Record<string, unknown>;
-
-  const periodStart =
-    item?.current_period_start ??
-    (typeof sub.current_period_start === "number" ? sub.current_period_start : undefined);
-  const periodEnd =
-    item?.current_period_end ??
-    (typeof sub.current_period_end === "number" ? sub.current_period_end : undefined);
-  const trialEnd = stripeSub.trial_end ?? null;
-
-  return { periodStart, periodEnd, trialEnd };
 }
 
 // ─── Billing email helper ─────────────────────────────────────────────────────
@@ -89,7 +68,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     typeof session.subscription === "string" ? session.subscription : null;
 
   if (!organizationId || !planCode || !stripeCustomerId || !stripeSubscriptionId) {
-    console.error("checkout.session.completed: missing metadata", session.metadata);
+    logger.error("webhook.checkout_completed.missing_metadata", null, {
+      organizationId,
+      planCode,
+      hasCustomer: !!stripeCustomerId,
+      hasSubscription: !!stripeSubscriptionId,
+    });
     return;
   }
 
@@ -101,7 +85,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .limit(1);
 
   if (!plan) {
-    console.error("checkout.session.completed: plan not found for code", planCode);
+    logger.error("webhook.checkout_completed.plan_not_found", null, { planCode });
     return;
   }
 
@@ -139,6 +123,108 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     });
 }
 
+async function upsertSubscriptionFromStripe(stripeSub: Stripe.Subscription) {
+  const stripeSubscriptionId = stripeSub.id;
+  const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
+  const organizationId = stripeSub.metadata?.organizationId;
+  const planCode = stripeSub.metadata?.planCode;
+
+  // Look up the DB subscription by Stripe ID
+  const [existingSub] = await db
+    .select({
+      id: subscriptions.id,
+      organizationId: subscriptions.organizationId,
+      planId: subscriptions.planId,
+    })
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
+
+  if (existingSub) return existingSub;
+
+  // No existing row → create one. Requires org + plan metadata on the Stripe sub.
+  if (!organizationId || !planCode) {
+    logger.error("webhook.subscription_created.missing_metadata", null, {
+      stripeSubscriptionId,
+      organizationId,
+      planCode,
+    });
+    return null;
+  }
+
+  const [plan] = await db
+    .select({ id: plans.id })
+    .from(plans)
+    .where(eq(plans.code, planCode))
+    .limit(1);
+
+  if (!plan) {
+    logger.error("webhook.subscription_created.plan_not_found", null, { planCode });
+    return null;
+  }
+
+  const stripeCustomerId = typeof stripeSub.customer === "string" ? stripeSub.customer : null;
+  const subscriptionId = createId();
+
+  await db.insert(subscriptions).values({
+    id: subscriptionId,
+    organizationId,
+    planId: plan.id,
+    status: stripeSub.status,
+    billingCycle: stripeSub.items.data[0]?.plan.interval ?? "month",
+    startedAt: new Date(stripeSub.start_date * 1000),
+    currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
+    cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+    trialEndsAt: trialEnd ? new Date(trialEnd * 1000) : null,
+    stripeCustomerId,
+    stripeSubscriptionId,
+  });
+
+  await db
+    .insert(organizationCurrentSubscriptions)
+    .values({
+      id: createId(),
+      organizationId,
+      subscriptionId,
+    })
+    .onConflictDoUpdate({
+      target: organizationCurrentSubscriptions.organizationId,
+      set: { subscriptionId, updatedAt: new Date() },
+    });
+
+  return { id: subscriptionId, organizationId, planId: plan.id };
+}
+
+async function handleSubscriptionCreated(stripeSub: Stripe.Subscription) {
+  const result = await upsertSubscriptionFromStripe(stripeSub);
+  if (!result) return;
+
+  // Welcome email: subscription is now active. Fire awaited so errors surface.
+  try {
+    const [ctx, planRows] = await Promise.all([
+      getOrgBillingContext(result.organizationId),
+      db.select({ name: plans.name }).from(plans).where(eq(plans.id, result.planId)).limit(1),
+    ]);
+    if (ctx) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const planName = planRows?.[0]?.name ?? "Your plan";
+      await onSubscriptionChanged({
+        owner: ctx.owner,
+        org: ctx.org,
+        changeType: "upgraded",
+        oldPlan: "—",
+        newPlan: planName,
+        billingUrl: `${appUrl}/settings/billing`,
+      });
+    }
+  } catch (err) {
+    logger.error("webhook.subscription_created.welcome_email_failed", err, {
+      organizationId: result.organizationId,
+    });
+  }
+}
+
 async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
   const stripeSubscriptionId = stripeSub.id;
   const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
@@ -155,6 +241,12 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
     .limit(1);
 
+  // If this update arrives before a matching .created event, upsert on the fly.
+  if (!existingSub) {
+    await upsertSubscriptionFromStripe(stripeSub);
+    return;
+  }
+
   await db
     .update(subscriptions)
     .set({
@@ -168,30 +260,35 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
 
-  // Email trigger: subscription lifecycle change
-  if (existingSub?.organizationId) {
-    const changeType: "cancelled" | "resumed" | "upgraded" =
-      stripeSub.cancel_at_period_end && !existingSub.cancelAtPeriodEnd
-        ? "cancelled"
-        : !stripeSub.cancel_at_period_end && existingSub.cancelAtPeriodEnd
-          ? "resumed"
-          : "upgraded";
+  // Email trigger: subscription lifecycle change (awaited — no silent failures)
+  if (existingSub.organizationId) {
+    const changeType = resolveSubscriptionChangeType(
+      { cancelAtPeriodEnd: existingSub.cancelAtPeriodEnd },
+      { cancel_at_period_end: stripeSub.cancel_at_period_end },
+    );
 
-    Promise.all([
-      getOrgBillingContext(existingSub.organizationId),
-      db.select({ name: plans.name }).from(plans).where(eq(plans.id, existingSub.planId)).limit(1),
-    ]).then(([ctx, planRows]) => {
-      if (!ctx) return;
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-      return onSubscriptionChanged({
-        owner: ctx.owner,
-        org: ctx.org,
-        changeType,
-        oldPlan: planRows?.[0]?.name ?? "Current plan",
-        newPlan: planRows?.[0]?.name ?? "Current plan",
-        billingUrl: `${appUrl}/settings/billing`,
+    try {
+      const [ctx, planRows] = await Promise.all([
+        getOrgBillingContext(existingSub.organizationId),
+        db.select({ name: plans.name }).from(plans).where(eq(plans.id, existingSub.planId)).limit(1),
+      ]);
+      if (ctx) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+        await onSubscriptionChanged({
+          owner: ctx.owner,
+          org: ctx.org,
+          changeType,
+          oldPlan: planRows?.[0]?.name ?? "Current plan",
+          newPlan: planRows?.[0]?.name ?? "Current plan",
+          billingUrl: `${appUrl}/settings/billing`,
+        });
+      }
+    } catch (err) {
+      logger.error("webhook.subscription_updated.email_trigger_failed", err, {
+        stripeSubscriptionId,
+        organizationId: existingSub.organizationId,
       });
-    }).catch(console.error);
+    }
   }
 }
 
@@ -205,16 +302,6 @@ async function handleSubscriptionDeleted(stripeSub: Stripe.Subscription) {
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSub.id));
-}
-
-function getSubscriptionIdFromInvoice(stripeInvoice: Stripe.Invoice): string | null {
-  // Stripe 2026+ uses parent.subscription_item.subscription; older versions used .subscription directly
-  const inv = stripeInvoice as unknown as Record<string, unknown>;
-  const parent = inv.parent as Record<string, unknown> | undefined;
-  const subItem = parent?.subscription_item as Record<string, unknown> | undefined;
-  const fromParent = typeof subItem?.subscription === "string" ? subItem.subscription : null;
-  const fromLegacy = typeof inv.subscription === "string" ? (inv.subscription as string) : null;
-  return fromParent ?? fromLegacy;
 }
 
 async function handleInvoicePaid(stripeInvoice: Stripe.Invoice) {
@@ -249,33 +336,47 @@ async function handleInvoicePaid(stripeInvoice: Stripe.Invoice) {
     })
     .onConflictDoNothing();
 
-  // Webhook dispatch: invoice.paid
-  dispatchWebhookEvent(sub.organizationId, "invoice.paid", {
-    externalInvoiceId: stripeInvoice.id,
-    amountPaid: stripeInvoice.amount_paid,
-    currency: stripeInvoice.currency,
-  }).catch(console.error);
+  // Webhook dispatch: invoice.paid (awaited so errors are visible)
+  try {
+    await dispatchWebhookEvent(sub.organizationId, "invoice.paid", {
+      externalInvoiceId: stripeInvoice.id,
+      amountPaid: stripeInvoice.amount_paid,
+      currency: stripeInvoice.currency,
+    });
+  } catch (err) {
+    logger.error("webhook.invoice_paid.dispatch_failed", err, {
+      organizationId: sub.organizationId,
+      externalInvoiceId: stripeInvoice.id,
+    });
+  }
 
   // Email trigger: invoice available
-  getOrgBillingContext(sub.organizationId).then((ctx) => {
-    if (!ctx) return;
-    const amountFormatted = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: stripeInvoice.currency.toUpperCase(),
-    }).format(stripeInvoice.amount_paid / 100);
-    return onInvoiceAvailable({
-      owner: ctx.owner,
-      org: ctx.org,
-      invoice: {
-        number: stripeInvoice.number ?? stripeInvoice.id,
-        amountDue: amountFormatted,
-        dueDate: stripeInvoice.due_date
-          ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-          : "-",
-      },
-      invoiceUrl: stripeInvoice.hosted_invoice_url ?? "",
+  try {
+    const ctx = await getOrgBillingContext(sub.organizationId);
+    if (ctx) {
+      const amountFormatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: stripeInvoice.currency.toUpperCase(),
+      }).format(stripeInvoice.amount_paid / 100);
+      await onInvoiceAvailable({
+        owner: ctx.owner,
+        org: ctx.org,
+        invoice: {
+          number: stripeInvoice.number ?? stripeInvoice.id,
+          amountDue: amountFormatted,
+          dueDate: stripeInvoice.due_date
+            ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+            : "-",
+        },
+        invoiceUrl: stripeInvoice.hosted_invoice_url ?? "",
+      });
+    }
+  } catch (err) {
+    logger.error("webhook.invoice_paid.email_trigger_failed", err, {
+      organizationId: sub.organizationId,
+      externalInvoiceId: stripeInvoice.id,
     });
-  }).catch(console.error);
+  }
 }
 
 async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
@@ -307,28 +408,35 @@ async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
     })
     .onConflictDoNothing();
 
-  // Email trigger: payment failed
-  getOrgBillingContext(sub.organizationId).then((ctx) => {
-    if (!ctx) return;
-    const amountFormatted = new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: stripeInvoice.currency.toUpperCase(),
-    }).format(stripeInvoice.amount_due / 100);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-    return onPaymentFailed({
-      owner: ctx.owner,
-      org: ctx.org,
-      invoice: {
-        number: stripeInvoice.number ?? stripeInvoice.id,
-        amountDue: amountFormatted,
-        dueDate: stripeInvoice.due_date
-          ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-          : "-",
-      },
-      failureReason: "Your card was declined.",
-      retryUrl: `${appUrl}/settings/billing`,
+  // Email trigger: payment failed (awaited)
+  try {
+    const ctx = await getOrgBillingContext(sub.organizationId);
+    if (ctx) {
+      const amountFormatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: stripeInvoice.currency.toUpperCase(),
+      }).format(stripeInvoice.amount_due / 100);
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      await onPaymentFailed({
+        owner: ctx.owner,
+        org: ctx.org,
+        invoice: {
+          number: stripeInvoice.number ?? stripeInvoice.id,
+          amountDue: amountFormatted,
+          dueDate: stripeInvoice.due_date
+            ? new Date(stripeInvoice.due_date * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+            : "-",
+        },
+        failureReason: "Your card was declined.",
+        retryUrl: `${appUrl}/settings/billing`,
+      });
+    }
+  } catch (err) {
+    logger.error("webhook.invoice_payment_failed.email_trigger_failed", err, {
+      organizationId: sub.organizationId,
+      externalInvoiceId: stripeInvoice.id,
     });
-  }).catch(console.error);
+  }
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -379,6 +487,9 @@ export async function POST(req: Request) {
       case "checkout.session.completed":
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
         break;
+      case "customer.subscription.created":
+        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+        break;
       case "customer.subscription.updated":
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
         break;
@@ -403,7 +514,10 @@ export async function POST(req: Request) {
       .set({ processingError: String(err) })
       .where(eq(billingWebhookEvents.id, logId));
 
-    console.error("Webhook processing error:", err);
+    logger.error("webhook.processing_failed", err, {
+      eventId: event.id,
+      eventType: event.type,
+    });
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 

@@ -1,8 +1,8 @@
 import "server-only";
 
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import { organizations, outboundWebhooks } from "@/db/schema";
+import { organizations, outboundWebhooks, platformAdminActions } from "@/db/schema";
 import {
   buildPaginationMeta,
   paginationOffset,
@@ -79,10 +79,45 @@ export async function listAdminWebhooks(
   return { data: rows, pagination };
 }
 
-export async function deactivateWebhook(webhookId: string) {
-  await db.update(outboundWebhooks).set({ isActive: false, updatedAt: new Date() }).where(eq(outboundWebhooks.id, webhookId));
+async function getWebhookMeta(webhookId: string) {
+  const [row] = await db
+    .select({
+      organizationId: outboundWebhooks.organizationId,
+      name: outboundWebhooks.name,
+      url: outboundWebhooks.url,
+    })
+    .from(outboundWebhooks)
+    .where(eq(outboundWebhooks.id, webhookId))
+    .limit(1);
+  return row ?? null;
 }
 
-export async function deleteWebhook(webhookId: string) {
+export async function deactivateWebhook(webhookId: string, adminUserId: string) {
+  const meta = await getWebhookMeta(webhookId);
+  await db.update(outboundWebhooks).set({ isActive: false, updatedAt: new Date() }).where(eq(outboundWebhooks.id, webhookId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "deactivate_webhook",
+    entityType: "webhook",
+    entityId: webhookId,
+    organizationId: meta?.organizationId ?? null,
+    afterSnapshot: { name: meta?.name ?? null, url: meta?.url ?? null },
+  });
+}
+
+export async function deleteWebhook(webhookId: string, adminUserId: string) {
+  const meta = await getWebhookMeta(webhookId);
   await db.delete(outboundWebhooks).where(eq(outboundWebhooks.id, webhookId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "delete_webhook",
+    entityType: "webhook",
+    entityId: webhookId,
+    organizationId: meta?.organizationId ?? null,
+    afterSnapshot: { name: meta?.name ?? null, url: meta?.url ?? null },
+  });
 }

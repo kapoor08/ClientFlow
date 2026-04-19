@@ -7,8 +7,8 @@ import {
   CheckCircle2,
   Send,
   Trash2,
-  MoreHorizontal,
   Eye,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { parseAsString, useQueryState } from "nuqs";
@@ -21,13 +21,6 @@ import {
   type FilterGroupConfig,
 } from "@/components/data-table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -35,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { TipButton, TipLink, TooltipProvider } from "@/components/data-table/RowActions";
 import { InvoiceDetailModal } from "./InvoiceDetailModal";
 import type { InvoiceListItem } from "@/core/invoices/entity";
 import {
@@ -69,61 +63,70 @@ function InvoiceActionsCell({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const busy = busyId === invoice.id;
 
+  const canMarkSent = invoice.isManual && invoice.status === "draft";
+  const canMarkPaid = invoice.isManual && invoice.status !== "paid";
+  const canDelete = invoice.isManual && invoice.status !== "paid";
+
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" disabled={busy}>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          {/* Always visible */}
-          <DropdownMenuItem className="cursor-pointer" onClick={() => onViewDetails(invoice.id)}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Details
-          </DropdownMenuItem>
+      <TooltipProvider>
+        <div className="flex items-center gap-0.5">
+          <TipButton label="View details" onClick={() => onViewDetails(invoice.id)} disabled={busy}>
+            <Eye size={14} />
+          </TipButton>
+
+          <TipLink
+            href={`/api/invoices/${invoice.id}/pdf?download=1`}
+            label="Download PDF"
+            download="true"
+          >
+            <Download size={14} />
+          </TipLink>
 
           {invoice.invoiceUrl && (
-            <DropdownMenuItem className="cursor-pointer" asChild>
-              <a href={invoice.invoiceUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open in Stripe
-              </a>
-            </DropdownMenuItem>
+            <TipLink
+              href={invoice.invoiceUrl}
+              label="Open in Stripe"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={14} />
+            </TipLink>
           )}
 
-          {invoice.isManual && invoice.status === "draft" && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer" onClick={() => onAction(invoice.id, "mark_sent")}>
-                <Send className="mr-2 h-4 w-4" />
-                Mark as Sent
-              </DropdownMenuItem>
-            </>
+          {canMarkSent && (
+            <TipButton
+              label="Mark as Sent"
+              onClick={() => onAction(invoice.id, "mark_sent")}
+              disabled={busy}
+            >
+              <Send size={14} />
+            </TipButton>
           )}
 
-          {invoice.isManual && invoice.status !== "paid" && (
-            <DropdownMenuItem className="cursor-pointer" onClick={() => onAction(invoice.id, "mark_paid")}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Mark as Paid
-            </DropdownMenuItem>
+          {canMarkPaid && (
+            <TipButton
+              label="Mark as Paid"
+              onClick={() => onAction(invoice.id, "mark_paid")}
+              disabled={busy}
+              variant="success"
+            >
+              <CheckCircle2 size={14} />
+            </TipButton>
           )}
 
-          {invoice.isManual && invoice.status !== "paid" && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setDeleteOpen(true)}
-                className="cursor-pointer text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
-            </>
+          {canDelete && (
+            <TipButton
+              label="Delete"
+              onClick={() => setDeleteOpen(true)}
+              disabled={busy}
+              variant="danger"
+            >
+              <Trash2 size={14} />
+            </TipButton>
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </div>
+      </TooltipProvider>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="max-w-sm">
@@ -172,6 +175,18 @@ function buildColumns(
   onViewDetails: (id: string) => void,
 ): ColumnDef<InvoiceListItem>[] {
   return [
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (inv) => (
+        <InvoiceActionsCell
+          invoice={inv}
+          onAction={onAction}
+          onViewDetails={onViewDetails}
+          busyId={busyId}
+        />
+      ),
+    },
     {
       key: "number",
       header: "Invoice",
@@ -247,20 +262,6 @@ function buildColumns(
       hideOnTablet: true,
       cell: (inv) => (
         <span className="text-xs text-muted-foreground">{formatDate(inv.createdAt)}</span>
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      className: "text-right",
-      headerClassName: "text-right",
-      cell: (inv) => (
-        <InvoiceActionsCell
-          invoice={inv}
-          onAction={onAction}
-          onViewDetails={onViewDetails}
-          busyId={busyId}
-        />
       ),
     },
   ];

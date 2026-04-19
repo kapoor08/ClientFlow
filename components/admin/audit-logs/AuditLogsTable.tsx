@@ -1,9 +1,12 @@
 "use client";
 
 import { useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { Download } from "lucide-react";
 import { parseAsString, useQueryStates } from "nuqs";
 import { DataTable, DateRangeFilter, FiltersPopover, type ColumnDef } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
 import type { AdminAuditLogRow } from "@/server/admin/audit-logs";
 import type { PaginationMeta } from "@/utils/pagination";
 
@@ -78,6 +81,7 @@ type Props = {
 
 export function AuditLogsTable({ data, pagination }: Props) {
   const [, startTransition] = useTransition();
+  const searchParams = useSearchParams();
 
   const [{ entityType }, setFilters] = useQueryStates(
     {
@@ -86,6 +90,20 @@ export function AuditLogsTable({ data, pagination }: Props) {
     },
     { shallow: false, startTransition, clearOnDefault: true },
   );
+
+  // Build export URL that preserves the current filters
+  const exportUrl = (() => {
+    const url = new URL("/api/admin/audit-logs/export", "http://_");
+    const q = searchParams.get("q");
+    const et = searchParams.get("entityType");
+    const from = searchParams.get("dateFrom");
+    const to = searchParams.get("dateTo");
+    if (q) url.searchParams.set("q", q);
+    if (et) url.searchParams.set("entityType", et);
+    if (from) url.searchParams.set("dateFrom", from);
+    if (to) url.searchParams.set("dateTo", to);
+    return url.pathname + (url.search || "");
+  })();
 
   return (
     <DataTable
@@ -107,6 +125,12 @@ export function AuditLogsTable({ data, pagination }: Props) {
               },
             ]}
           />
+          <Button variant="outline" size="sm" asChild className="cursor-pointer gap-1.5">
+            <a href={exportUrl} download>
+              <Download size={13} />
+              Export CSV
+            </a>
+          </Button>
         </>
       }
       pagination={pagination}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, LayoutTemplate } from "lucide-react";
+import { Plus, LayoutTemplate, Archive, ArrowLeft } from "lucide-react";
 import { listProjectsForUser } from "@/server/projects";
 import { projectsSearchParamsCache } from "@/core/projects/searchParams";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
@@ -12,8 +12,10 @@ type ProjectsPageProps = {
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const session = await getServerSession();
-  const { q, page, pageSize, sort, order, status, priority, dateFrom, dateTo } =
+  const { q, page, pageSize, sort, order, status, priority, dateFrom, dateTo, view } =
     projectsSearchParamsCache.parse(await searchParams);
+
+  const archivedOnly = view === "archived";
 
   const { access, projects, pagination } = await listProjectsForUser(
     session!.user.id,
@@ -27,6 +29,7 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
       priority: priority || undefined,
       dateFrom: dateFrom ? new Date(dateFrom) : undefined,
       dateTo: dateTo ? new Date(dateTo) : undefined,
+      archivedOnly,
     },
   );
 
@@ -42,33 +45,53 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
 
   return (
     <ListPageLayout
-      title="Projects"
-      description={`${pagination.total} project${pagination.total === 1 ? "" : "s"} total`}
+      title={archivedOnly ? "Archived Projects" : "Projects"}
+      description={`${pagination.total} project${pagination.total === 1 ? "" : "s"}${archivedOnly ? " archived" : " total"}`}
       action={
-        access.canWrite ? (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {archivedOnly ? (
             <Link
-              href="/projects/templates"
+              href="/projects"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
             >
-              <LayoutTemplate size={14} />
-              Templates
+              <ArrowLeft size={14} />
+              Back to active
             </Link>
+          ) : (
             <Link
-              href="/projects/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              href="/projects?view=archived"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
             >
-              <Plus size={15} />
-              New Project
+              <Archive size={14} />
+              Archived
             </Link>
-          </div>
-        ) : undefined
+          )}
+          {access.canWrite && !archivedOnly && (
+            <>
+              <Link
+                href="/projects/templates"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              >
+                <LayoutTemplate size={14} />
+                Templates
+              </Link>
+              <Link
+                href="/projects/new"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus size={15} />
+                New Project
+              </Link>
+            </>
+          )}
+        </div>
       }
     >
       <ProjectsTable
         projects={projects}
         pagination={pagination}
         canWrite={access.canWrite}
+        archivedOnly={archivedOnly}
       />
     </ListPageLayout>
   );

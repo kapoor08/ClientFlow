@@ -29,3 +29,10 @@ export const changePlanSchema = z.object({
   reason: z.string().min(3, "Reason is required.").max(500),
 });
 export type ChangePlanValues = z.infer<typeof changePlanSchema>;
+
+export const refundInvoiceSchema = z.object({
+  invoiceId: z.string().min(1),
+  amountCents: z.coerce.number().int().min(1).optional(),
+  reason: z.enum(["duplicate", "fraudulent", "requested_by_customer"]).optional(),
+});
+export type RefundInvoiceValues = z.infer<typeof refundInvoiceSchema>;

@@ -77,7 +77,7 @@ export async function assignTicketAction(
   const { ticketId, adminUserId } = parsed.data;
 
   try {
-    await assignTicket(ticketId, adminUserId);
+    await assignTicket(ticketId, adminUserId, admin.user.id);
     revalidatePath(`/admin/support/${ticketId}`);
     return {};
   } catch {

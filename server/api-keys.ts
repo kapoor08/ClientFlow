@@ -5,6 +5,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { apiKeys } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { writeAuditLog } from "@/server/security/audit";
 
 export type ApiKeyItem = {
   id: string;
@@ -80,6 +81,15 @@ export async function createApiKeyForUser(
     expiresAt,
   });
 
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "api_key.created",
+    entityType: "api_key",
+    entityId: id,
+    metadata: { name: trimmed, keyPrefix: prefix, expiresAt: expiresAt?.toISOString() ?? null },
+  }).catch(console.error);
+
   return { id, key: raw, prefix };
 }
 
@@ -89,7 +99,7 @@ export async function revokeApiKeyForUser(userId: string, keyId: string): Promis
   if (!ctx.canManageSettings) throw new Error("Only admins can revoke API keys.");
 
   const [existing] = await db
-    .select({ id: apiKeys.id })
+    .select({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix })
     .from(apiKeys)
     .where(and(eq(apiKeys.id, keyId), eq(apiKeys.organizationId, ctx.organizationId)))
     .limit(1);
@@ -100,6 +110,15 @@ export async function revokeApiKeyForUser(userId: string, keyId: string): Promis
     .update(apiKeys)
     .set({ revokedAt: new Date(), updatedAt: new Date() })
     .where(eq(apiKeys.id, keyId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "api_key.revoked",
+    entityType: "api_key",
+    entityId: keyId,
+    metadata: { name: existing.name, keyPrefix: existing.keyPrefix },
+  }).catch(console.error);
 }
 
 export async function deleteApiKeyForUser(userId: string, keyId: string): Promise<void> {
@@ -108,7 +127,7 @@ export async function deleteApiKeyForUser(userId: string, keyId: string): Promis
   if (!ctx.canManageSettings) throw new Error("Only admins can delete API keys.");
 
   const [existing] = await db
-    .select({ id: apiKeys.id })
+    .select({ id: apiKeys.id, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix })
     .from(apiKeys)
     .where(and(eq(apiKeys.id, keyId), eq(apiKeys.organizationId, ctx.organizationId)))
     .limit(1);
@@ -116,4 +135,13 @@ export async function deleteApiKeyForUser(userId: string, keyId: string): Promis
   if (!existing) throw new Error("API key not found.");
 
   await db.delete(apiKeys).where(eq(apiKeys.id, keyId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "api_key.deleted",
+    entityType: "api_key",
+    entityId: keyId,
+    metadata: { name: existing.name, keyPrefix: existing.keyPrefix },
+  }).catch(console.error);
 }

@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { CreditCard } from "lucide-react";
 import { useHomeMotion } from "@/hooks/use-home-motion";
 import PlanCards from "@/components/shared/PlanCards";
+import type { PublicPlan } from "@/server/public/plans";
 
-const PricingSection = () => {
+const PricingSection = ({ plans }: { plans: PublicPlan[] }) => {
   const motionFx = useHomeMotion();
 
   return (
@@ -23,7 +24,7 @@ const PricingSection = () => {
           </p>
         </motion.div>
 
-        <PlanCards />
+        <PlanCards plans={plans} />
       </div>
     </section>
   );

@@ -5,7 +5,7 @@ export type SortDirection = "asc" | "desc";
 export type ColumnDef<T> = {
   /** Unique key - must match the sortable field name when sortable: true */
   key: string;
-  header: string;
+  header: ReactNode;
   sortable?: boolean;
   cell: (row: T) => ReactNode;
   /** Applied to every <td> in this column */

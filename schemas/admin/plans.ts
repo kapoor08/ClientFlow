@@ -3,6 +3,7 @@ import { z } from "zod";
 export const planFormSchema = z.object({
   name: z.string().min(1, "Name is required.").max(100),
   description: z.string().max(500).optional(),
+  currencyCode: z.string().length(3).optional(),
   monthlyPriceCents: z.coerce
     .number()
     .int()
@@ -22,6 +23,7 @@ export const planFormSchema = z.object({
   monthlyApiCallsLimit: z.coerce.number().int().min(0).optional(),
   displayOrder: z.coerce.number().int().min(0).default(0),
   recommendedBadge: z.enum(["popular", "enterprise", "", "none"]).optional(),
+  features: z.array(z.string().min(1).max(200)).max(20).optional(),
 });
 export type PlanFormValues = z.infer<typeof planFormSchema>;
 

@@ -5,6 +5,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { outboundWebhooks } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { writeAuditLog } from "@/server/security/audit";
 
 export type WebhookItem = {
   id: string;
@@ -69,6 +70,15 @@ export async function createWebhookForUser(
     })
     .returning();
 
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "webhook.created",
+    entityType: "webhook",
+    entityId: id,
+    metadata: { name: row.name, url: row.url, events: data.events },
+  }).catch(console.error);
+
   return { ...row, events: (row.events as string[]) ?? [] };
 }
 
@@ -82,7 +92,7 @@ export async function updateWebhookForUser(
   if (!ctx.canManageSettings) throw new Error("Only admins can update webhooks.");
 
   const [existing] = await db
-    .select({ id: outboundWebhooks.id })
+    .select({ id: outboundWebhooks.id, name: outboundWebhooks.name })
     .from(outboundWebhooks)
     .where(and(eq(outboundWebhooks.id, webhookId), eq(outboundWebhooks.organizationId, ctx.organizationId)))
     .limit(1);
@@ -93,6 +103,15 @@ export async function updateWebhookForUser(
     .update(outboundWebhooks)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(outboundWebhooks.id, webhookId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "webhook.updated",
+    entityType: "webhook",
+    entityId: webhookId,
+    metadata: { name: existing.name, changes: Object.keys(data) },
+  }).catch(console.error);
 }
 
 export async function deleteWebhookForUser(userId: string, webhookId: string): Promise<void> {
@@ -101,7 +120,7 @@ export async function deleteWebhookForUser(userId: string, webhookId: string): P
   if (!ctx.canManageSettings) throw new Error("Only admins can delete webhooks.");
 
   const [existing] = await db
-    .select({ id: outboundWebhooks.id })
+    .select({ id: outboundWebhooks.id, name: outboundWebhooks.name, url: outboundWebhooks.url })
     .from(outboundWebhooks)
     .where(and(eq(outboundWebhooks.id, webhookId), eq(outboundWebhooks.organizationId, ctx.organizationId)))
     .limit(1);
@@ -109,4 +128,13 @@ export async function deleteWebhookForUser(userId: string, webhookId: string): P
   if (!existing) throw new Error("Webhook not found.");
 
   await db.delete(outboundWebhooks).where(eq(outboundWebhooks.id, webhookId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "webhook.deleted",
+    entityType: "webhook",
+    entityId: webhookId,
+    metadata: { name: existing.name, url: existing.url },
+  }).catch(console.error);
 }

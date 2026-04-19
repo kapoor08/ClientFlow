@@ -3,7 +3,8 @@ import {
   getOrganizationSettingsContextForUser,
   updateSsoConfigForUser,
 } from "@/server/organization-settings";
-import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { updateSsoConfigSchema } from "@/schemas/api-misc";
 
 export async function GET() {
   try {
@@ -19,7 +20,11 @@ export async function PATCH(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
-    await updateSsoConfigForUser(userId, body?.ssoConfig ?? null);
+    const parsed = updateSsoConfigSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(parsed.error.issues[0]?.message ?? "Invalid SSO config.", 422);
+    }
+    await updateSsoConfigForUser(userId, parsed.data.ssoConfig);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return apiErrorResponse(err);

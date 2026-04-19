@@ -1,11 +1,12 @@
 import "server-only";
 
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import {
   organizations,
   organizationInvitations,
   roles,
+  platformAdminActions,
 } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import {
@@ -85,9 +86,74 @@ export async function listAdminInvitations(
   return { data: rows, pagination };
 }
 
-export async function revokeInvitation(invitationId: string) {
+export async function revokeInvitation(invitationId: string, adminUserId: string) {
+  const [meta] = await db
+    .select({
+      organizationId: organizationInvitations.organizationId,
+      email: organizationInvitations.email,
+    })
+    .from(organizationInvitations)
+    .where(eq(organizationInvitations.id, invitationId))
+    .limit(1);
+
   await db
     .update(organizationInvitations)
     .set({ status: "revoked", revokedAt: new Date(), updatedAt: new Date() })
     .where(eq(organizationInvitations.id, invitationId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "revoke_invitation",
+    entityType: "invitation",
+    entityId: invitationId,
+    organizationId: meta?.organizationId ?? null,
+    afterSnapshot: { email: meta?.email ?? null },
+  });
+}
+
+// ─── Bulk operations ─────────────────────────────────────────────────────────
+
+export async function bulkRevokeInvitations(
+  invitationIds: string[],
+  adminUserId: string,
+): Promise<number> {
+  if (invitationIds.length === 0) return 0;
+
+  // Only revoke pending invitations — skip accepted/expired/already-revoked
+  const eligible = await db
+    .select({
+      id: organizationInvitations.id,
+      organizationId: organizationInvitations.organizationId,
+      email: organizationInvitations.email,
+    })
+    .from(organizationInvitations)
+    .where(
+      and(
+        inArray(organizationInvitations.id, invitationIds),
+        eq(organizationInvitations.status, "pending"),
+      ),
+    );
+
+  if (eligible.length === 0) return 0;
+
+  const now = new Date();
+  await db
+    .update(organizationInvitations)
+    .set({ status: "revoked", revokedAt: now, updatedAt: now })
+    .where(inArray(organizationInvitations.id, eligible.map((r) => r.id)));
+
+  await db.insert(platformAdminActions).values(
+    eligible.map((r) => ({
+      id: sql`gen_random_uuid()`,
+      platformAdminUserId: adminUserId,
+      action: "revoke_invitation",
+      entityType: "invitation",
+      entityId: r.id,
+      organizationId: r.organizationId,
+      afterSnapshot: { email: r.email, bulk: true },
+    })),
+  );
+
+  return eligible.length;
 }

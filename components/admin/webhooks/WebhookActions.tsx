@@ -1,55 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { ToggleLeft, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ToggleLeft, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 
 export function WebhookActions({ webhookId, isActive }: { webhookId: string; isActive: boolean }) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  async function handle(action: "deactivate" | "delete") {
-    setPending(true);
+  async function handleDeactivate() {
+    setDeactivating(true);
     try {
       const res = await fetch(`/api/admin/webhooks/${webhookId}`, {
-        method: action === "delete" ? "DELETE" : "PATCH",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        ...(action === "deactivate" ? { body: JSON.stringify({ action: "deactivate" }) } : {}),
+        body: JSON.stringify({ action: "deactivate" }),
       });
       if (!res.ok) throw new Error();
-      toast.success(action === "deactivate" ? "Webhook deactivated." : "Webhook deleted.");
+      toast.success("Webhook deactivated.");
       router.refresh();
     } catch {
       toast.error("Action failed.");
     } finally {
-      setPending(false);
+      setDeactivating(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/webhooks/${webhookId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Webhook deleted.");
+      router.refresh();
+    } catch {
+      toast.error("Action failed.");
+    } finally {
+      setDeleting(false);
     }
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors" disabled={pending}>
-          {pending ? <Loader2 size={13} className="animate-spin" /> : <MoreHorizontal size={13} />}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
+    <TooltipProvider>
+      <div className="flex items-center gap-0.5">
         {isActive && (
-          <>
-            <DropdownMenuItem onClick={() => handle("deactivate")} className="gap-2">
-              <ToggleLeft size={13} className="text-warning" /> Deactivate
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
+          <TipButton
+            label="Deactivate"
+            onClick={handleDeactivate}
+            disabled={deactivating || deleting}
+            variant="warning"
+          >
+            {deactivating ? <Loader2 size={14} className="animate-spin" /> : <ToggleLeft size={14} />}
+          </TipButton>
         )}
-        <DropdownMenuItem onClick={() => handle("delete")} className="gap-2 text-danger focus:text-danger">
-          <Trash2 size={13} /> Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <TipButton
+          label="Delete"
+          onClick={handleDelete}
+          disabled={deactivating || deleting}
+          variant="danger"
+        >
+          {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+        </TipButton>
+      </div>
+    </TooltipProvider>
   );
 }

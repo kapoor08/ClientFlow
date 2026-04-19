@@ -2,7 +2,7 @@ import "server-only";
 
 import { writeAuditLog } from "@/server/security/audit";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
-import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
@@ -83,6 +83,8 @@ type ListProjectsOptions = {
   priority?: string;
   dateFrom?: Date;
   dateTo?: Date;
+  /** When true, returns only soft-deleted (archived) projects. Default: false. */
+  archivedOnly?: boolean;
 };
 
 function createId() {
@@ -154,7 +156,7 @@ export async function listProjectsForUser(
 
   const whereClause = and(
     eq(projects.organizationId, access.organizationId),
-    isNull(projects.deletedAt),
+    options.archivedOnly ? isNotNull(projects.deletedAt) : isNull(projects.deletedAt),
     clientId ? eq(projects.clientId, clientId) : undefined,
     trimmedQuery
       ? or(
@@ -501,5 +503,48 @@ export async function deleteProjectForUser(userId: string, projectId: string) {
   dispatchWebhookEvent(access.organizationId, "project.deleted", {
     projectId,
     name: existing[0].name,
+  }).catch(console.error);
+}
+
+export async function restoreProjectForUser(userId: string, projectId: string) {
+  const access = await getProjectModuleAccessForUser(userId);
+
+  if (!access) {
+    throw new Error("No active organization was found for this account.");
+  }
+  if (!access.canWrite) {
+    throw new Error("You do not have permission to restore projects.");
+  }
+
+  const existing = await db
+    .select({ id: projects.id, name: projects.name, deletedAt: projects.deletedAt })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.organizationId, access.organizationId),
+        eq(projects.id, projectId),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0]) {
+    throw new Error("Project not found.");
+  }
+  if (!existing[0].deletedAt) {
+    throw new Error("Project is not archived.");
+  }
+
+  await db
+    .update(projects)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+
+  writeAuditLog({
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    action: "project.restored",
+    entityType: "project",
+    entityId: projectId,
+    metadata: { name: existing[0].name },
   }).catch(console.error);
 }

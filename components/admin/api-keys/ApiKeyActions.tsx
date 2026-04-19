@@ -1,55 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { Ban, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Ban, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 
 export function ApiKeyActions({ keyId, isActive }: { keyId: string; isActive: boolean }) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  async function handle(action: "revoke" | "delete") {
-    setPending(true);
+  async function handleRevoke() {
+    setRevoking(true);
     try {
       const res = await fetch(`/api/admin/api-keys/${keyId}`, {
-        method: action === "delete" ? "DELETE" : "PATCH",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        ...(action === "revoke" ? { body: JSON.stringify({ action: "revoke" }) } : {}),
+        body: JSON.stringify({ action: "revoke" }),
       });
       if (!res.ok) throw new Error();
-      toast.success(action === "revoke" ? "Key revoked." : "Key deleted.");
+      toast.success("Key revoked.");
       router.refresh();
     } catch {
       toast.error("Action failed.");
     } finally {
-      setPending(false);
+      setRevoking(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/api-keys/${keyId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Key deleted.");
+      router.refresh();
+    } catch {
+      toast.error("Action failed.");
+    } finally {
+      setDeleting(false);
     }
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary transition-colors" disabled={pending}>
-          {pending ? <Loader2 size={13} className="animate-spin" /> : <MoreHorizontal size={13} />}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-36">
+    <TooltipProvider>
+      <div className="flex items-center gap-0.5">
         {isActive && (
-          <>
-            <DropdownMenuItem onClick={() => handle("revoke")} className="gap-2">
-              <Ban size={13} className="text-warning" /> Revoke
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
+          <TipButton
+            label="Revoke"
+            onClick={handleRevoke}
+            disabled={revoking || deleting}
+            variant="warning"
+          >
+            {revoking ? <Loader2 size={14} className="animate-spin" /> : <Ban size={14} />}
+          </TipButton>
         )}
-        <DropdownMenuItem onClick={() => handle("delete")} className="gap-2 text-danger focus:text-danger">
-          <Trash2 size={13} /> Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <TipButton
+          label="Delete"
+          onClick={handleDelete}
+          disabled={revoking || deleting}
+          variant="danger"
+        >
+          {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+        </TipButton>
+      </div>
+    </TooltipProvider>
   );
 }

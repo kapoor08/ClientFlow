@@ -96,7 +96,7 @@ const AppShell = ({
       )}
       <div className="flex flex-1 flex-col min-w-0">
         {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3">
             {orgs && orgs.length > 1 && activeOrgId && (
               <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />

@@ -134,6 +134,27 @@
       "when": 1776100687530,
       "tag": "0018_free_ravenous",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1776595169960,
+      "tag": "0019_romantic_starbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1776598795060,
+      "tag": "0020_slimy_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1776619962213,
+      "tag": "0021_clean_marvel_boy",
+      "breakpoints": true
     }
   ]
 }

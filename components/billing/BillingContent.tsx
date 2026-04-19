@@ -7,14 +7,16 @@ import { SubscriptionCard } from "./SubscriptionCard";
 import { UsageSection } from "./UsageSection";
 import { InvoicesList } from "./InvoicesList";
 import type { BillingContext } from "@/core/billing/entity";
+import type { PublicPlan } from "@/server/public/plans";
 
 type Props = {
   billing: BillingContext;
   showSuccess: boolean;
   showCanceled: boolean;
+  plans: PublicPlan[];
 };
 
-export function BillingContent({ billing, showSuccess, showCanceled }: Props) {
+export function BillingContent({ billing, showSuccess, showCanceled, plans }: Props) {
   const [plansOpen, setPlansOpen] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -47,6 +49,7 @@ export function BillingContent({ billing, showSuccess, showCanceled }: Props) {
         open={plansOpen}
         onClose={() => setPlansOpen(false)}
         currentPlanCode={billing.subscription?.planCode}
+        plans={plans}
       />
 
       {showSuccess && (

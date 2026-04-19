@@ -21,6 +21,16 @@ const WEBHOOK_STATUS_COLORS: Record<string, string> = {
 
 const columns: ColumnDef<AdminWebhookRow>[] = [
   {
+    key: "actions",
+    header: "Actions",
+    headerClassName: "w-12",
+    cell: (w) => (
+      <div className="flex items-center">
+        <WebhookActions webhookId={w.id} isActive={w.isActive} />
+      </div>
+    ),
+  },
+  {
     key: "name",
     header: "Webhook",
     cell: (w) => (
@@ -76,16 +86,6 @@ const columns: ColumnDef<AdminWebhookRow>[] = [
       <span className="text-xs text-muted-foreground whitespace-nowrap">
         {formatDistanceToNow(new Date(w.createdAt), { addSuffix: true })}
       </span>
-    ),
-  },
-  {
-    key: "actions",
-    header: "",
-    headerClassName: "w-12",
-    cell: (w) => (
-      <div className="flex items-center justify-end">
-        <WebhookActions webhookId={w.id} isActive={w.isActive} />
-      </div>
     ),
   },
 ];

@@ -24,6 +24,16 @@ function getKeyStatus(row: AdminApiKeyRow): string {
 
 const columns: ColumnDef<AdminApiKeyRow>[] = [
   {
+    key: "actions",
+    header: "Actions",
+    headerClassName: "w-12",
+    cell: (k) => (
+      <div className="flex items-center">
+        <ApiKeyActions keyId={k.id} isActive={getKeyStatus(k) === "active"} />
+      </div>
+    ),
+  },
+  {
     key: "name",
     header: "Key",
     cell: (k) => (
@@ -74,16 +84,6 @@ const columns: ColumnDef<AdminApiKeyRow>[] = [
       <span className="text-xs text-muted-foreground whitespace-nowrap">
         {formatDistanceToNow(new Date(k.createdAt), { addSuffix: true })}
       </span>
-    ),
-  },
-  {
-    key: "actions",
-    header: "",
-    headerClassName: "w-12",
-    cell: (k) => (
-      <div className="flex items-center justify-end">
-        <ApiKeyActions keyId={k.id} isActive={getKeyStatus(k) === "active"} />
-      </div>
     ),
   },
 ];

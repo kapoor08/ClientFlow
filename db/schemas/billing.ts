@@ -27,6 +27,10 @@ export const plans = pgTable(
     monthlyApiCallsLimit: integer("monthly_api_calls_limit"),
     displayOrder: integer("display_order").notNull().default(0),
     recommendedBadge: text("recommended_badge"),
+    features: jsonb("features").$type<string[]>(),
+    stripeProductId: text("stripe_product_id"),
+    stripeMonthlyPriceId: text("stripe_monthly_price_id"),
+    stripeYearlyPriceId: text("stripe_yearly_price_id"),
     isActive: boolean("is_active").default(true).notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -93,6 +97,7 @@ export const subscriptions = pgTable("subscriptions", {
   trialEndsAt: timestamp("trial_ends_at"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  paymentMethodExpiryNotifiedAt: timestamp("payment_method_expiry_notified_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

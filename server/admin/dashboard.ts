@@ -20,11 +20,13 @@ export async function getAdminDashboardStats() {
     totalOrgs,
     totalUsers,
     activeSubscriptions,
+    trialingSubscriptions,
     mrrResult,
     totalProjects,
     totalClients,
     newOrgsLast30Days,
     recentUsers,
+    recentOrgs,
   ] = await Promise.all([
     db.select({ value: count(organizations.id) }).from(organizations).where(isNull(organizations.deletedAt)),
 
@@ -34,6 +36,11 @@ export async function getAdminDashboardStats() {
       .select({ value: count(subscriptions.id) })
       .from(subscriptions)
       .where(eq(subscriptions.status, "active")),
+
+    db
+      .select({ value: count(subscriptions.id) })
+      .from(subscriptions)
+      .where(eq(subscriptions.status, "trialing")),
 
     db
       .select({ value: sum(plans.monthlyPriceCents) })
@@ -65,7 +72,18 @@ export async function getAdminDashboardStats() {
       })
       .from(user)
       .orderBy(desc(user.createdAt))
-      .limit(10),
+      .limit(8),
+
+    db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        createdAt: organizations.createdAt,
+      })
+      .from(organizations)
+      .where(isNull(organizations.deletedAt))
+      .orderBy(desc(organizations.createdAt))
+      .limit(5),
   ]);
 
   const planDist = await db
@@ -83,11 +101,13 @@ export async function getAdminDashboardStats() {
     totalOrgs: totalOrgs[0]?.value ?? 0,
     totalUsers: totalUsers[0]?.value ?? 0,
     activeSubscriptions: activeSubscriptions[0]?.value ?? 0,
+    trialingSubscriptions: trialingSubscriptions[0]?.value ?? 0,
     mrrCents: Number(mrrResult[0]?.value ?? 0),
     totalProjects: totalProjects[0]?.value ?? 0,
     totalClients: totalClients[0]?.value ?? 0,
     growthData: newOrgsLast30Days,
     recentUsers,
+    recentOrgs,
     planDistribution: planDist,
   };
 }

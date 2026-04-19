@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listProjectTemplatesForUser, createProjectTemplateForUser } from "@/server/project-templates";
 import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { createProjectTemplateSchema } from "@/schemas/project-templates";
 
 export async function GET() {
   try {
@@ -23,14 +24,11 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
-    if (!body?.name?.trim()) throw new ApiError("Template name is required.", 422);
-    const template = await createProjectTemplateForUser(userId, {
-      name: body.name,
-      description: body.description,
-      defaultStatus: body.defaultStatus,
-      defaultPriority: body.defaultPriority,
-      tasks: body.tasks,
-    });
+    const parsed = createProjectTemplateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(parsed.error.issues[0]?.message ?? "Invalid input.", 422);
+    }
+    const template = await createProjectTemplateForUser(userId, parsed.data);
     return NextResponse.json(
       { ...template, createdAt: template.createdAt.toISOString(), updatedAt: template.updatedAt.toISOString() },
       { status: 201 },

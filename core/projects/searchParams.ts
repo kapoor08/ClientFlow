@@ -14,6 +14,7 @@ export const projectsSearchParamsCache = createSearchParamsCache({
   priority: parseAsString.withDefault(""),
   dateFrom: parseAsString.withDefault(""),
   dateTo: parseAsString.withDefault(""),
+  view: parseAsString.withDefault(""),
 });
 
 export type ProjectsSearchParams = Awaited<

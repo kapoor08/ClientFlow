@@ -414,6 +414,67 @@ export async function markInvoiceSentForUser(
   }).catch(console.error);
 }
 
+export type InvoicePDFData = {
+  invoice: InvoiceItem & { clientContactEmail: string | null; clientContactPhone: string | null };
+  orgName: string;
+  logoUrl: string | null;
+  currencyCode: string;
+};
+
+export async function getInvoicePDFDataForUser(
+  userId: string,
+  invoiceId: string,
+): Promise<InvoicePDFData | null> {
+  const ctx = await getOrganizationSettingsContextForUser(userId);
+  if (!ctx) return null;
+
+  const [row] = await db
+    .select({
+      id: invoices.id,
+      number: invoices.number,
+      title: invoices.title,
+      status: invoices.status,
+      isManual: invoices.isManual,
+      clientId: invoices.clientId,
+      clientName: clients.name,
+      clientContactEmail: clients.contactEmail,
+      clientContactPhone: clients.contactPhone,
+      lineItems: invoices.lineItems,
+      notes: invoices.notes,
+      amountDueCents: invoices.amountDueCents,
+      amountPaidCents: invoices.amountPaidCents,
+      currencyCode: invoices.currencyCode,
+      invoiceUrl: invoices.invoiceUrl,
+      dueAt: invoices.dueAt,
+      paidAt: invoices.paidAt,
+      sentAt: invoices.sentAt,
+      createdAt: invoices.createdAt,
+    })
+    .from(invoices)
+    .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .where(
+      and(
+        eq(invoices.id, invoiceId),
+        eq(invoices.organizationId, ctx.organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  return {
+    invoice: {
+      ...row,
+      lineItems: (row.lineItems as InvoiceLineItem[] | null) ?? null,
+      clientContactEmail: row.clientContactEmail ?? null,
+      clientContactPhone: row.clientContactPhone ?? null,
+    },
+    orgName: ctx.organizationName,
+    logoUrl: ctx.logoUrl ?? null,
+    currencyCode: (row.currencyCode ?? ctx.currencyCode ?? "USD").toUpperCase(),
+  };
+}
+
 export async function deleteInvoiceForUser(
   userId: string,
   invoiceId: string,

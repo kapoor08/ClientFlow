@@ -1,14 +1,17 @@
 import "server-only";
 
 import { addDays } from "date-fns";
-import { and, count, desc, eq, gte, ilike } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import {
+  invoices,
   organizations,
   plans,
   subscriptions,
   organizationCurrentSubscriptions,
+  platformAdminActions,
 } from "@/db/schema";
+import { stripe, isStripeConfigured } from "@/server/third-party/stripe";
 import {
   buildPaginationMeta,
   paginationOffset,
@@ -152,7 +155,34 @@ export async function getSubscriptionById(subscriptionId: string) {
   return row ?? null;
 }
 
-export async function extendTrial(subscriptionId: string, days: number) {
+async function logPlatformAdminAction(opts: {
+  adminUserId: string;
+  action: string;
+  subscriptionId: string;
+  afterSnapshot: Record<string, unknown>;
+}) {
+  const [sub] = await db
+    .select({ organizationId: subscriptions.organizationId })
+    .from(subscriptions)
+    .where(eq(subscriptions.id, opts.subscriptionId))
+    .limit(1);
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: opts.adminUserId,
+    action: opts.action,
+    entityType: "subscription",
+    entityId: opts.subscriptionId,
+    organizationId: sub?.organizationId ?? null,
+    afterSnapshot: opts.afterSnapshot,
+  });
+}
+
+export async function extendTrial(
+  subscriptionId: string,
+  days: number,
+  adminUserId: string,
+) {
   const [sub] = await db
     .select({ trialEndsAt: subscriptions.trialEndsAt })
     .from(subscriptions)
@@ -169,19 +199,188 @@ export async function extendTrial(subscriptionId: string, days: number) {
     .set({ trialEndsAt: newTrialEnd, updatedAt: new Date() })
     .where(eq(subscriptions.id, subscriptionId));
 
+  await logPlatformAdminAction({
+    adminUserId,
+    action: "extend_trial",
+    subscriptionId,
+    afterSnapshot: { days, newTrialEnd: newTrialEnd.toISOString() },
+  });
+
   return newTrialEnd;
 }
 
-export async function changeSubscriptionPlan(subscriptionId: string, newPlanId: string) {
+export async function changeSubscriptionPlan(
+  subscriptionId: string,
+  newPlanId: string,
+  adminUserId: string,
+) {
   await db
     .update(subscriptions)
     .set({ planId: newPlanId, updatedAt: new Date() })
     .where(eq(subscriptions.id, subscriptionId));
+
+  await logPlatformAdminAction({
+    adminUserId,
+    action: "change_subscription_plan",
+    subscriptionId,
+    afterSnapshot: { newPlanId },
+  });
 }
 
-export async function setCancelAtPeriodEnd(subscriptionId: string, value: boolean) {
+export async function setCancelAtPeriodEnd(
+  subscriptionId: string,
+  value: boolean,
+  adminUserId: string,
+) {
   await db
     .update(subscriptions)
     .set({ cancelAtPeriodEnd: value, updatedAt: new Date() })
     .where(eq(subscriptions.id, subscriptionId));
+
+  await logPlatformAdminAction({
+    adminUserId,
+    action: value ? "set_cancel_at_period_end" : "resume_subscription",
+    subscriptionId,
+    afterSnapshot: { cancelAtPeriodEnd: value },
+  });
+}
+
+// ─── Refunds ─────────────────────────────────────────────────────────────────
+
+export type RefundableInvoiceRow = {
+  id: string;
+  externalInvoiceId: string | null;
+  status: string;
+  amountPaidCents: number;
+  currencyCode: string | null;
+  paidAt: Date | null;
+  invoiceUrl: string | null;
+};
+
+export async function listRefundableInvoicesForSubscription(
+  subscriptionId: string,
+): Promise<RefundableInvoiceRow[]> {
+  const rows = await db
+    .select({
+      id: invoices.id,
+      externalInvoiceId: invoices.externalInvoiceId,
+      status: invoices.status,
+      amountPaidCents: invoices.amountPaidCents,
+      currencyCode: invoices.currencyCode,
+      paidAt: invoices.paidAt,
+      invoiceUrl: invoices.invoiceUrl,
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.subscriptionId, subscriptionId),
+        eq(invoices.status, "paid"),
+        isNotNull(invoices.externalInvoiceId),
+      ),
+    )
+    .orderBy(desc(invoices.paidAt))
+    .limit(10);
+
+  return rows.map((r) => ({
+    ...r,
+    amountPaidCents: r.amountPaidCents ?? 0,
+  }));
+}
+
+export type RefundResult = {
+  refundId: string;
+  amountCents: number;
+  status: string;
+};
+
+export async function refundStripeInvoice(
+  invoiceId: string,
+  adminUserId: string,
+  opts: { amountCents?: number; reason?: string } = {},
+): Promise<RefundResult> {
+  if (!isStripeConfigured) {
+    throw new Error("Stripe is not configured — cannot process refunds.");
+  }
+
+  const [invoice] = await db
+    .select({
+      id: invoices.id,
+      externalInvoiceId: invoices.externalInvoiceId,
+      status: invoices.status,
+      amountPaidCents: invoices.amountPaidCents,
+      organizationId: invoices.organizationId,
+      subscriptionId: invoices.subscriptionId,
+    })
+    .from(invoices)
+    .where(eq(invoices.id, invoiceId))
+    .limit(1);
+
+  if (!invoice) throw new Error("Invoice not found.");
+  if (!invoice.externalInvoiceId) {
+    throw new Error("Invoice is not synced with Stripe — nothing to refund.");
+  }
+  if (invoice.status !== "paid") {
+    throw new Error(`Cannot refund an invoice in status "${invoice.status}".`);
+  }
+
+  // Fetch the Stripe invoice to get its payment_intent
+  const stripeInvoice = await stripe.invoices.retrieve(invoice.externalInvoiceId);
+  const inv = stripeInvoice as unknown as Record<string, unknown>;
+  const paymentIntentId =
+    typeof inv.payment_intent === "string" ? (inv.payment_intent as string) : null;
+  const chargeId = typeof inv.charge === "string" ? (inv.charge as string) : null;
+
+  if (!paymentIntentId && !chargeId) {
+    throw new Error("Stripe invoice has no payment to refund.");
+  }
+
+  const reasonEnum =
+    opts.reason === "duplicate" ||
+    opts.reason === "fraudulent" ||
+    opts.reason === "requested_by_customer"
+      ? opts.reason
+      : "requested_by_customer";
+
+  const refund = await stripe.refunds.create({
+    ...(paymentIntentId ? { payment_intent: paymentIntentId } : { charge: chargeId! }),
+    ...(opts.amountCents != null && opts.amountCents > 0 ? { amount: opts.amountCents } : {}),
+    reason: reasonEnum,
+    metadata: {
+      organizationId: invoice.organizationId,
+      internalInvoiceId: invoice.id,
+      adminUserId,
+    },
+  });
+
+  const refundedCents = typeof refund.amount === "number" ? refund.amount : opts.amountCents ?? invoice.amountPaidCents ?? 0;
+  const isFull = refundedCents >= (invoice.amountPaidCents ?? 0);
+
+  await db
+    .update(invoices)
+    .set({
+      status: isFull ? "refunded" : "partially_refunded",
+      updatedAt: new Date(),
+    })
+    .where(eq(invoices.id, invoiceId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: isFull ? "refund_invoice_full" : "refund_invoice_partial",
+    entityType: "invoice",
+    entityId: invoiceId,
+    organizationId: invoice.organizationId,
+    afterSnapshot: {
+      refundId: refund.id,
+      amountCents: refundedCents,
+      reason: reasonEnum,
+      stripeInvoiceId: invoice.externalInvoiceId,
+    },
+  });
+
+  return {
+    refundId: refund.id,
+    amountCents: refundedCents,
+    status: refund.status ?? "pending",
+  };
 }

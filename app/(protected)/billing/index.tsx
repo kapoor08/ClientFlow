@@ -1,6 +1,7 @@
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { getServerSession } from "@/server/auth/session";
 import { getBillingContextForUser } from "@/server/billing";
+import { getPublicPlans } from "@/server/public/plans";
 import { billingSearchParamsCache } from "@/core/billing/searchParams";
 import { BillingContent } from "@/components/billing";
 
@@ -54,6 +55,7 @@ const BillingPage = async ({ searchParams }: BillingPageProps) => {
 
   const showSuccess = params["success"] === "1";
   const showCanceled = params["canceled"] === "1";
+  const plans = await getPublicPlans();
 
   return (
     <ListPageLayout
@@ -64,6 +66,7 @@ const BillingPage = async ({ searchParams }: BillingPageProps) => {
         billing={serialized}
         showSuccess={showSuccess}
         showCanceled={showCanceled}
+        plans={plans}
       />
     </ListPageLayout>
   );

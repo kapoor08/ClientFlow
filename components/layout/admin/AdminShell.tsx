@@ -116,7 +116,7 @@ export function AdminShell({ user, children }: Props) {
       {/* Main */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Top header */}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-end border-b border-border bg-card/80 px-6 backdrop-blur-lg">
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-end border-b border-border bg-card/80 px-6 backdrop-blur-lg">
           <div className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium text-foreground">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               {getUserInitials(user.name, user.email)}

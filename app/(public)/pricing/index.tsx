@@ -2,8 +2,9 @@
 
 import { motion } from "framer-motion";
 import PlanCards from "@/components/shared/PlanCards";
+import type { PublicPlan } from "@/server/public/plans";
 
-const PricingPage = () => {
+const PricingPage = ({ plans }: { plans: PublicPlan[] }) => {
   return (
     <>
       <section className="relative overflow-hidden border-b border-border">
@@ -32,7 +33,7 @@ const PricingPage = () => {
 
       <section className="py-12 md:py-20">
         <div className="container">
-          <PlanCards className="mt-8" />
+          <PlanCards plans={plans} className="mt-8" />
         </div>
       </section>
     </>

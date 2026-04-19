@@ -76,6 +76,7 @@ import { getInitials } from "@/utils/user";
 import { TASK_TAG_OPTIONS } from "@/schemas/tasks";
 import { CreateTaskDialog } from "./CreateTaskDialog";
 import { LogTimeDialog } from "@/components/time-tracking/LogTimeDialog";
+import { TimeEntriesList, timeEntriesKeys } from "@/components/time-tracking/TimeEntriesList";
 import {
   X,
   CalendarDays,
@@ -1658,6 +1659,29 @@ export function TaskDetailSheet({
                   </div>
                 </div>
 
+                {/* ─── Time Logged ──────────────────────────────────────────── */}
+                {task?.id && (
+                  <div className="mb-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                        <Clock size={13} />
+                        Time Logged
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setLogTimeOpen(true)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        <Plus size={12} /> Log
+                      </button>
+                    </div>
+                    <TimeEntriesList
+                      taskId={task.id}
+                      currentUserId={currentUserId ?? ""}
+                    />
+                  </div>
+                )}
+
                 {/* ─── Subtasks ─────────────────────────────────────────────── */}
                 <div className="mb-5">
                   <div className="mb-2 flex items-center justify-between">
@@ -2550,7 +2574,11 @@ export function TaskDetailSheet({
         <LogTimeDialog
           open={logTimeOpen}
           onClose={() => setLogTimeOpen(false)}
-          onLogged={() => {}}
+          onLogged={() => {
+            if (task?.id) {
+              qc.invalidateQueries({ queryKey: timeEntriesKeys.byTask(task.id) });
+            }
+          }}
           projectId={task.projectId}
           taskId={task.id}
           taskTitle={task.title}

@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { db } from "@/server/db/client";
+import { plans } from "@/db/schema";
 import { stripe, STRIPE_PRICE_MAP } from "@/server/third-party/stripe";
 import { getServerSession } from "@/server/auth/session";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
@@ -16,10 +19,26 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const planCode = (body.planCode as string)?.toLowerCase();
+  if (!planCode) {
+    return NextResponse.json({ error: "Missing planCode" }, { status: 400 });
+  }
 
-  const priceId = STRIPE_PRICE_MAP[planCode];
+  // Resolve Stripe Price ID: DB-managed plans first, then env fallback.
+  const [plan] = await db
+    .select({
+      stripeMonthlyPriceId: plans.stripeMonthlyPriceId,
+      isActive: plans.isActive,
+    })
+    .from(plans)
+    .where(and(eq(plans.code, planCode), eq(plans.isActive, true)))
+    .limit(1);
+
+  const priceId = plan?.stripeMonthlyPriceId ?? STRIPE_PRICE_MAP[planCode];
   if (!priceId) {
-    return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Plan is not available for checkout." },
+      { status: 400 },
+    );
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { projectTemplates, type ProjectTemplateTask } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { writeAuditLog } from "@/server/security/audit";
 
 export type { ProjectTemplateTask };
 
@@ -71,6 +72,15 @@ export async function createProjectTemplateForUser(
     })
     .returning();
 
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "project_template.created",
+    entityType: "project_template",
+    entityId: id,
+    metadata: { name: row.name, taskCount: (data.tasks ?? []).length },
+  }).catch(console.error);
+
   return { ...row, tasks: (row.tasks as ProjectTemplateTask[]) ?? [] };
 }
 
@@ -91,7 +101,7 @@ export async function updateProjectTemplateForUser(
     throw new Error("You don't have permission to update templates.");
 
   const [existing] = await db
-    .select({ id: projectTemplates.id })
+    .select({ id: projectTemplates.id, name: projectTemplates.name })
     .from(projectTemplates)
     .where(and(eq(projectTemplates.id, templateId), eq(projectTemplates.organizationId, ctx.organizationId)))
     .limit(1);
@@ -102,6 +112,15 @@ export async function updateProjectTemplateForUser(
     .update(projectTemplates)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(projectTemplates.id, templateId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "project_template.updated",
+    entityType: "project_template",
+    entityId: templateId,
+    metadata: { name: existing.name, changes: Object.keys(data) },
+  }).catch(console.error);
 }
 
 export async function deleteProjectTemplateForUser(
@@ -114,7 +133,7 @@ export async function deleteProjectTemplateForUser(
     throw new Error("You don't have permission to delete templates.");
 
   const [existing] = await db
-    .select({ id: projectTemplates.id })
+    .select({ id: projectTemplates.id, name: projectTemplates.name })
     .from(projectTemplates)
     .where(and(eq(projectTemplates.id, templateId), eq(projectTemplates.organizationId, ctx.organizationId)))
     .limit(1);
@@ -122,4 +141,13 @@ export async function deleteProjectTemplateForUser(
   if (!existing) throw new Error("Template not found.");
 
   await db.delete(projectTemplates).where(eq(projectTemplates.id, templateId));
+
+  writeAuditLog({
+    organizationId: ctx.organizationId,
+    actorUserId: userId,
+    action: "project_template.deleted",
+    entityType: "project_template",
+    entityId: templateId,
+    metadata: { name: existing.name },
+  }).catch(console.error);
 }

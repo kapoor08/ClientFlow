@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ShieldCheck, ShieldOff, Copy, Check, Key } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldOff, Copy, Check, Key, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +46,64 @@ function CopyButton({ text }: { text: string }) {
         <Copy size={13} />
       )}
     </button>
+  );
+}
+
+// ─── BackupCodesActions ───────────────────────────────────────────────────────
+// Bulk actions for the backup codes list: copy-all to clipboard and download
+// as a plain-text file. Gives users a faster path to saving codes safely than
+// copying one at a time.
+
+function BackupCodesActions({ codes }: { codes: string[] }) {
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  function handleCopyAll() {
+    navigator.clipboard.writeText(codes.join("\n"));
+    setCopiedAll(true);
+    toast.success("All backup codes copied to clipboard.");
+    setTimeout(() => setCopiedAll(false), 2000);
+  }
+
+  function handleDownload() {
+    const header =
+      "ClientFlow — 2FA Backup Codes\n" +
+      `Generated: ${new Date().toISOString()}\n` +
+      "Keep these codes somewhere safe. Each can be used once to sign in\n" +
+      "if you lose access to your authenticator app.\n\n";
+    const blob = new Blob([header + codes.join("\n") + "\n"], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clientflow-backup-codes.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleCopyAll}
+        className="cursor-pointer gap-1.5"
+      >
+        {copiedAll ? <Check size={13} className="text-success" /> : <Copy size={13} />}
+        {copiedAll ? "Copied" : "Copy all"}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleDownload}
+        className="cursor-pointer gap-1.5"
+      >
+        <Download size={13} />
+        Download
+      </Button>
+    </div>
   );
 }
 
@@ -474,6 +532,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                   Save these backup codes. Each can be used once if you lose your authenticator.
                 </p>
               </div>
+              <BackupCodesActions codes={backupCodes} />
               <div className="grid grid-cols-2 gap-2">
                 {backupCodes.map((c) => (
                   <div
@@ -541,6 +600,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                   Save these codes now. Each can be used once if you lose your authenticator.
                 </p>
               </div>
+              <BackupCodesActions codes={newBackupCodes} />
               <div className="grid grid-cols-2 gap-2">
                 {newBackupCodes.map((c) => (
                   <div

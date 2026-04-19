@@ -27,6 +27,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+export { TooltipProvider };
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type RowActionsProps = {
@@ -57,15 +59,21 @@ export type RowActionsProps = {
   deleteLabel?: string;
 };
 
-// ─── Internal helpers ─────────────────────────────────────────────────────────
+// ─── Shared helpers (exported for reuse in admin action components) ───────────
 
-const BASE_BTN =
+export const BASE_BTN =
   "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
 
-const DANGER_BTN =
+export const DANGER_BTN =
   "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger disabled:pointer-events-none disabled:opacity-40";
 
-type TipLinkProps = {
+export const WARNING_BTN =
+  "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-warning/10 hover:text-warning disabled:pointer-events-none disabled:opacity-40";
+
+export const SUCCESS_BTN =
+  "flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-success/10 hover:text-success disabled:pointer-events-none disabled:opacity-40";
+
+export type TipLinkProps = {
   href: string;
   label: string;
   target?: string;
@@ -74,7 +82,7 @@ type TipLinkProps = {
   children: React.ReactNode;
 };
 
-function TipLink({ href, label, target, rel, download, children }: TipLinkProps) {
+export function TipLink({ href, label, target, rel, download, children }: TipLinkProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -93,15 +101,22 @@ function TipLink({ href, label, target, rel, download, children }: TipLinkProps)
   );
 }
 
-type TipButtonProps = {
+export type TipButtonProps = {
   label: string;
   onClick: () => void;
   disabled?: boolean;
-  danger?: boolean;
+  variant?: "default" | "danger" | "warning" | "success";
   children: React.ReactNode;
 };
 
-function TipButton({ label, onClick, disabled, danger, children }: TipButtonProps) {
+const VARIANT_CLS: Record<NonNullable<TipButtonProps["variant"]>, string> = {
+  default: BASE_BTN,
+  danger: DANGER_BTN,
+  warning: WARNING_BTN,
+  success: SUCCESS_BTN,
+};
+
+export function TipButton({ label, onClick, disabled, variant = "default", children }: TipButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -109,7 +124,7 @@ function TipButton({ label, onClick, disabled, danger, children }: TipButtonProp
           type="button"
           onClick={onClick}
           disabled={disabled}
-          className={danger ? DANGER_BTN : BASE_BTN}
+          className={VARIANT_CLS[variant]}
         >
           {children}
         </button>
@@ -251,7 +266,7 @@ export function RowActions({
             label="Revoke"
             onClick={() => setRevokeOpen(true)}
             disabled={isRevoking}
-            danger
+            variant="danger"
           >
             {isRevoking ? (
               <Loader2 size={14} className="animate-spin" />
@@ -267,7 +282,7 @@ export function RowActions({
             label="Delete"
             onClick={() => setDeleteOpen(true)}
             disabled={isDeleting}
-            danger
+            variant="danger"
           >
             {isDeleting ? (
               <Loader2 size={14} className="animate-spin" />

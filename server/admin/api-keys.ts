@@ -1,8 +1,8 @@
 import "server-only";
 
-import { and, count, desc, eq, gt, ilike, isNotNull, isNull, lt, or } from "drizzle-orm";
+import { and, count, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import { organizations, apiKeys } from "@/db/schema";
+import { organizations, apiKeys, platformAdminActions } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import {
   buildPaginationMeta,
@@ -90,10 +90,41 @@ export async function listAdminApiKeys(
   return { data: rows, pagination };
 }
 
-export async function revokeApiKey(keyId: string) {
-  await db.update(apiKeys).set({ revokedAt: new Date(), updatedAt: new Date() }).where(eq(apiKeys.id, keyId));
+async function getKeyMeta(keyId: string) {
+  const [row] = await db
+    .select({ organizationId: apiKeys.organizationId, name: apiKeys.name, keyPrefix: apiKeys.keyPrefix })
+    .from(apiKeys)
+    .where(eq(apiKeys.id, keyId))
+    .limit(1);
+  return row ?? null;
 }
 
-export async function deleteApiKey(keyId: string) {
+export async function revokeApiKey(keyId: string, adminUserId: string) {
+  const meta = await getKeyMeta(keyId);
+  await db.update(apiKeys).set({ revokedAt: new Date(), updatedAt: new Date() }).where(eq(apiKeys.id, keyId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "revoke_api_key",
+    entityType: "api_key",
+    entityId: keyId,
+    organizationId: meta?.organizationId ?? null,
+    afterSnapshot: { name: meta?.name ?? null, keyPrefix: meta?.keyPrefix ?? null },
+  });
+}
+
+export async function deleteApiKey(keyId: string, adminUserId: string) {
+  const meta = await getKeyMeta(keyId);
   await db.delete(apiKeys).where(eq(apiKeys.id, keyId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "delete_api_key",
+    entityType: "api_key",
+    entityId: keyId,
+    organizationId: meta?.organizationId ?? null,
+    afterSnapshot: { name: meta?.name ?? null, keyPrefix: meta?.keyPrefix ?? null },
+  });
 }

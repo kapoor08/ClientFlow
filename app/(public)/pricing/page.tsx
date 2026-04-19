@@ -1,3 +1,4 @@
+import { getPublicPlans } from "@/server/public/plans";
 import PricingPage from ".";
 
 export const metadata = {
@@ -6,4 +7,7 @@ export const metadata = {
     "Discover ClientFlow's pricing plans. Choose the best option for your business and start streamlining your client management with our powerful platform today.",
 };
 
-export default PricingPage;
+export default async function Page() {
+  const plans = await getPublicPlans();
+  return <PricingPage plans={plans} />;
+}

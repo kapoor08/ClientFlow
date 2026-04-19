@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Building2, Calendar, FolderKanban } from "lucide-react";
+import { Building2, Calendar, FolderKanban, ArchiveRestore, Loader2 } from "lucide-react";
 import { formatDate } from "@/utils/date";
 import { parseAsString, useQueryState } from "nuqs";
 import {
@@ -13,6 +14,7 @@ import {
   RowActions,
   type ColumnDef,
 } from "@/components/data-table";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 import { toast } from "sonner";
 import { useDeleteProject } from "@/core/projects/useCase";
 import { loadMoreProjectsAction } from "@/server/actions/projects";
@@ -82,22 +84,43 @@ function PriorityBadge({ priority }: { priority: ProjectPriority | null }) {
 
 function buildColumns(
   canWrite: boolean,
+  archivedOnly: boolean,
   deletingId: string | null,
+  restoringId: string | null,
   onDelete: (projectId: string) => void,
+  onRestore: (projectId: string) => void,
 ): ColumnDef<ProjectListItem>[] {
   return [
     {
       key: "actions",
       header: "Actions",
-      cell: (project) => (
-        <RowActions
-          viewHref={`/projects/${project.id}`}
-          editHref={canWrite ? `/projects/${project.id}/edit` : undefined}
-          onDelete={canWrite ? () => onDelete(project.id) : undefined}
-          isDeleting={deletingId === project.id}
-          deleteLabel={project.name}
-        />
-      ),
+      cell: (project) =>
+        archivedOnly ? (
+          <TooltipProvider>
+            <div className="flex items-center gap-0.5">
+              <TipButton
+                label="Restore project"
+                onClick={() => onRestore(project.id)}
+                disabled={restoringId === project.id}
+                variant="success"
+              >
+                {restoringId === project.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <ArchiveRestore size={14} />
+                )}
+              </TipButton>
+            </div>
+          </TooltipProvider>
+        ) : (
+          <RowActions
+            viewHref={`/projects/${project.id}`}
+            editHref={canWrite ? `/projects/${project.id}/edit` : undefined}
+            onDelete={canWrite ? () => onDelete(project.id) : undefined}
+            isDeleting={deletingId === project.id}
+            deleteLabel={project.name}
+          />
+        ),
     },
     {
       key: "name",
@@ -267,16 +290,20 @@ type ProjectsTableProps = {
   projects: ProjectListItem[];
   pagination: PaginationMeta;
   canWrite: boolean;
+  archivedOnly?: boolean;
 };
 
 export function ProjectsTable({
   projects,
   pagination,
   canWrite,
+  archivedOnly = false,
 }: ProjectsTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const deleteProject = useDeleteProject();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [, startTransition] = useTransition();
   const [status, setStatus] = useQueryState(
@@ -313,15 +340,39 @@ export function ProjectsTable({
     setDeletingId(projectId);
     try {
       await deleteProject.mutateAsync({ projectId });
-      toast.success("Project deleted.");
+      toast.success("Project archived.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete project.");
+      toast.error(err instanceof Error ? err.message : "Failed to archive project.");
     } finally {
       setDeletingId(null);
     }
   };
 
-  const columns = buildColumns(canWrite, deletingId, handleDelete);
+  const handleRestore = async (projectId: string) => {
+    setRestoringId(projectId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/restore`, { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as { error?: string }).error ?? "Restore failed.");
+      }
+      toast.success("Project restored.");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to restore project.");
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const columns = buildColumns(
+    canWrite,
+    archivedOnly,
+    deletingId,
+    restoringId,
+    handleDelete,
+    handleRestore,
+  );
 
   const searchExtra = (
     <>

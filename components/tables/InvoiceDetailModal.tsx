@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Download, Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { InvoiceListItem } from "@/core/invoices/entity";
 import { INVOICE_STATUS_STYLES as STATUS_STYLES } from "@/core/invoices/entity";
@@ -81,6 +84,7 @@ export function InvoiceDetailModal({ invoiceId, onClose }: Props) {
         ) : !invoice ? (
           <p className="text-sm text-muted-foreground">Failed to load invoice.</p>
         ) : (
+          <>
           <div className="space-y-4 pt-1">
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -160,6 +164,29 @@ export function InvoiceDetailModal({ invoiceId, onClose }: Props) {
               </div>
             )}
           </div>
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer gap-1.5"
+              onClick={() => window.open(`/api/invoices/${invoiceId}/pdf`, "_blank")}
+            >
+              <Eye size={13} />
+              Preview PDF
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="cursor-pointer gap-1.5"
+              asChild
+            >
+              <a href={`/api/invoices/${invoiceId}/pdf?download=1`} download>
+                <Download size={13} />
+                Download PDF
+              </a>
+            </Button>
+          </DialogFooter>
+          </>
         )}
       </DialogContent>
     </Dialog>

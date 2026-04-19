@@ -148,6 +148,7 @@ export const tasks = pgTable("tasks", {
   assigneeUserId: text("assignee_user_id").references(() => user.id),
   reporterUserId: text("reporter_user_id").references(() => user.id),
   dueDate: timestamp("due_date"),
+  lastOverdueNotifiedAt: timestamp("last_overdue_notified_at"),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   position: integer("position"),

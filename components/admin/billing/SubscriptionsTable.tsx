@@ -55,6 +55,16 @@ type PlanOption = { value: string; label: string };
 function buildColumns(planOptions: PlanOption[]): ColumnDef<AdminSubscriptionRow>[] {
   return [
     {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "w-12",
+      cell: (s) => (
+        <div className="flex items-center">
+          <BillingRowActions subscription={s} planOptions={planOptions} />
+        </div>
+      ),
+    },
+    {
       key: "orgName",
       header: "Organization",
       cell: (s) => <span className="font-medium text-foreground">{s.orgName}</span>,
@@ -104,16 +114,6 @@ function buildColumns(planOptions: PlanOption[]): ColumnDef<AdminSubscriptionRow
             ? formatDistanceToNow(new Date(s.currentPeriodEnd), { addSuffix: true })
             : "-"}
         </span>
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      headerClassName: "w-12",
-      cell: (s) => (
-        <div className="flex items-center justify-end">
-          <BillingRowActions subscription={s} planOptions={planOptions} />
-        </div>
       ),
     },
   ];

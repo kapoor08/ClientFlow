@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import {
   organizations,
@@ -8,6 +8,7 @@ import {
   roles,
   apiKeys,
   auditLogs,
+  platformAdminActions,
 } from "@/db/schema";
 import { user, session } from "@/db/auth-schema";
 import {
@@ -192,14 +193,118 @@ export async function getAdminUserDetail(userId: string) {
   return { user: u, orgs: userOrgs, sessions: userSessions, apiKeys: userApiKeys, auditLogs: userAuditLogs };
 }
 
-export async function revokeAllUserSessions(userId: string) {
+export async function revokeAllUserSessions(userId: string, adminUserId: string) {
+  const existing = await db.select({ id: session.id }).from(session).where(eq(session.userId, userId));
   await db.delete(session).where(eq(session.userId, userId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "revoke_all_user_sessions",
+    entityType: "user",
+    entityId: userId,
+    organizationId: null,
+    afterSnapshot: { sessionsRevoked: existing.length },
+  });
 }
 
-export async function revokeUserSession(sessionId: string) {
+export async function revokeUserSession(sessionId: string, adminUserId: string) {
+  const [existing] = await db
+    .select({ userId: session.userId })
+    .from(session)
+    .where(eq(session.id, sessionId))
+    .limit(1);
+
   await db.delete(session).where(eq(session.id, sessionId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "revoke_user_session",
+    entityType: "session",
+    entityId: sessionId,
+    organizationId: null,
+    afterSnapshot: { targetUserId: existing?.userId ?? null },
+  });
 }
 
-export async function deleteUser(userId: string) {
+export async function deleteUser(userId: string, adminUserId: string) {
+  const [existing] = await db
+    .select({ email: user.email, name: user.name })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
   await db.delete(user).where(eq(user.id, userId));
+
+  await db.insert(platformAdminActions).values({
+    id: sql`gen_random_uuid()`,
+    platformAdminUserId: adminUserId,
+    action: "delete_user",
+    entityType: "user",
+    entityId: userId,
+    organizationId: null,
+    afterSnapshot: {
+      email: existing?.email ?? null,
+      name: existing?.name ?? null,
+    },
+  });
+}
+
+// ─── Bulk operations ─────────────────────────────────────────────────────────
+
+export async function bulkRevokeUserSessions(
+  userIds: string[],
+  adminUserId: string,
+): Promise<number> {
+  if (userIds.length === 0) return 0;
+
+  const existingSessions = await db
+    .select({ userId: session.userId })
+    .from(session)
+    .where(inArray(session.userId, userIds));
+
+  await db.delete(session).where(inArray(session.userId, userIds));
+
+  await db.insert(platformAdminActions).values(
+    userIds.map((userId) => ({
+      id: sql`gen_random_uuid()`,
+      platformAdminUserId: adminUserId,
+      action: "revoke_all_user_sessions",
+      entityType: "user",
+      entityId: userId,
+      organizationId: null,
+      afterSnapshot: { bulk: true, sessionsRevoked: existingSessions.filter((s) => s.userId === userId).length },
+    })),
+  );
+
+  return userIds.length;
+}
+
+export async function bulkDeleteUsers(
+  userIds: string[],
+  adminUserId: string,
+): Promise<number> {
+  if (userIds.length === 0) return 0;
+
+  const existingUsers = await db
+    .select({ id: user.id, email: user.email, name: user.name })
+    .from(user)
+    .where(inArray(user.id, userIds));
+
+  await db.delete(user).where(inArray(user.id, userIds));
+
+  await db.insert(platformAdminActions).values(
+    existingUsers.map((u) => ({
+      id: sql`gen_random_uuid()`,
+      platformAdminUserId: adminUserId,
+      action: "delete_user",
+      entityType: "user",
+      entityId: u.id,
+      organizationId: null,
+      afterSnapshot: { bulk: true, email: u.email, name: u.name },
+    })),
+  );
+
+  return existingUsers.length;
 }

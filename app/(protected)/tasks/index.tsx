@@ -79,6 +79,7 @@ import type {
   BoardColumn,
   BoardColumnsResponse,
 } from "@/core/task-columns/entity";
+import { TaskCalendarView } from "@/components/tasks/TaskCalendarView";
 import {
   EditColumnDialog,
   FiltersDrawer,
@@ -102,6 +103,7 @@ import {
   Pencil,
   LayoutGrid,
   List,
+  CalendarRange,
   FolderInput,
   Check,
   UserPlus,
@@ -986,7 +988,11 @@ const TasksPage = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<"task" | "column" | null>(null);
   const dragStartColumnId = useRef<string | null>(null);
-  const [view, setView] = useQueryState("view", { defaultValue: "board" as "board" | "list", parse: (v) => (v === "list" ? "list" : "board"), serialize: (v) => v });
+  const [view, setView] = useQueryState("view", {
+    defaultValue: "board" as "board" | "list" | "calendar",
+    parse: (v) => (v === "list" ? "list" : v === "calendar" ? "calendar" : "board"),
+    serialize: (v) => v,
+  });
   const [selectedTaskRef, setSelectedTaskRef] = useQueryState("task");
   const [deleteTask, setDeleteTask] = useState<TaskListItem | null>(null);
   const [deleteColumn, setDeleteColumn] = useState<BoardColumn | null>(null);
@@ -1311,8 +1317,8 @@ const TasksPage = ({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* New Task (list view) */}
-          {view === "list" && (
+          {/* New Task (list + calendar views) */}
+          {view !== "board" && (
             <button
               type="button"
               onClick={() => {
@@ -1354,6 +1360,19 @@ const TasksPage = ({
             >
               <List size={14} />
             </button>
+            <button
+              type="button"
+              onClick={() => setView("calendar")}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                view === "calendar"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              aria-label="Calendar view"
+            >
+              <CalendarRange size={14} />
+            </button>
           </div>
         </div>
 
@@ -1382,6 +1401,18 @@ const TasksPage = ({
               }
               onDeleteTask={handleDeleteTask}
               onMoveToProject={handleMoveToProject}
+            />
+          </div>
+        ) : view === "calendar" ? (
+          <div
+            className="scrollbar-thin overflow-y-auto"
+            style={{ height: "calc(100vh - 15rem)" }}
+          >
+            <TaskCalendarView
+              tasks={filteredTasks}
+              onTaskClick={(task) =>
+                setSelectedTaskRef(task.refNumber ?? task.id)
+              }
             />
           </div>
         ) : (

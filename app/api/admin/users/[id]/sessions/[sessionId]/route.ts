@@ -3,8 +3,9 @@ import { guardAdmin } from "@/server/auth/admin-guard";
 import { revokeUserSession } from "@/server/admin/users";
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string; sessionId: string }> }) {
-  if (!await guardAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await guardAdmin();
+  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { sessionId } = await params;
-  await revokeUserSession(sessionId);
+  await revokeUserSession(sessionId, admin.user.id);
   return NextResponse.json({ ok: true });
 }

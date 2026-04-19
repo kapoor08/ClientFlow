@@ -2,7 +2,12 @@ import "server-only";
 
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import { organizations, supportTicketMessages, supportTickets } from "@/db/schema";
+import {
+  organizations,
+  supportTicketEvents,
+  supportTicketMessages,
+  supportTickets,
+} from "@/db/schema";
 import { user } from "@/db/auth-schema";
 
 // ── SLA defaults (minutes) ────────────────────────────────────────────────────
@@ -133,6 +138,23 @@ type CreateTicketInput = {
   priority: string;
 };
 
+async function logTicketEvent(opts: {
+  ticketId: string;
+  actorUserId: string | null;
+  eventType: string;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+}) {
+  await db.insert(supportTicketEvents).values({
+    id: sql`gen_random_uuid()`,
+    ticketId: opts.ticketId,
+    actorUserId: opts.actorUserId,
+    eventType: opts.eventType,
+    oldValues: opts.oldValues ?? null,
+    newValues: opts.newValues ?? null,
+  });
+}
+
 export async function createSupportTicket(
   userId: string,
   orgId: string,
@@ -159,6 +181,17 @@ export async function createSupportTicket(
       lastActivityAt: now,
     })
     .returning({ id: supportTickets.id });
+
+  await logTicketEvent({
+    ticketId: row.id,
+    actorUserId: userId,
+    eventType: "ticket.created",
+    newValues: {
+      subject: input.subject,
+      priority: input.priority,
+      category: input.category,
+    },
+  });
 
   return row.id;
 }
@@ -192,6 +225,12 @@ export async function addTicketMessage(
           : supportTickets.firstRespondedAt,
     })
     .where(eq(supportTickets.id, ticketId));
+
+  await logTicketEvent({
+    ticketId,
+    actorUserId: authorUserId,
+    eventType: isInternal ? "message.internal" : `message.${authorRole}`,
+  });
 }
 
 export async function updateTicketStatus(
@@ -199,6 +238,12 @@ export async function updateTicketStatus(
   status: string,
   actorUserId: string,
 ): Promise<void> {
+  const [previous] = await db
+    .select({ status: supportTickets.status })
+    .from(supportTickets)
+    .where(eq(supportTickets.id, ticketId))
+    .limit(1);
+
   const now = new Date();
   await db
     .update(supportTickets)
@@ -210,12 +255,27 @@ export async function updateTicketStatus(
       updatedAt: now,
     })
     .where(eq(supportTickets.id, ticketId));
+
+  await logTicketEvent({
+    ticketId,
+    actorUserId,
+    eventType: "status.changed",
+    oldValues: previous ? { status: previous.status } : undefined,
+    newValues: { status },
+  });
 }
 
 export async function assignTicket(
   ticketId: string,
   adminUserId: string | null,
+  actorUserId: string,
 ): Promise<void> {
+  const [previous] = await db
+    .select({ assigned: supportTickets.assignedPlatformAdminUserId })
+    .from(supportTickets)
+    .where(eq(supportTickets.id, ticketId))
+    .limit(1);
+
   await db
     .update(supportTickets)
     .set({
@@ -224,4 +284,12 @@ export async function assignTicket(
       updatedAt: new Date(),
     })
     .where(eq(supportTickets.id, ticketId));
+
+  await logTicketEvent({
+    ticketId,
+    actorUserId,
+    eventType: adminUserId ? "ticket.assigned" : "ticket.unassigned",
+    oldValues: previous ? { assignedPlatformAdminUserId: previous.assigned } : undefined,
+    newValues: { assignedPlatformAdminUserId: adminUserId },
+  });
 }

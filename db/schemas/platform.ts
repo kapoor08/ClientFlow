@@ -12,36 +12,6 @@ import { user } from "../auth-schema";
 import { organizations } from "./access";
 import { createdAt, updatedAt } from "./helpers";
 
-export const domainEvents = pgTable("domain_events", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id").references(() => organizations.id),
-  eventType: text("event_type").notNull(),
-  aggregateType: text("aggregate_type").notNull(),
-  aggregateId: text("aggregate_id").notNull(),
-  payload: jsonb("payload"),
-  occurredAt: timestamp("occurred_at").defaultNow().notNull(),
-  publishedAt: timestamp("published_at"),
-  retryCount: integer("retry_count").default(0).notNull(),
-  lastError: text("last_error"),
-});
-
-export const jobQueue = pgTable("job_queue", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id").references(() => organizations.id),
-  jobType: text("job_type").notNull(),
-  dedupeKey: text("dedupe_key"),
-  payload: jsonb("payload"),
-  status: text("status").notNull(),
-  attempts: integer("attempts").default(0).notNull(),
-  maxAttempts: integer("max_attempts").default(1).notNull(),
-  scheduledFor: timestamp("scheduled_for"),
-  lockedAt: timestamp("locked_at"),
-  lockedBy: text("locked_by"),
-  lastError: text("last_error"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
   organizationId: text("organization_id")

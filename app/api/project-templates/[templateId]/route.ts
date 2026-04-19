@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateProjectTemplateForUser, deleteProjectTemplateForUser } from "@/server/project-templates";
-import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
+import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { updateProjectTemplateSchema } from "@/schemas/project-templates";
 
 type Params = { params: Promise<{ templateId: string }> };
 
@@ -9,13 +10,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const { userId } = await requireAuth();
     const { templateId } = await params;
     const body = await request.json();
-    await updateProjectTemplateForUser(userId, templateId, {
-      name: body?.name,
-      description: body?.description,
-      defaultStatus: body?.defaultStatus,
-      defaultPriority: body?.defaultPriority,
-      tasks: body?.tasks,
-    });
+    const parsed = updateProjectTemplateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiError(parsed.error.issues[0]?.message ?? "Invalid input.", 422);
+    }
+    await updateProjectTemplateForUser(userId, templateId, parsed.data);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return apiErrorResponse(err);

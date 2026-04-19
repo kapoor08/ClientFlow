@@ -35,10 +35,10 @@ export async function editClientNoteAction(
   type: string,
   content: string,
 ) {
-  const { organizationId } = await getAccess(clientId);
+  const { userId, organizationId } = await getAccess(clientId);
   const trimmed = content.trim();
   if (!trimmed) throw new Error("Note content is required.");
-  await updateClientNote({ noteId, organizationId, type, content: trimmed });
+  await updateClientNote({ noteId, organizationId, type, content: trimmed, actorUserId: userId });
   revalidatePath(`/clients/${clientId}`);
 }
 
@@ -46,7 +46,7 @@ export async function removeClientNoteAction(
   noteId: string,
   clientId: string,
 ) {
-  const { organizationId } = await getAccess(clientId);
-  await deleteClientNote({ noteId, organizationId });
+  const { userId, organizationId } = await getAccess(clientId);
+  await deleteClientNote({ noteId, organizationId, actorUserId: userId });
   revalidatePath(`/clients/${clientId}`);
 }

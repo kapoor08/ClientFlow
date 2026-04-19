@@ -1,6 +1,44 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
-import { logTimeForUser, type LogTimeInput } from "@/server/time-entries";
+import {
+  logTimeForUser,
+  listTimeEntriesForTask,
+  listTimeEntriesForProject,
+  type LogTimeInput,
+} from "@/server/time-entries";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await requireAuth();
+    const taskId = request.nextUrl.searchParams.get("taskId");
+    const projectId = request.nextUrl.searchParams.get("projectId");
+
+    if (!taskId && !projectId) {
+      return NextResponse.json(
+        { error: "Either taskId or projectId is required." },
+        { status: 400 },
+      );
+    }
+
+    const entries = taskId
+      ? await listTimeEntriesForTask(userId, taskId)
+      : await listTimeEntriesForProject(userId, projectId!);
+
+    if (entries === null) {
+      return NextResponse.json({ error: "No active organization found." }, { status: 403 });
+    }
+
+    return NextResponse.json({
+      entries: entries.map((e) => ({
+        ...e,
+        loggedAt: e.loggedAt.toISOString(),
+        createdAt: e.createdAt.toISOString(),
+      })),
+    });
+  } catch (err) {
+    return apiErrorResponse(err);
+  }
+}
 
 export async function POST(request: Request) {
   try {

@@ -1,19 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MoreHorizontal, Power, PowerOff, Trash2, Loader2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Power, PowerOff, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { SuspendOrgDialog } from "./SuspendOrgDialog";
 import { DeleteOrgDialog } from "./DeleteOrgDialog";
 import { restoreOrgAction } from "@/server/actions/admin/organizations";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 
 type Props = { orgId: string; orgName: string; isActive: boolean; status?: string };
 
@@ -39,37 +33,37 @@ export function AdminOrgActions({ orgId, orgName, isActive, status }: Props) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            disabled={isPending}
-          >
-            {isPending ? <Loader2 size={13} className="animate-spin" /> : <MoreHorizontal size={13} />}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+      <TooltipProvider>
+        <div className="flex items-center gap-0.5">
           {isSuspended ? (
-            <DropdownMenuItem onClick={handleRestore} className="gap-2">
-              <Power size={13} className="text-success" />
-              Restore
-            </DropdownMenuItem>
+            <TipButton
+              label="Restore"
+              onClick={handleRestore}
+              disabled={isPending}
+              variant="success"
+            >
+              {isPending ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
+            </TipButton>
           ) : (
-            <DropdownMenuItem onClick={() => setSuspendOpen(true)} className="gap-2">
-              <PowerOff size={13} className="text-warning" />
-              Suspend
-            </DropdownMenuItem>
+            <TipButton
+              label="Suspend"
+              onClick={() => setSuspendOpen(true)}
+              disabled={isPending}
+              variant="warning"
+            >
+              <PowerOff size={14} />
+            </TipButton>
           )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
+          <TipButton
+            label="Delete"
             onClick={() => setDeleteOpen(true)}
-            className="gap-2 text-danger focus:text-danger"
+            disabled={isPending}
+            variant="danger"
           >
-            <Trash2 size={13} />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <Trash2 size={14} />
+          </TipButton>
+        </div>
+      </TooltipProvider>
 
       <SuspendOrgDialog
         orgId={orgId}

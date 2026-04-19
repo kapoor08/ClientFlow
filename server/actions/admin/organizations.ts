@@ -7,11 +7,23 @@ import {
   restoreOrganization,
   deleteOrganization,
   forceLogoutAllOrgMembers,
+  bulkSuspendOrganizations,
+  bulkRestoreOrganizations,
 } from "@/server/admin/organizations";
 import {
   suspendOrgSchema,
   deleteOrgSchema,
 } from "@/schemas/admin/organizations";
+import { z } from "zod";
+
+const bulkSuspendSchema = z.object({
+  orgIds: z.array(z.string().min(1)).min(1, "Select at least one organization.").max(100),
+  reason: z.string().trim().min(3, "Reason is required.").max(500),
+});
+
+const bulkRestoreSchema = z.object({
+  orgIds: z.array(z.string().min(1)).min(1, "Select at least one organization.").max(100),
+});
 
 function unauthorized() {
   return { error: "Unauthorized." };
@@ -74,4 +86,36 @@ export async function forceLogoutOrgMembersAction(
   await forceLogoutAllOrgMembers(orgId, session.user.id);
   revalidatePath(`/admin/organizations/${orgId}`);
   return {};
+}
+
+export async function bulkSuspendOrgsAction(
+  values: unknown,
+): Promise<{ error?: string; count?: number }> {
+  const session = await requirePlatformAdmin();
+  if (!session) return unauthorized();
+
+  const parsed = bulkSuspendSchema.safeParse(values);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+
+  const count = await bulkSuspendOrganizations(
+    parsed.data.orgIds,
+    parsed.data.reason,
+    session.user.id,
+  );
+  revalidatePath("/admin/organizations");
+  return { count };
+}
+
+export async function bulkRestoreOrgsAction(
+  values: unknown,
+): Promise<{ error?: string; count?: number }> {
+  const session = await requirePlatformAdmin();
+  if (!session) return unauthorized();
+
+  const parsed = bulkRestoreSchema.safeParse(values);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+
+  const count = await bulkRestoreOrganizations(parsed.data.orgIds, session.user.id);
+  revalidatePath("/admin/organizations");
+  return { count };
 }

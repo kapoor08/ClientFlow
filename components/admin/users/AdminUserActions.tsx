@@ -1,16 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, LogOut, Trash2, Loader2 } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { LogOut, Trash2, Loader2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 
 type Props = { userId: string; userName: string };
 
@@ -52,27 +50,26 @@ export function AdminUserActions({ userId, userName }: Props) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      <TooltipProvider>
+        <div className="flex items-center gap-0.5">
+          <TipButton
+            label="Revoke all sessions"
+            onClick={() => setRevokeOpen(true)}
             disabled={pending}
+            variant="warning"
           >
-            {pending ? <Loader2 size={13} className="animate-spin" /> : <MoreHorizontal size={13} />}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem onClick={() => setRevokeOpen(true)} className="gap-2">
-            <LogOut size={13} className="text-warning" />
-            Revoke all sessions
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="gap-2 text-danger focus:text-danger">
-            <Trash2 size={13} />
-            Delete account
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {pending ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+          </TipButton>
+          <TipButton
+            label="Delete account"
+            onClick={() => setDeleteOpen(true)}
+            disabled={pending}
+            variant="danger"
+          >
+            <Trash2 size={14} />
+          </TipButton>
+        </div>
+      </TooltipProvider>
 
       <AlertDialog open={revokeOpen} onOpenChange={setRevokeOpen}>
         <AlertDialogContent>

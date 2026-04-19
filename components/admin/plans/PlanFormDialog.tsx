@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, type Resolver, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +48,9 @@ type Props = {
 export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
   const isEdit = !!plan;
   const [isPending, startTransition] = useTransition();
+  const [featuresText, setFeaturesText] = useState<string>(
+    (plan?.features ?? []).join("\n"),
+  );
 
   const schema = isEdit ? planFormSchema : createPlanSchema;
 
@@ -88,14 +93,20 @@ export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
         displayOrder: plan?.displayOrder ?? 0,
         recommendedBadge: toSelectBadge(plan?.recommendedBadge),
       });
+      setFeaturesText((plan?.features ?? []).join("\n"));
     }
   }, [open, plan, reset]);
 
   function onSubmit(values: CreatePlanValues) {
     startTransition(async () => {
+      const features = featuresText
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const payload = {
         ...values,
         recommendedBadge: fromSelectBadge(values.recommendedBadge),
+        features: features.length > 0 ? features : undefined,
       };
       const result = isEdit
         ? await updatePlanAction(plan!.id, payload)
@@ -218,6 +229,20 @@ export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
             type="number"
             placeholder="∞"
           />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="features">Features (one per line)</Label>
+            <Textarea
+              id="features"
+              value={featuresText}
+              onChange={(e) => setFeaturesText(e.target.value)}
+              placeholder={"Unlimited projects\nPriority support\nAPI access"}
+              rows={5}
+            />
+            <p className="text-xs text-muted-foreground">
+              Bullet points shown on the public pricing page. One feature per line.
+            </p>
+          </div>
 
           <DialogFooter>
             <Button

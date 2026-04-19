@@ -46,6 +46,16 @@ function MarkProcessedButton({ row }: { row: AdminContactSubmissionRow }) {
 
 const columns: ColumnDef<AdminContactSubmissionRow>[] = [
   {
+    key: "actions",
+    header: "Actions",
+    headerClassName: "w-24",
+    cell: (r) => (
+      <div className="flex">
+        <MarkProcessedButton row={r} />
+      </div>
+    ),
+  },
+  {
     key: "name",
     header: "Name",
     cell: (r) => (
@@ -74,16 +84,6 @@ const columns: ColumnDef<AdminContactSubmissionRow>[] = [
       <span className="text-xs text-muted-foreground">
         {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}
       </span>
-    ),
-  },
-  {
-    key: "actions",
-    header: "",
-    headerClassName: "w-24",
-    cell: (r) => (
-      <div className="flex justify-end">
-        <MarkProcessedButton row={r} />
-      </div>
     ),
   },
 ];

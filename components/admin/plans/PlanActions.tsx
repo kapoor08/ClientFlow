@@ -1,20 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MoreHorizontal, Pencil, Copy, Power, Loader2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Pencil, Copy, Power, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { togglePlanActiveAction } from "@/server/actions/admin/plans";
 import { PlanFormDialog } from "./PlanFormDialog";
 import { ClonePlanDialog } from "./ClonePlanDialog";
 import type { getAdminPlansWithLimits } from "@/server/admin/plans";
+import { TipButton, TooltipProvider } from "@/components/data-table/RowActions";
 
 type PlanRow = Awaited<ReturnType<typeof getAdminPlansWithLimits>>[number];
 
@@ -40,32 +34,32 @@ export function PlanActions({ plan }: Props) {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      <TooltipProvider>
+        <div className="flex items-center gap-0.5">
+          <TipButton
+            label="Edit"
+            onClick={() => setEditOpen(true)}
             disabled={isPending}
           >
-            {isPending ? <Loader2 size={13} className="animate-spin" /> : <MoreHorizontal size={13} />}
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => setEditOpen(true)} className="gap-2">
-            <Pencil size={13} /> Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setCloneOpen(true)} className="gap-2">
-            <Copy size={13} /> Clone
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={handleToggleActive}
-            className={`gap-2 ${plan.isActive ? "text-warning focus:text-warning" : "text-success focus:text-success"}`}
+            <Pencil size={14} />
+          </TipButton>
+          <TipButton
+            label="Clone"
+            onClick={() => setCloneOpen(true)}
+            disabled={isPending}
           >
-            <Power size={13} />
-            {plan.isActive ? "Deactivate" : "Activate"}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <Copy size={14} />
+          </TipButton>
+          <TipButton
+            label={plan.isActive ? "Deactivate" : "Activate"}
+            onClick={handleToggleActive}
+            disabled={isPending}
+            variant={plan.isActive ? "warning" : "success"}
+          >
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />}
+          </TipButton>
+        </div>
+      </TooltipProvider>
 
       <PlanFormDialog plan={plan} open={editOpen} onOpenChange={setEditOpen} />
       <ClonePlanDialog

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "@/server/auth/session";
 import { getSubscriptionContextForUser } from "@/server/subscription/context";
+import { getPublicPlans } from "@/server/public/plans";
 import { PlansPage } from "@/components/plans";
 
 export default async function PlansRoute() {
@@ -18,6 +19,7 @@ export default async function PlansRoute() {
   }
 
   const isExpired = sub?.isTrialExpired ?? false;
+  const plans = await getPublicPlans();
 
-  return <PlansPage isExpired={isExpired} />;
+  return <PlansPage isExpired={isExpired} plans={plans} />;
 }

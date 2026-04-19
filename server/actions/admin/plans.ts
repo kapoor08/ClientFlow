@@ -30,7 +30,7 @@ export async function createPlanAction(
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
   const { code, ...input } = parsed.data;
-  const id = await createPlan(code, input);
+  const id = await createPlan(code, input, session.user.id);
   revalidatePath("/admin/plans");
   return { id };
 }
@@ -45,7 +45,7 @@ export async function updatePlanAction(
   const parsed = planFormSchema.safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  await updatePlan(planId, parsed.data);
+  await updatePlan(planId, parsed.data, session.user.id);
   revalidatePath("/admin/plans");
   return {};
 }
@@ -57,7 +57,7 @@ export async function togglePlanActiveAction(
   const session = await requirePlatformAdmin();
   if (!session) return unauthorized();
 
-  await togglePlanActive(planId, isActive);
+  await togglePlanActive(planId, isActive, session.user.id);
   revalidatePath("/admin/plans");
   return {};
 }
@@ -71,7 +71,12 @@ export async function clonePlanAction(
   const parsed = clonePlanSchema.safeParse(values);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  const id = await clonePlan(parsed.data.sourcePlanId, parsed.data.code, parsed.data.name);
+  const id = await clonePlan(
+    parsed.data.sourcePlanId,
+    parsed.data.code,
+    parsed.data.name,
+    session.user.id,
+  );
   revalidatePath("/admin/plans");
   return { id };
 }

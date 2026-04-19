@@ -5,7 +5,7 @@ import {
   updateRolePermissionsForUser,
 } from "@/server/auth/permissions";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
-import type { RolePermissionsConfig } from "@/config/role-permissions";
+import { updateRolePermissionsSchema } from "@/schemas/api-misc";
 
 export async function GET() {
   try {
@@ -22,13 +22,16 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const { userId } = await requireAuth();
-    const body = await request.json() as { permissions: RolePermissionsConfig };
-
-    if (!body.permissions) {
-      return NextResponse.json({ error: "Missing permissions payload." }, { status: 400 });
+    const body = await request.json();
+    const parsed = updateRolePermissionsSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid permissions payload." },
+        { status: 422 },
+      );
     }
 
-    await updateRolePermissionsForUser(userId, body.permissions);
+    await updateRolePermissionsForUser(userId, parsed.data.permissions);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to update permissions.";
