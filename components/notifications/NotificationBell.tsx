@@ -2,15 +2,26 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, CheckSquare, MessageSquare, GitBranch, CreditCard, UserPlus, FileUp, Users } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Bell,
+  Check,
+  CheckSquare,
+  MessageSquare,
+  GitBranch,
+  CreditCard,
+  UserPlus,
+  FileUp,
+  Users,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { useNotifications, useMarkRead, useMarkAllRead, useNotificationStream } from "@/core/notifications/useCase";
+import {
+  useNotifications,
+  useMarkRead,
+  useMarkAllRead,
+  useNotificationStream,
+} from "@/core/notifications/useCase";
 
 const typeIcon: Record<string, React.ElementType> = {
   task_assigned: CheckSquare,
@@ -43,29 +54,25 @@ export function NotificationBell() {
         <Button variant="ghost" size="icon" className="relative cursor-pointer">
           <Bell size={18} />
           {unreadCount > 0 && (
-            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[9px] font-bold text-accent-foreground">
+            <span className="bg-accent text-accent-foreground absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-80 p-0 shadow-cf-2"
-      >
+      <PopoverContent align="end" sideOffset={8} className="shadow-cf-2 w-80 p-0">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="border-border flex items-center justify-between border-b px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">Notifications</p>
+            <p className="text-foreground text-sm font-semibold">Notifications</p>
             {unreadCount > 0 && (
-              <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+              <p className="text-muted-foreground text-xs">{unreadCount} unread</p>
             )}
           </div>
           {unreadCount > 0 && (
             <button
               onClick={() => markAllRead.mutate()}
-              className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+              className="text-primary flex cursor-pointer items-center gap-1 text-xs hover:underline"
             >
               <Check size={11} /> Mark all read
             </button>
@@ -77,7 +84,7 @@ export function NotificationBell() {
           {preview.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
               <Bell size={28} className="text-muted-foreground/30" />
-              <p className="text-sm text-muted-foreground">You're all caught up!</p>
+              <p className="text-muted-foreground text-sm">You&apos;re all caught up!</p>
             </div>
           ) : (
             preview.map((n) => {
@@ -92,7 +99,7 @@ export function NotificationBell() {
                       router.push(n.actionUrl);
                     }
                   }}
-                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50 border-b border-border last:border-0 cursor-pointer ${!n.isRead ? "bg-brand-100/20" : ""}`}
+                  className={`hover:bg-secondary/50 border-border flex w-full cursor-pointer items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-0 ${!n.isRead ? "bg-brand-100/20" : ""}`}
                 >
                   <div
                     className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${!n.isRead ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
@@ -100,20 +107,20 @@ export function NotificationBell() {
                     <Icon size={13} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-xs leading-snug ${!n.isRead ? "font-semibold text-foreground" : "text-foreground"}`}>
+                    <p
+                      className={`text-xs leading-snug ${!n.isRead ? "text-foreground font-semibold" : "text-foreground"}`}
+                    >
                       {n.title}
                     </p>
                     {n.body && (
-                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                        {n.body}
-                      </p>
+                      <p className="text-muted-foreground mt-0.5 truncate text-[11px]">{n.body}</p>
                     )}
-                    <p className="mt-1 text-[10px] text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 text-[10px]">
                       {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
                     </p>
                   </div>
                   {!n.isRead && (
-                    <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <div className="bg-primary mt-2 h-1.5 w-1.5 shrink-0 rounded-full" />
                   )}
                 </button>
               );
@@ -123,10 +130,10 @@ export function NotificationBell() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-border px-4 py-2.5">
+          <div className="border-border border-t px-4 py-2.5">
             <a
               href="/notifications"
-              className="text-xs text-primary hover:underline"
+              className="text-primary text-xs hover:underline"
               onClick={() => setOpen(false)}
             >
               View all notifications

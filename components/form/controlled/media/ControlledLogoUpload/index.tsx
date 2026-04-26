@@ -47,7 +47,7 @@ export const ControlledLogoUpload = <T extends FieldValues>({
   // Handle file selection
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    onChange: (value: { file: File | null; shouldDelete: boolean }) => void
+    onChange: (value: { file: File | null; shouldDelete: boolean }) => void,
   ) => {
     const file = e.target.files?.[0];
 
@@ -89,7 +89,9 @@ export const ControlledLogoUpload = <T extends FieldValues>({
   };
 
   // Remove logo (mark for deletion)
-  const handleRemoveLogo = (onChange: (value: { file: File | null; shouldDelete: boolean }) => void) => {
+  const handleRemoveLogo = (
+    onChange: (value: { file: File | null; shouldDelete: boolean }) => void,
+  ) => {
     setPreview(null);
     setPendingFile(null);
     setShouldDelete(true);
@@ -117,23 +119,19 @@ export const ControlledLogoUpload = <T extends FieldValues>({
         <div className="space-y-4">
           <div>
             {label && <Label className="text-base font-semibold">{label}</Label>}
-            {description && (
-              <p className="text-sm text-muted-foreground mt-1">{description}</p>
-            )}
+            {description && <p className="text-muted-foreground mt-1 text-sm">{description}</p>}
           </div>
 
           {/* Upload Area */}
           {!preview && !shouldDelete && (
-            <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition">
+            <div className="hover:bg-muted/50 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition">
               <Label
                 htmlFor={`${name}-upload`}
-                className="cursor-pointer flex flex-col items-center gap-2"
+                className="flex cursor-pointer flex-col items-center gap-2"
               >
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <span className="text-sm font-medium">
-                  Click to select logo
-                </span>
-                <span className="text-xs text-muted-foreground">
+                <Upload className="text-muted-foreground h-8 w-8" />
+                <span className="text-sm font-medium">Click to select logo</span>
+                <span className="text-muted-foreground text-xs">
                   PNG, JPG or JPEG (max {maxSize}MB)
                 </span>
               </Label>
@@ -151,27 +149,27 @@ export const ControlledLogoUpload = <T extends FieldValues>({
           {/* Logo Preview */}
           {preview && !shouldDelete && (
             <div className="space-y-3">
-              <div className="relative w-full max-w-sm rounded-lg overflow-hidden border bg-muted/10 p-6">
-                <div className="relative h-20 w-full flex items-center justify-center">
+              <div className="bg-muted/10 relative w-full max-w-sm overflow-hidden rounded-lg border p-6">
+                <div className="relative flex h-20 w-full items-center justify-center">
                   <Image
                     src={preview}
                     alt="Site logo preview"
                     width={200}
                     height={60}
-                    className="object-contain max-h-20"
+                    className="max-h-20 object-contain"
                     unoptimized
                   />
                 </div>
                 {pendingFile && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 text-center">
-                    Pending upload - Click "Save Changes" to upload
+                  <p className="mt-2 text-center text-xs text-amber-600 dark:text-amber-400">
+                    Pending upload - Click &quot;Save Changes&quot; to upload
                   </p>
                 )}
               </div>
               <div className="flex gap-2">
                 <Label
                   htmlFor={`${name}-upload`}
-                  className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                  className="ring-offset-background focus-visible:ring-ring border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
                   Change Logo
@@ -190,7 +188,7 @@ export const ControlledLogoUpload = <T extends FieldValues>({
                   onClick={() => handleRemoveLogo(onChange)}
                   className="cursor-pointer"
                 >
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="mr-2 h-4 w-4" />
                   Remove Logo
                 </Button>
               </div>
@@ -199,9 +197,9 @@ export const ControlledLogoUpload = <T extends FieldValues>({
 
           {/* Deletion Notice */}
           {shouldDelete && (
-            <div className="border border-red-200 dark:border-red-800 rounded-lg p-4 bg-red-50 dark:bg-red-900/10">
-              <p className="text-sm text-red-600 dark:text-red-400 mb-3">
-                Logo marked for deletion. Click "Save Changes" to confirm removal.
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/10">
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400">
+                Logo marked for deletion. Click &quot;Save Changes&quot; to confirm removal.
               </p>
               <Button
                 type="button"

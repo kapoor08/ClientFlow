@@ -19,12 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type * as React from "react";
-import {
-  type Control,
-  type FieldError,
-  useController,
-  useFieldArray,
-} from "react-hook-form";
+import { type Control, type FieldError, useController, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,19 +70,16 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
   });
 
   // Field array for links within this section
-  const { fields: linkFields, append: appendLink, remove: removeLink } = useFieldArray({
+  const {
+    fields: linkFields,
+    append: appendLink,
+    remove: removeLink,
+  } = useFieldArray({
     control,
     name: `${fieldName}.links`,
   });
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: fieldName,
   });
 
@@ -106,23 +98,21 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className="relative py-0 gap-0">
-      <CardHeader className="pt-2 px-3 pb-2">
+    <Card ref={setNodeRef} style={style} className="relative gap-0 py-0">
+      <CardHeader className="px-3 pt-2 pb-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-1 items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing"
+              className="h-6 w-6 cursor-grab p-0 active:cursor-grabbing"
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <GripVertical className="text-muted-foreground h-3 w-3" />
             </Button>
-            <span className="text-xs font-medium text-muted-foreground">
-              Section {index + 1}
-            </span>
+            <span className="text-muted-foreground text-xs font-medium">Section {index + 1}</span>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -132,11 +122,7 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
               onClick={() => setIsExpanded(!isExpanded)}
               className="h-6 w-6 p-0"
             >
-              {isExpanded ? (
-                <ChevronUp className="h-3 w-3" />
-              ) : (
-                <ChevronDown className="h-3 w-3" />
-              )}
+              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
             {canRemove && (
               <Button
@@ -144,7 +130,7 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onRemove}
-                className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 w-6 p-0"
               >
                 <Trash2 className="h-3 w-3" />
               </Button>
@@ -154,7 +140,7 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
       </CardHeader>
 
       {isExpanded && (
-        <CardContent className="pt-0 pb-3 px-3 space-y-3">
+        <CardContent className="space-y-3 px-3 pt-0 pb-3">
           {/* Section Title */}
           <div className="space-y-1">
             <Label htmlFor={`section-${fieldName}-title`} className="text-xs">
@@ -166,9 +152,7 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
               placeholder="e.g., Company"
               className={`h-8 ${titleError ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
-            {titleError && (
-              <p className="text-xs text-destructive">{titleError.message}</p>
-            )}
+            {titleError && <p className="text-destructive text-xs">{titleError.message}</p>}
           </div>
 
           {/* Links within this section */}
@@ -182,14 +166,14 @@ const SortableSectionItem: React.FC<SortableSectionItemProps> = ({
                 onClick={handleAddLink}
                 className="h-7 text-xs"
               >
-                <Plus className="h-3 w-3 mr-1" />
+                <Plus className="mr-1 h-3 w-3" />
                 Add Link
               </Button>
             </div>
 
             {linkFields.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-2">
-                No links yet. Click "Add Link" to create one.
+              <p className="text-muted-foreground py-2 text-center text-xs">
+                No links yet. Click &quot;Add Link&quot; to create one.
               </p>
             ) : (
               <div className="space-y-2">
@@ -234,18 +218,16 @@ const LinkItem: React.FC<LinkItemProps> = ({ control, fieldName, onRemove }) => 
   });
 
   return (
-    <div className="border rounded-lg p-2 bg-muted/30">
+    <div className="bg-muted/30 rounded-lg border p-2">
       <div className="flex items-start gap-2">
-        <div className="flex-1 grid grid-cols-2 gap-2">
+        <div className="grid flex-1 grid-cols-2 gap-2">
           <div className="space-y-1">
             <Input
               {...labelField}
               placeholder="Label (e.g., Explore)"
               className={`h-7 text-xs ${labelError ? "border-destructive" : ""}`}
             />
-            {labelError && (
-              <p className="text-xs text-destructive">{labelError.message}</p>
-            )}
+            {labelError && <p className="text-destructive text-xs">{labelError.message}</p>}
           </div>
           <div className="space-y-1">
             <Input
@@ -253,9 +235,7 @@ const LinkItem: React.FC<LinkItemProps> = ({ control, fieldName, onRemove }) => 
               placeholder="/about or https://example.com"
               className={`h-7 text-xs ${linkError ? "border-destructive" : ""}`}
             />
-            {linkError && (
-              <p className="text-xs text-destructive">{linkError.message}</p>
-            )}
+            {linkError && <p className="text-destructive text-xs">{linkError.message}</p>}
           </div>
         </div>
         <Button
@@ -263,7 +243,7 @@ const LinkItem: React.FC<LinkItemProps> = ({ control, fieldName, onRemove }) => 
           variant="ghost"
           size="sm"
           onClick={onRemove}
-          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7 p-0"
         >
           <Trash2 className="h-3 w-3" />
         </Button>
@@ -272,9 +252,14 @@ const LinkItem: React.FC<LinkItemProps> = ({ control, fieldName, onRemove }) => 
   );
 };
 
-export const ControlledFooterLinkSections: React.FC<
-  ControlledFooterLinkSectionsProps
-> = ({ name, label, control, error, description, className }) => {
+export const ControlledFooterLinkSections: React.FC<ControlledFooterLinkSectionsProps> = ({
+  name,
+  label,
+  control,
+  error,
+  description,
+  className,
+}) => {
   const { fields, append, remove, move } = useFieldArray({
     control,
     name,
@@ -284,7 +269,7 @@ export const ControlledFooterLinkSections: React.FC<
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -315,20 +300,11 @@ export const ControlledFooterLinkSections: React.FC<
   return (
     <div className={`space-y-2 ${className || ""}`}>
       {label && <Label className="text-sm">{label}</Label>}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-xs">{description}</p>}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-2 gap-0">
-          <SortableContext
-            items={fields.map((f) => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="gap-0 space-y-2">
+          <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             {fields.map((section, index) => (
               <SortableSectionItem
                 key={section.id}
@@ -345,16 +321,16 @@ export const ControlledFooterLinkSections: React.FC<
             type="button"
             variant="outline"
             onClick={handleAddSection}
-            className="w-full h-8"
+            className="h-8 w-full"
             size="sm"
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="mr-1 h-3 w-3" />
             Add Section
           </Button>
         </div>
       </DndContext>
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-destructive text-sm">{error.message}</p>}
     </div>
   );
 };

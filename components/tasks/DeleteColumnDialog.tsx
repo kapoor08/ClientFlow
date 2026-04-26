@@ -34,10 +34,10 @@ export function DeleteColumnDialog({
             Delete Column
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Are you sure you want to delete{" "}
-          <span className="font-medium text-foreground">"{columnName}"</span>?
-          Tasks in this column will be unassigned. This action cannot be undone.
+          <span className="text-foreground font-medium">&quot;{columnName}&quot;</span>? Tasks in
+          this column will be unassigned. This action cannot be undone.
         </p>
         <DialogFooter showCloseButton={false}>
           <Button

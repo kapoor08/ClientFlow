@@ -42,18 +42,13 @@ type MoveToProjectDialogProps = {
   onClose: () => void;
 };
 
-export function MoveToProjectDialog({
-  open,
-  task,
-  onClose,
-}: MoveToProjectDialogProps) {
+export function MoveToProjectDialog({ open, task, onClose }: MoveToProjectDialogProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const updateTask = useUpdateTask();
 
   const { data: projectsData } = useQuery({
     queryKey: ["projects-list-move"],
-    queryFn: () =>
-      http<{ projects: ProjectOption[] }>("/api/projects?pageSize=100"),
+    queryFn: () => http<{ projects: ProjectOption[] }>("/api/projects?pageSize=100"),
     enabled: open,
     staleTime: 60 * 1000,
   });
@@ -104,20 +99,16 @@ export function MoveToProjectDialog({
           <DialogTitle>Move to Project</DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Select a project to move{" "}
-          <span className="font-medium text-foreground">"{task?.title}"</span>{" "}
-          to.
+          <span className="text-foreground font-medium">&quot;{task?.title}&quot;</span> to.
         </p>
 
         <div className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
             Project
           </p>
-          <Select
-            value={selectedProjectId}
-            onValueChange={setSelectedProjectId}
-          >
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
             <SelectTrigger className="w-full cursor-pointer">
               <SelectValue placeholder="Select a project…" />
             </SelectTrigger>

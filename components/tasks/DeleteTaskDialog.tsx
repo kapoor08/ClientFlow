@@ -34,20 +34,16 @@ export function DeleteTaskDialog({
             Delete Task
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Are you sure you want to delete{" "}
-          <span className="font-medium text-foreground">"{taskTitle}"</span>?
-          This action cannot be undone.
+          <span className="text-foreground font-medium">&quot;{taskTitle}&quot;</span>? This action
+          cannot be undone.
         </p>
         <DialogFooter showCloseButton={false}>
           <Button variant="outline" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={isPending}
-          >
+          <Button variant="destructive" onClick={onConfirm} disabled={isPending}>
             {isPending ? "Deleting…" : "Delete Task"}
           </Button>
         </DialogFooter>

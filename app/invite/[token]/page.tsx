@@ -12,10 +12,7 @@ type Props = {
 };
 
 export default async function InviteAcceptPage({ params, searchParams }: Props) {
-  const [{ token }, { error: errorParam }] = await Promise.all([
-    params,
-    searchParams,
-  ]);
+  const [{ token }, { error: errorParam }] = await Promise.all([params, searchParams]);
 
   const invitation = await getInvitationByToken(token);
 
@@ -27,7 +24,11 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
           icon={<XCircle size={40} className="text-danger" />}
           title="Invalid invitation"
           description="This invitation link is invalid or has already been used."
-          action={<Button asChild><Link href="/auth/sign-in">Go to sign in</Link></Button>}
+          action={
+            <Button asChild>
+              <Link href="/auth/sign-in">Go to sign in</Link>
+            </Button>
+          }
         />
       </InviteLayout>
     );
@@ -57,16 +58,24 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
       <InviteLayout>
         <StatusCard
           icon={
-            invitation.status === "accepted"
-              ? <CheckCircle2 size={40} className="text-success" />
-              : <XCircle size={40} className="text-danger" />
+            invitation.status === "accepted" ? (
+              <CheckCircle2 size={40} className="text-success" />
+            ) : (
+              <XCircle size={40} className="text-danger" />
+            )
           }
           title={msg.title}
           description={msg.description}
           action={
-            invitation.status === "accepted"
-              ? <Button asChild><Link href="/dashboard">Go to dashboard</Link></Button>
-              : <Button asChild variant="outline"><Link href="/auth/sign-in">Go to sign in</Link></Button>
+            invitation.status === "accepted" ? (
+              <Button asChild>
+                <Link href="/dashboard">Go to dashboard</Link>
+              </Button>
+            ) : (
+              <Button asChild variant="outline">
+                <Link href="/auth/sign-in">Go to sign in</Link>
+              </Button>
+            )
           }
         />
       </InviteLayout>
@@ -89,7 +98,9 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
           description={`This invitation was sent to ${invitation.email}. You are signed in as ${session.user.email}. Please sign in with the correct account to accept.`}
           action={
             <Button asChild variant="outline">
-              <Link href={`/auth/sign-in?redirectTo=/invite/${token}`}>Sign in with a different account</Link>
+              <Link href={`/auth/sign-in?redirectTo=/invite/${token}`}>
+                Sign in with a different account
+              </Link>
             </Button>
           }
         />
@@ -102,29 +113,29 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
 
   return (
     <InviteLayout>
-      <div className="w-full max-w-md rounded-card border border-border bg-card p-8 shadow-cf-2 text-center">
+      <div className="rounded-card border-border bg-card shadow-cf-2 w-full max-w-md border p-8 text-center">
         <div className="mb-4 flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <div className="bg-primary/10 flex h-16 w-16 items-center justify-center rounded-full">
             <UserCheck size={32} className="text-primary" />
           </div>
         </div>
 
-        <h1 className="font-display text-xl font-semibold text-foreground mb-1">
-          You've been invited
+        <h1 className="font-display text-foreground mb-1 text-xl font-semibold">
+          You&apos;ve been invited
         </h1>
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className="text-muted-foreground mb-6 text-sm">
           Join <strong className="text-foreground">{invitation.organizationName}</strong> as{" "}
           <strong className="text-foreground">{invitation.roleName}</strong>
         </p>
 
         {errorParam && (
-          <div className="mb-4 rounded-md border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          <div className="border-danger/20 bg-danger/5 text-danger mb-4 rounded-md border px-4 py-3 text-sm">
             {errorParam}
           </div>
         )}
 
-        <p className="mb-6 text-xs text-muted-foreground">
-          Signed in as <span className="font-medium text-foreground">{session.user.email}</span>
+        <p className="text-muted-foreground mb-6 text-xs">
+          Signed in as <span className="text-foreground font-medium">{session.user.email}</span>
         </p>
 
         <div className="flex flex-col gap-3">
@@ -146,12 +157,10 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
 
 function InviteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-16">
+    <div className="bg-background flex min-h-screen flex-col items-center justify-center px-4 py-16">
       <div className="mb-8 flex items-center gap-2">
         <Building2 size={24} className="text-primary" />
-        <span className="font-display text-xl font-semibold text-foreground">
-          ClientFlow
-        </span>
+        <span className="font-display text-foreground text-xl font-semibold">ClientFlow</span>
       </div>
       {children}
     </div>
@@ -170,12 +179,10 @@ function StatusCard({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="w-full max-w-md rounded-card border border-border bg-card p-8 shadow-cf-2 text-center">
+    <div className="rounded-card border-border bg-card shadow-cf-2 w-full max-w-md border p-8 text-center">
       <div className="mb-4 flex justify-center">{icon}</div>
-      <h1 className="font-display text-xl font-semibold text-foreground mb-2">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground mb-6">{description}</p>
+      <h1 className="font-display text-foreground mb-2 text-xl font-semibold">{title}</h1>
+      <p className="text-muted-foreground mb-6 text-sm">{description}</p>
       {action && <div className="flex justify-center">{action}</div>}
     </div>
   );
