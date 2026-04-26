@@ -6,9 +6,11 @@ import { tasks, projects, taskBoardColumns } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
+import { assertSameTenant } from "@/server/auth/tenant-guard";
 
 export type TaskDetail = {
   id: string;
+  organizationId: string;
   title: string;
   description: string | null;
   status: string;
@@ -44,6 +46,7 @@ export async function getTaskDetailForUser(
   const [row] = await db
     .select({
       id: tasks.id,
+      organizationId: tasks.organizationId,
       title: tasks.title,
       description: tasks.description,
       status: tasks.status,
@@ -98,5 +101,9 @@ export async function getTaskDetailForUser(
     .limit(1);
 
   if (!row) return null;
+  assertSameTenant(row.organizationId, context.organizationId, {
+    entity: "task",
+    entityId: row.id,
+  });
   return row;
 }

@@ -10,6 +10,9 @@ import {
   Clock,
   X,
   CornerDownLeft,
+  Plus,
+  UserPlus,
+  Receipt,
 } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -45,32 +48,23 @@ function loadHistory(): HistoryItem[] {
 
 function pushHistory(item: HistoryItem) {
   const prev = loadHistory().filter((h) => h.href !== item.href);
-  localStorage.setItem(
-    HISTORY_KEY,
-    JSON.stringify([item, ...prev].slice(0, MAX_HISTORY)),
-  );
+  localStorage.setItem(HISTORY_KEY, JSON.stringify([item, ...prev].slice(0, MAX_HISTORY)));
 }
 
 // ─── Type config ──────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<
-  HistoryItem["type"],
-  { label: string; badgeClass: string }
-> = {
+const TYPE_CONFIG: Record<HistoryItem["type"], { label: string; badgeClass: string }> = {
   client: {
     label: "Client",
-    badgeClass:
-      "bg-blue-500/10 text-blue-600 ring-blue-500/20 dark:text-blue-400",
+    badgeClass: "bg-blue-500/10 text-blue-600 ring-blue-500/20 dark:text-blue-400",
   },
   project: {
     label: "Project",
-    badgeClass:
-      "bg-violet-500/10 text-violet-600 ring-violet-500/20 dark:text-violet-400",
+    badgeClass: "bg-violet-500/10 text-violet-600 ring-violet-500/20 dark:text-violet-400",
   },
   task: {
     label: "Task",
-    badgeClass:
-      "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-500",
+    badgeClass: "bg-amber-500/10 text-amber-600 ring-amber-500/20 dark:text-amber-500",
   },
   nav: {
     label: "Page",
@@ -110,7 +104,7 @@ type SearchResult = {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+    <p className="text-muted-foreground/60 px-3 pt-3 pb-1.5 text-[10px] font-bold tracking-widest uppercase">
       {children}
     </p>
   );
@@ -157,9 +151,7 @@ export function GlobalSearch() {
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(query.trim())}`,
-        );
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
         if (res.ok) setResults((await res.json()) as SearchResult);
       } finally {
         setLoading(false);
@@ -198,9 +190,7 @@ export function GlobalSearch() {
 
   const hasResults =
     results &&
-    (results.clients.length > 0 ||
-      results.projects.length > 0 ||
-      results.tasks.length > 0);
+    (results.clients.length > 0 || results.projects.length > 0 || results.tasks.length > 0);
 
   const showEmpty = query.length >= 2 && !loading && !hasResults;
   const showQuickNav = !query;
@@ -224,13 +214,13 @@ export function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-52 cursor-pointer items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary/80"
+        className="border-border bg-secondary text-muted-foreground hover:bg-secondary/80 flex w-52 cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-sm transition-colors"
       >
         <div className="flex items-center gap-2">
           <Search size={14} />
           <span className="hidden sm:inline">Search...</span>
         </div>
-        <Kbd className="hidden border border-cf-neutral-500 bg-background px-2 py-2! sm:inline-flex">
+        <Kbd className="border-cf-neutral-500 bg-background hidden border px-2 py-2! sm:inline-flex">
           Ctrl+K
         </Kbd>
       </button>
@@ -241,30 +231,30 @@ export function GlobalSearch() {
         onOpenChange={handleClose}
         title="Global Search"
         description="Search clients, projects, tasks, and navigate the app"
-        className="sm:max-w-2xl top-[16%] translate-y-0 overflow-hidden"
+        className="top-[16%] translate-y-0 overflow-hidden sm:max-w-2xl"
       >
         <Command shouldFilter={false} className="rounded-xl!">
           {/* ── Input row ── */}
-          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-            <Search size={16} className="shrink-0 text-muted-foreground" />
+          <div className="border-border flex items-center gap-3 border-b px-4 py-3">
+            <Search size={16} className="text-muted-foreground shrink-0" />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="What are you looking for?"
-              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="text-foreground placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
             />
-            <Kbd className="shrink-0 border border-border bg-secondary px-2 py-1 text-[11px] text-muted-foreground">
+            <Kbd className="border-border bg-secondary text-muted-foreground shrink-0 border px-2 py-1 text-[11px]">
               Esc
             </Kbd>
           </div>
 
           {/* ── List ── */}
-          <CommandList className="max-h-[28rem] overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:!block [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+          <CommandList className="[&::-webkit-scrollbar-thumb]:bg-border max-h-[28rem] overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:!block [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
             {/* Loading */}
             {loading && (
-              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+              <div className="text-muted-foreground flex items-center justify-center gap-2 py-10 text-sm">
+                <span className="border-muted-foreground/30 border-t-muted-foreground h-3.5 w-3.5 animate-spin rounded-full border-2" />
                 Searching…
               </div>
             )}
@@ -272,14 +262,11 @@ export function GlobalSearch() {
             {/* No results */}
             {showEmpty && (
               <CommandEmpty className="py-12">
-                <Search
-                  size={30}
-                  className="mx-auto mb-3 text-muted-foreground/30"
-                />
-                <p className="text-sm font-medium text-foreground">
+                <Search size={30} className="text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-foreground text-sm font-medium">
                   No results for &quot;{query}&quot;
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   Try searching for clients, projects, or tasks
                 </p>
               </CommandEmpty>
@@ -307,22 +294,16 @@ export function GlobalSearch() {
                             }
                             className={cn(
                               "group w-full cursor-pointer rounded-lg px-3 py-2.5",
-                              isFirst &&
-                                "border border-primary/25 bg-primary/5 ring-0",
+                              isFirst && "border-primary/25 bg-primary/5 border ring-0",
                             )}
                           >
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
-                              <Users
-                                size={13}
-                                className="text-blue-600 dark:text-blue-400"
-                              />
+                              <Users size={13} className="text-blue-600 dark:text-blue-400" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium">
-                                {c.name}
-                              </p>
+                              <p className="truncate text-sm font-medium">{c.name}</p>
                               {c.company && (
-                                <p className="truncate text-xs text-muted-foreground">
+                                <p className="text-muted-foreground truncate text-xs">
                                   {c.company}
                                 </p>
                               )}
@@ -341,9 +322,7 @@ export function GlobalSearch() {
 
                 {results!.projects.length > 0 && (
                   <>
-                    {results!.clients.length > 0 && (
-                      <div className="my-2 h-px bg-border" />
-                    )}
+                    {results!.clients.length > 0 && <div className="bg-border my-2 h-px" />}
                     <div className="mb-2">
                       <SectionHeader>Projects</SectionHeader>
                       <div className="space-y-0.5">
@@ -362,8 +341,7 @@ export function GlobalSearch() {
                               }
                               className={cn(
                                 "group w-full cursor-pointer rounded-lg px-3 py-2.5",
-                                isFirst &&
-                                  "border border-primary/25 bg-primary/5",
+                                isFirst && "border-primary/25 bg-primary/5 border",
                               )}
                             >
                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-500/10">
@@ -373,10 +351,8 @@ export function GlobalSearch() {
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
-                                  {p.name}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">
+                                <p className="truncate text-sm font-medium">{p.name}</p>
+                                <p className="text-muted-foreground truncate text-xs">
                                   {p.clientName}
                                 </p>
                               </div>
@@ -395,9 +371,8 @@ export function GlobalSearch() {
 
                 {results!.tasks.length > 0 && (
                   <>
-                    {(results!.clients.length > 0 ||
-                      results!.projects.length > 0) && (
-                      <div className="my-2 h-px bg-border" />
+                    {(results!.clients.length > 0 || results!.projects.length > 0) && (
+                      <div className="bg-border my-2 h-px" />
                     )}
                     <div className="mb-2">
                       <SectionHeader>Tasks</SectionHeader>
@@ -417,8 +392,7 @@ export function GlobalSearch() {
                               }
                               className={cn(
                                 "group w-full cursor-pointer rounded-lg px-3 py-2.5",
-                                isFirst &&
-                                  "border border-primary/25 bg-primary/5",
+                                isFirst && "border-primary/25 bg-primary/5 border",
                               )}
                             >
                               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-500/10">
@@ -428,17 +402,15 @@ export function GlobalSearch() {
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium">
-                                  {t.title}
-                                </p>
+                                <p className="truncate text-sm font-medium">{t.title}</p>
                                 {t.projectName && (
-                                  <p className="truncate text-xs text-muted-foreground">
+                                  <p className="text-muted-foreground truncate text-xs">
                                     {t.projectName}
                                   </p>
                                 )}
                               </div>
                               {t.refNumber && (
-                                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                                <span className="text-muted-foreground shrink-0 font-mono text-[10px]">
                                   #{t.refNumber}
                                 </span>
                               )}
@@ -460,6 +432,45 @@ export function GlobalSearch() {
             {/* ── Quick nav + recent history ── */}
             {showQuickNav && (
               <div className="p-2">
+                {/* Create actions - the highest-leverage shortcut for active users */}
+                <SectionHeader>Create</SectionHeader>
+                <div className="mb-2 grid grid-cols-2 gap-1">
+                  {[
+                    { icon: Users, label: "New Client", href: "/clients/new" },
+                    { icon: FolderKanban, label: "New Project", href: "/projects/new" },
+                    { icon: UserPlus, label: "Invite Teammate", href: "/invitations/new" },
+                    { icon: Receipt, label: "New Invoice", href: "/invoices?new=1" },
+                  ].map((action) => (
+                    <CommandItem
+                      key={action.href}
+                      onSelect={() =>
+                        navigate(action.href, {
+                          label: action.label,
+                          href: action.href,
+                          type: "nav",
+                        })
+                      }
+                      className="group border-border bg-secondary/20 data-selected:border-primary/30 data-selected:bg-primary/5 w-full cursor-pointer rounded-lg border border-dashed px-3 py-2.5"
+                    >
+                      <div className="bg-primary/10 flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
+                        <Plus size={13} className="text-primary" />
+                      </div>
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <action.icon
+                          size={13}
+                          className="text-muted-foreground group-data-selected:text-primary shrink-0"
+                        />
+                        <span className="truncate text-sm font-medium">{action.label}</span>
+                      </div>
+                      <CornerDownLeft
+                        size={12}
+                        className="absolute right-2.5 shrink-0 opacity-0 group-data-selected:opacity-50"
+                      />
+                    </CommandItem>
+                  ))}
+                </div>
+                <div className="bg-border my-2 h-px" />
+
                 {/* Recent history */}
                 {history.length > 0 && (
                   <>
@@ -471,18 +482,13 @@ export function GlobalSearch() {
                           onSelect={() => navigate(item.href, item)}
                           className="group w-full cursor-pointer rounded-lg px-3 py-2.5"
                         >
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary">
-                            <Clock
-                              size={13}
-                              className="text-muted-foreground"
-                            />
+                          <div className="bg-secondary flex h-7 w-7 shrink-0 items-center justify-center rounded-md">
+                            <Clock size={13} className="text-muted-foreground" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
-                              {item.label}
-                            </p>
+                            <p className="truncate text-sm font-medium">{item.label}</p>
                             {item.subtitle && (
-                              <p className="truncate text-xs text-muted-foreground">
+                              <p className="text-muted-foreground truncate text-xs">
                                 {item.subtitle}
                               </p>
                             )}
@@ -494,21 +500,21 @@ export function GlobalSearch() {
                               e.stopPropagation();
                               removeHistoryItem(item.href);
                             }}
-                            className="absolute right-3 flex h-5 w-5 shrink-0 items-center justify-center rounded opacity-0 hover:bg-secondary group-hover:opacity-100 cursor-pointer hover:text-danger"
+                            className="hover:bg-secondary hover:text-danger absolute right-3 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded opacity-0 group-hover:opacity-100"
                           >
                             <X size={11} className="text-muted-foreground" />
                           </button>
                         </CommandItem>
                       ))}
                     </div>
-                    <div className="my-2 h-px bg-border" />
+                    <div className="bg-border my-2 h-px" />
                   </>
                 )}
 
                 {/* Nav groups - 2-column grid */}
                 {navGroups.map((group, i) => (
                   <div key={group.label}>
-                    {i > 0 && <div className="my-2 h-px bg-border" />}
+                    {i > 0 && <div className="bg-border my-2 h-px" />}
                     <SectionHeader>{group.label}</SectionHeader>
                     <div className="grid grid-cols-2 gap-1">
                       {group.items.map((item) => (
@@ -521,17 +527,15 @@ export function GlobalSearch() {
                               type: "nav",
                             })
                           }
-                          className="group w-full cursor-pointer rounded-lg border border-border bg-secondary/40 px-3 py-2.5 data-selected:border-primary/30 data-selected:bg-primary/5"
+                          className="group border-border bg-secondary/40 data-selected:border-primary/30 data-selected:bg-primary/5 w-full cursor-pointer rounded-lg border px-3 py-2.5"
                         >
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-background">
+                          <div className="bg-background flex h-6 w-6 shrink-0 items-center justify-center rounded-md">
                             <item.icon
                               size={13}
                               className="text-muted-foreground group-data-selected:text-primary"
                             />
                           </div>
-                          <span className="truncate text-sm font-medium">
-                            {item.label}
-                          </span>
+                          <span className="truncate text-sm font-medium">{item.label}</span>
                           <CornerDownLeft
                             size={12}
                             className="absolute right-2.5 shrink-0 opacity-0 group-data-selected:opacity-50"
@@ -546,8 +550,8 @@ export function GlobalSearch() {
           </CommandList>
 
           {/* ── Footer ── */}
-          <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <div className="border-border flex items-center justify-between border-t px-4 py-2.5">
+            <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1">
                 <Kbd className="px-1 py-0.5 text-[10px]">↑↓</Kbd>
                 Navigate
@@ -561,9 +565,7 @@ export function GlobalSearch() {
                 Close
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground">
-              ClientFlow Search
-            </span>
+            <span className="text-muted-foreground text-[11px]">ClientFlow Search</span>
           </div>
         </Command>
       </CommandDialog>

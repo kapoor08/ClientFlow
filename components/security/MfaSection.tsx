@@ -37,14 +37,10 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="cursor-pointer rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+      className="text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer rounded p-1 transition-colors"
       title="Copy"
     >
-      {copied ? (
-        <Check size={13} className="text-success" />
-      ) : (
-        <Copy size={13} />
-      )}
+      {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
     </button>
   );
 }
@@ -66,7 +62,7 @@ function BackupCodesActions({ codes }: { codes: string[] }) {
 
   function handleDownload() {
     const header =
-      "ClientFlow — 2FA Backup Codes\n" +
+      "ClientFlow - 2FA Backup Codes\n" +
       `Generated: ${new Date().toISOString()}\n` +
       "Keep these codes somewhere safe. Each can be used once to sign in\n" +
       "if you lose access to your authenticator app.\n\n";
@@ -109,13 +105,7 @@ function BackupCodesActions({ codes }: { codes: string[] }) {
 
 // ─── ChangePasswordDialog ─────────────────────────────────────────────────────
 
-function ChangePasswordDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -163,17 +153,20 @@ function ChangePasswordDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Change Password</DialogTitle>
-          <DialogDescription>
-            Enter your current password and choose a new one.
-          </DialogDescription>
+          <DialogDescription>Enter your current password and choose a new one.</DialogDescription>
         </DialogHeader>
 
         {error && (
-          <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+          <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-2 text-sm">
             {error}
           </div>
         )}
@@ -219,9 +212,7 @@ function ChangePasswordDialog({
             disabled={!currentPassword || !newPassword || !confirmPassword || loading}
             className="cursor-pointer"
           >
-            {loading ? (
-              <Loader2 size={14} className="animate-spin mr-1.5" />
-            ) : null}
+            {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
             Update Password
           </Button>
         </DialogFooter>
@@ -344,7 +335,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
   return (
     <>
       {/* 2FA card */}
-      <div className="mb-3 rounded-card border border-border bg-card p-5 shadow-cf-1">
+      <div className="rounded-card border-border bg-card shadow-cf-1 mb-3 border p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -357,10 +348,8 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
               )}
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">
-                Two-Factor Authentication
-              </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-foreground text-sm font-medium">Two-Factor Authentication</p>
+              <p className="text-muted-foreground text-xs">
                 {mfaEnabled
                   ? "Enabled - your account is protected with TOTP."
                   : "Not enabled - add an extra layer of security."}
@@ -371,7 +360,10 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setDisableOpen(true); setError(null); }}
+              onClick={() => {
+                setDisableOpen(true);
+                setError(null);
+              }}
               className="cursor-pointer"
             >
               Disable
@@ -379,7 +371,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           ) : (
             <Button
               size="sm"
-              onClick={() => { setEnableOpen(true); setError(null); setStep("password"); }}
+              onClick={() => {
+                setEnableOpen(true);
+                setError(null);
+                setStep("password");
+              }}
               className="cursor-pointer"
             >
               Enable
@@ -390,19 +386,22 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
 
       {/* Backup codes card - shown when MFA is enabled */}
       {mfaEnabled && (
-        <div className="mb-3 rounded-card border border-border bg-card p-5 shadow-cf-1">
+        <div className="rounded-card border-border bg-card shadow-cf-1 mb-3 border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">Backup Codes</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Regenerate your one-time backup codes if you lose access to your
-                authenticator app.
+              <p className="text-foreground text-sm font-medium">Backup Codes</p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Regenerate your one-time backup codes if you lose access to your authenticator app.
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setRegenerateOpen(true); setError(null); setNewBackupCodes([]); }}
+              onClick={() => {
+                setRegenerateOpen(true);
+                setError(null);
+                setNewBackupCodes([]);
+              }}
               className="cursor-pointer"
             >
               Regenerate
@@ -412,15 +411,15 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       )}
 
       {/* Change Password card */}
-      <div className="mb-6 rounded-card border border-border bg-card p-5 shadow-cf-1">
+      <div className="rounded-card border-border bg-card shadow-cf-1 mb-6 border p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
+            <div className="bg-secondary flex h-10 w-10 items-center justify-center rounded-lg">
               <Key size={20} className="text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">Password</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-foreground text-sm font-medium">Password</p>
+              <p className="text-muted-foreground text-xs">
                 Update your account password regularly for better security.
               </p>
             </div>
@@ -443,19 +442,25 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       />
 
       {/* Enable MFA dialog */}
-      <Dialog open={enableOpen} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <Dialog
+        open={enableOpen}
+        onOpenChange={(v) => {
+          if (!v) handleClose();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
               {step === "password" && "Confirm your password to generate a QR code."}
-              {step === "verify" && "Scan the QR code with your authenticator app, then enter the 6-digit code."}
+              {step === "verify" &&
+                "Scan the QR code with your authenticator app, then enter the 6-digit code."}
               {step === "backup" && "Save your backup codes somewhere safe."}
             </DialogDescription>
           </DialogHeader>
 
           {error && (
-            <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+            <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-2 text-sm">
               {error}
             </div>
           )}
@@ -477,8 +482,12 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 <Button variant="outline" onClick={handleClose} className="cursor-pointer">
                   Cancel
                 </Button>
-                <Button onClick={handleStartEnable} disabled={!password || loading} className="cursor-pointer">
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button
+                  onClick={handleStartEnable}
+                  disabled={!password || loading}
+                  className="cursor-pointer"
+                >
+                  {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
                   Continue
                 </Button>
               </DialogFooter>
@@ -494,9 +503,9 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                   alt="QR Code for authenticator app"
                   width={180}
                   height={180}
-                  className="rounded-lg border border-border"
+                  className="border-border rounded-lg border"
                 />
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-muted-foreground text-center text-xs">
                   Scan with Google Authenticator, Authy, or any TOTP app.
                 </p>
               </div>
@@ -517,8 +526,12 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 <Button variant="outline" onClick={handleClose} className="cursor-pointer">
                   Cancel
                 </Button>
-                <Button onClick={handleVerify} disabled={code.length < 6 || loading} className="cursor-pointer">
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button
+                  onClick={handleVerify}
+                  disabled={code.length < 6 || loading}
+                  className="cursor-pointer"
+                >
+                  {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
                   Verify
                 </Button>
               </DialogFooter>
@@ -527,8 +540,8 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
 
           {step === "backup" && (
             <div className="space-y-4 py-2">
-              <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs text-warning">
+              <div className="rounded-card border-warning/30 bg-warning/5 border p-3">
+                <p className="text-warning text-xs">
                   Save these backup codes. Each can be used once if you lose your authenticator.
                 </p>
               </div>
@@ -537,15 +550,17 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 {backupCodes.map((c) => (
                   <div
                     key={c}
-                    className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
+                    className="border-border bg-secondary/50 flex items-center justify-between rounded-md border px-3 py-1.5"
                   >
-                    <span className="font-mono text-xs text-foreground">{c}</span>
+                    <span className="text-foreground font-mono text-xs">{c}</span>
                     <CopyButton text={c} />
                   </div>
                 ))}
               </div>
               <DialogFooter>
-                <Button onClick={handleClose} className="cursor-pointer">Done</Button>
+                <Button onClick={handleClose} className="cursor-pointer">
+                  Done
+                </Button>
               </DialogFooter>
             </div>
           )}
@@ -553,7 +568,12 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       </Dialog>
 
       {/* Regenerate backup codes dialog */}
-      <Dialog open={regenerateOpen} onOpenChange={(v) => { if (!v) handleRegenerateClose(); }}>
+      <Dialog
+        open={regenerateOpen}
+        onOpenChange={(v) => {
+          if (!v) handleRegenerateClose();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Regenerate Backup Codes</DialogTitle>
@@ -565,7 +585,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           </DialogHeader>
 
           {error && (
-            <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+            <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-2 text-sm">
               {error}
             </div>
           )}
@@ -584,19 +604,27 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={handleRegenerateClose} className="cursor-pointer">
+                <Button
+                  variant="outline"
+                  onClick={handleRegenerateClose}
+                  className="cursor-pointer"
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleRegenerate} disabled={!regenPassword || loading} className="cursor-pointer">
-                  {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+                <Button
+                  onClick={handleRegenerate}
+                  disabled={!regenPassword || loading}
+                  className="cursor-pointer"
+                >
+                  {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
                   Regenerate
                 </Button>
               </DialogFooter>
             </div>
           ) : (
             <div className="space-y-4 py-2">
-              <div className="rounded-card border border-warning/30 bg-warning/5 p-3">
-                <p className="text-xs text-warning">
+              <div className="rounded-card border-warning/30 bg-warning/5 border p-3">
+                <p className="text-warning text-xs">
                   Save these codes now. Each can be used once if you lose your authenticator.
                 </p>
               </div>
@@ -605,15 +633,17 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
                 {newBackupCodes.map((c) => (
                   <div
                     key={c}
-                    className="flex items-center justify-between rounded-md border border-border bg-secondary/50 px-3 py-1.5"
+                    className="border-border bg-secondary/50 flex items-center justify-between rounded-md border px-3 py-1.5"
                   >
-                    <span className="font-mono text-xs text-foreground">{c}</span>
+                    <span className="text-foreground font-mono text-xs">{c}</span>
                     <CopyButton text={c} />
                   </div>
                 ))}
               </div>
               <DialogFooter>
-                <Button onClick={handleRegenerateClose} className="cursor-pointer">Done</Button>
+                <Button onClick={handleRegenerateClose} className="cursor-pointer">
+                  Done
+                </Button>
               </DialogFooter>
             </div>
           )}
@@ -624,7 +654,11 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
       <AlertDialog
         open={disableOpen}
         onOpenChange={(v) => {
-          if (!v) { setDisableOpen(false); setDisablePassword(""); setError(null); }
+          if (!v) {
+            setDisableOpen(false);
+            setDisablePassword("");
+            setError(null);
+          }
         }}
       >
         <AlertDialogContent>
@@ -635,7 +669,7 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && (
-            <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-2 text-sm text-danger">
+            <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-2 text-sm">
               {error}
             </div>
           )}
@@ -652,16 +686,19 @@ export function MfaSection({ mfaEnabled }: { mfaEnabled: boolean }) {
           <AlertDialogFooter>
             <AlertDialogCancel
               className="cursor-pointer"
-              onClick={() => { setDisablePassword(""); setError(null); }}
+              onClick={() => {
+                setDisablePassword("");
+                setError(null);
+              }}
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="cursor-pointer bg-danger text-white hover:bg-danger/90"
+              className="bg-danger hover:bg-danger/90 cursor-pointer text-white"
               onClick={handleDisable}
               disabled={!disablePassword || loading}
             >
-              {loading ? <Loader2 size={14} className="animate-spin mr-1.5" /> : null}
+              {loading ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : null}
               Disable MFA
             </AlertDialogAction>
           </AlertDialogFooter>

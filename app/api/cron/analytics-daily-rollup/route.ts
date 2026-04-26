@@ -15,7 +15,7 @@ import { assertCronAuth } from "@/server/cron/guard";
 import { logger } from "@/server/observability/logger";
 
 /**
- * Daily analytics rollup — runs at 00:30 UTC.
+ * Daily analytics rollup - runs at 00:30 UTC.
  *
  * Captures yesterday's metrics for every active org (`analytics_daily_org_metrics`)
  * and one platform-wide row (`platform_analytics_daily_metrics`). Idempotent

@@ -62,6 +62,7 @@ export async function signUpWithEmail(input: SignUpInput) {
     email: input.email.trim(),
     password: input.password,
     callbackURL: input.callbackURL || authRoutes.signIn,
+    ...(input.cfTurnstileResponse ? { cfTurnstileResponse: input.cfTurnstileResponse } : {}),
   });
 
   if (result.error) {
@@ -75,12 +76,11 @@ export async function requestPasswordReset(input: ForgotPasswordInput) {
   const result = await authClient.requestPasswordReset({
     email: input.email.trim(),
     redirectTo: authRoutes.resetPassword,
+    ...(input.cfTurnstileResponse ? { cfTurnstileResponse: input.cfTurnstileResponse } : {}),
   });
 
   if (result.error) {
-    throw new Error(
-      result.error.message || "Unable to send a password reset link."
-    );
+    throw new Error(result.error.message || "Unable to send a password reset link.");
   }
 
   return result.data;
@@ -99,18 +99,14 @@ export async function resetPassword(input: ResetPasswordInput) {
   return result.data;
 }
 
-export async function resendVerificationEmail(
-  input: ResendVerificationInput
-) {
+export async function resendVerificationEmail(input: ResendVerificationInput) {
   const result = await authClient.sendVerificationEmail({
     email: input.email.trim(),
     callbackURL: authRoutes.signIn,
   });
 
   if (result.error) {
-    throw new Error(
-      result.error.message || "Unable to resend the verification email."
-    );
+    throw new Error(result.error.message || "Unable to resend the verification email.");
   }
 
   return result.data;

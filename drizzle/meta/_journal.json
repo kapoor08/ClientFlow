@@ -155,6 +155,27 @@
       "when": 1776619962213,
       "tag": "0021_clean_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1777138042122,
+      "tag": "0022_cool_mandroid",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1777143576528,
+      "tag": "0023_secret_zarek",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1777206495226,
+      "tag": "0024_drop_plan_feature_flags",
+      "breakpoints": true
     }
   ]
 }

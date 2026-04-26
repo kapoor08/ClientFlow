@@ -60,6 +60,10 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
   );
 
   useEffect(() => {
+    // Resets dialog state on close + fetches refundable invoices on open.
+    // setState-in-effect is the correct pattern here: the dialog open/close is
+    // the external system this effect synchronises with.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!open) {
       setInvoices([]);
       setSelectedId(null);
@@ -76,6 +80,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
       })
       .catch(() => toast.error("Failed to load refundable invoices."))
       .finally(() => setLoading(false));
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, subscriptionId]);
 
   const selected = invoices.find((i) => i.id === selectedId) ?? null;
@@ -113,9 +118,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
         toast.error(result.error);
         return;
       }
-      toast.success(
-        `Refunded ${formatCents(result.refund!.amountCents, selected.currencyCode)}.`,
-      );
+      toast.success(`Refunded ${formatCents(result.refund!.amountCents, selected.currencyCode)}.`);
       onOpenChange(false);
       router.refresh();
     });
@@ -136,17 +139,17 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
 
         {loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 size={20} className="animate-spin text-muted-foreground" />
+            <Loader2 size={20} className="text-muted-foreground animate-spin" />
           </div>
         ) : invoices.length === 0 ? (
-          <div className="rounded-card border border-border bg-card px-4 py-6 text-center text-sm text-muted-foreground">
+          <div className="rounded-card border-border bg-card text-muted-foreground border px-4 py-6 text-center text-sm">
             No paid, Stripe-synced invoices on this subscription.
           </div>
         ) : (
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Invoice</Label>
-              <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-card border border-border p-1.5">
+              <div className="rounded-card border-border max-h-60 space-y-1.5 overflow-y-auto border p-1.5">
                 {invoices.map((inv) => (
                   <button
                     key={inv.id}
@@ -155,21 +158,21 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
                     className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                       selectedId === inv.id
                         ? "border-primary bg-primary/5"
-                        : "border-transparent hover:bg-secondary/50"
+                        : "hover:bg-secondary/50 border-transparent"
                     }`}
                   >
                     <div>
-                      <p className="font-medium text-foreground">
+                      <p className="text-foreground font-medium">
                         {formatCents(inv.amountPaidCents, inv.currencyCode)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {inv.paidAt
                           ? new Date(inv.paidAt).toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                               year: "numeric",
                             })
-                          : "—"}
+                          : "-"}
                         {inv.externalInvoiceId && (
                           <span className="ml-2 font-mono text-[10px]">
                             {inv.externalInvoiceId.slice(0, 14)}…
@@ -178,7 +181,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
                       </p>
                     </div>
                     {selectedId === inv.id && (
-                      <span className="text-xs font-semibold text-primary">Selected</span>
+                      <span className="text-primary text-xs font-semibold">Selected</span>
                     )}
                   </button>
                 ))}
@@ -199,7 +202,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
                 value={amountDollars}
                 onChange={(e) => setAmountDollars(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Leave blank to refund the full amount. Enter a smaller amount for a partial refund.
               </p>
             </div>

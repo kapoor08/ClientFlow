@@ -7,7 +7,7 @@ export default async function Page({
 }: {
   searchParams: Promise<Record<string, string | string[]>>;
 }) {
-  const { q, page, pageSize, entityType, dateFrom, dateTo } =
+  const { q, page, pageSize, entityType, actor, dateFrom, dateTo } =
     adminAuditLogsSearchParamsCache.parse(await searchParams);
 
   const result = await listAdminAuditLogs({
@@ -15,6 +15,7 @@ export default async function Page({
     page,
     pageSize,
     entityType: entityType || undefined,
+    actor: actor || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   });

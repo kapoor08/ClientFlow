@@ -32,8 +32,8 @@ export default function AdminPlansPage({ plansData }: Props) {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Plans &amp; Limits</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="font-display text-foreground text-2xl font-bold">Plans &amp; Limits</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Manage plans, pricing, and feature limits.
           </p>
         </div>
@@ -47,28 +47,25 @@ export default function AdminPlansPage({ plansData }: Props) {
         {plansData.map((plan) => (
           <div
             key={plan.id}
-            className={`rounded-xl border bg-card p-5 shadow-cf-1 ${
+            className={`bg-card shadow-cf-1 rounded-xl border p-5 ${
               plan.isActive ? "border-border" : "border-border/50 opacity-60"
             }`}
           >
             <div className="mb-4 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-display font-bold text-foreground capitalize">{plan.name}</h2>
+                  <h2 className="font-display text-foreground font-bold capitalize">{plan.name}</h2>
                   {plan.recommendedBadge && (
-                    <StatusBadge
-                      status={plan.recommendedBadge}
-                      colorMap={BADGE_COLORS}
-                    />
+                    <StatusBadge status={plan.recommendedBadge} colorMap={BADGE_COLORS} />
                   )}
                   {!plan.isActive && (
-                    <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span className="bg-secondary text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px]">
                       inactive
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-mono text-muted-foreground">{plan.code}</p>
-                <div className="mt-1.5 flex gap-2 text-xs text-muted-foreground">
+                <p className="text-muted-foreground font-mono text-xs">{plan.code}</p>
+                <div className="text-muted-foreground mt-1.5 flex gap-2 text-xs">
                   {plan.monthlyPriceCents != null && (
                     <span>${(plan.monthlyPriceCents / 100).toFixed(0)}/mo</span>
                   )}
@@ -77,31 +74,33 @@ export default function AdminPlansPage({ plansData }: Props) {
                   )}
                 </div>
                 {plan.description && (
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
+                  <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+                    {plan.description}
+                  </p>
                 )}
               </div>
               <PlanActions plan={plan} />
             </div>
 
             {plan.trialDays != null && (
-              <p className="mb-3 text-xs text-muted-foreground">
-                {plan.trialDays}-day trial
-              </p>
+              <p className="text-muted-foreground mb-3 text-xs">{plan.trialDays}-day trial</p>
             )}
 
             <div className="space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
                 DB Limits
               </p>
               {plan.limits.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No rows in plan_feature_limits</p>
+                <p className="text-muted-foreground text-xs italic">
+                  No rows in plan_feature_limits
+                </p>
               ) : (
                 plan.limits.map((lim) => (
                   <div key={lim.id} className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {LIMIT_LABELS[lim.featureKey] ?? lim.featureKey}
                     </span>
-                    <span className="text-xs font-medium text-foreground">
+                    <span className="text-foreground text-xs font-medium">
                       {lim.limitValue ?? "∞"}
                     </span>
                   </div>
@@ -110,34 +109,16 @@ export default function AdminPlansPage({ plansData }: Props) {
             </div>
 
             {plan.configLimits && (
-              <div className="mt-4 space-y-2 border-t border-border pt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="border-border mt-4 space-y-2 border-t pt-4">
+                <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
                   Config Limits
                 </p>
                 {Object.entries(plan.configLimits).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground capitalize">
+                    <span className="text-muted-foreground text-xs capitalize">
                       {key.replace(/([A-Z])/g, " $1").toLowerCase()}
                     </span>
-                    <span className="text-xs font-medium text-foreground">{value ?? "∞"}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {plan.flags.length > 0 && (
-              <div className="mt-4 space-y-2 border-t border-border pt-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Feature Flags
-                </p>
-                {plan.flags.map((flag) => (
-                  <div key={flag.id} className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">{flag.featureKey}</span>
-                    <span
-                      className={`text-xs font-medium ${flag.isEnabled ? "text-success" : "text-muted-foreground"}`}
-                    >
-                      {flag.isEnabled ? "On" : "Off"}
-                    </span>
+                    <span className="text-foreground text-xs font-medium">{value ?? "∞"}</span>
                   </div>
                 ))}
               </div>

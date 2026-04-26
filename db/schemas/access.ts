@@ -25,6 +25,16 @@ export const organizations = pgTable(
     suspendedReason: text("suspended_reason"),
     suspendedByAdminUserId: text("suspended_by_admin_user_id").references(() => user.id),
     restoredAt: timestamp("restored_at"),
+    /**
+     * India GST registration. Snapshotted onto each invoice at creation
+     * time so historical invoices remain reproducible even if the org
+     * later updates its GSTIN.
+     */
+    gstin: text("gstin"),
+    /** Two-digit GST state code derived from `gstin` (or set explicitly for unregistered orgs). */
+    gstStateCode: text("gst_state_code"),
+    /** Legal entity name on the GST registration (may differ from `name`). */
+    gstLegalName: text("gst_legal_name"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: timestamp("deleted_at"),
@@ -39,24 +49,21 @@ export const organizationSettings = pgTable(
     organizationId: text("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    requireEmailVerification: boolean("require_email_verification")
-      .default(false)
-      .notNull(),
+    requireEmailVerification: boolean("require_email_verification").default(false).notNull(),
     logoUrl: text("logo_url"),
     brandColor: text("brand_color"),
     sessionTimeoutHours: integer("session_timeout_hours"),
     ipAllowlist: jsonb("ip_allowlist").$type<string[]>(),
     ssoConfig: jsonb("sso_config").$type<Record<string, unknown>>(),
-    rolePermissionsConfig: jsonb("role_permissions_config").$type<import("@/config/role-permissions").RolePermissionsConfig>(),
+    rolePermissionsConfig:
+      jsonb("role_permissions_config").$type<
+        import("@/config/role-permissions").RolePermissionsConfig
+      >(),
     onboardingCompletedAt: timestamp("onboarding_completed_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (table) => [
-    uniqueIndex("organization_settings_organization_unique").on(
-      table.organizationId,
-    ),
-  ],
+  (table) => [uniqueIndex("organization_settings_organization_unique").on(table.organizationId)],
 );
 
 export const roles = pgTable(
@@ -88,15 +95,15 @@ export const organizationMemberships = pgTable(
     status: text("status").notNull(),
     joinedAt: timestamp("joined_at"),
     invitedByUserId: text("invited_by_user_id").references(() => user.id),
-    permissionOverrides: jsonb("permission_overrides").$type<Record<string, import("@/config/role-permissions").MemberPermissionOverride>>(),
+    permissionOverrides:
+      jsonb("permission_overrides").$type<
+        Record<string, import("@/config/role-permissions").MemberPermissionOverride>
+      >(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
-    uniqueIndex("organization_memberships_org_user_unique").on(
-      table.organizationId,
-      table.userId,
-    ),
+    uniqueIndex("organization_memberships_org_user_unique").on(table.organizationId, table.userId),
   ],
 );
 
@@ -143,10 +150,7 @@ export const rolePermissions = pgTable(
     createdAt: createdAt(),
   },
   (table) => [
-    uniqueIndex("role_permissions_role_permission_unique").on(
-      table.roleId,
-      table.permissionId,
-    ),
+    uniqueIndex("role_permissions_role_permission_unique").on(table.roleId, table.permissionId),
   ],
 );
 
@@ -167,8 +171,44 @@ export const outboundWebhooks = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
+  (table) => [index("outbound_webhooks_organization_idx").on(table.organizationId)],
+);
+
+/**
+ * Delivery log + dead-letter queue for outbound webhooks.
+ *
+ * One row per dispatch - written after the retry loop in dispatch.ts. Status:
+ *   - "delivered"      → 2xx received within the retry budget
+ *   - "permanent_fail" → 4xx (no point retrying - endpoint rejected payload)
+ *   - "exhausted"      → all retries timed out / 5xx'd; eligible for replay
+ *
+ * Replay-from-DLQ surfaces in /admin/webhook-deliveries - admin selects rows
+ * and triggers a fresh dispatch with the original event + payload.
+ */
+export const outboundWebhookDeliveries = pgTable(
+  "outbound_webhook_deliveries",
+  {
+    id: text("id").primaryKey(),
+    webhookId: text("webhook_id")
+      .notNull()
+      .references(() => outboundWebhooks.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    event: text("event").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    status: text("status").notNull(),
+    attempts: integer("attempts").notNull(),
+    responseStatus: integer("response_status"),
+    error: text("error"),
+    deliveredAt: timestamp("delivered_at"),
+    replayOfDeliveryId: text("replay_of_delivery_id"),
+    createdAt: createdAt(),
+  },
   (table) => [
-    index("outbound_webhooks_organization_idx").on(table.organizationId),
+    index("outbound_webhook_deliveries_webhook_idx").on(table.webhookId),
+    index("outbound_webhook_deliveries_organization_idx").on(table.organizationId),
+    index("outbound_webhook_deliveries_status_idx").on(table.status),
   ],
 );
 

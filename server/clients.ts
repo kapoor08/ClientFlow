@@ -1,20 +1,10 @@
 import "server-only";
 
 import { writeAuditLog } from "@/server/security/audit";
+import { assertSameTenant } from "@/server/auth/tenant-guard";
+import { resolveModulePermissionsForUser } from "@/server/auth/permissions";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  isNull,
-  lte,
-  or,
-} from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lte, or } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
@@ -24,11 +14,7 @@ import {
   paginationOffset,
   type PaginationMeta,
 } from "@/utils/pagination";
-import {
-  CLIENT_STATUS_OPTIONS,
-  type ClientFormValues,
-  type ClientStatus,
-} from "@/schemas/clients";
+import { CLIENT_STATUS_OPTIONS, type ClientFormValues, type ClientStatus } from "@/schemas/clients";
 import { enforceClientCap } from "@/server/subscription/plan-enforcement";
 import { dispatchNotification, getOrgMemberUserIds } from "@/server/notifications/data";
 
@@ -126,11 +112,20 @@ export async function getClientModuleAccessForUser(
     return null;
   }
 
+  // Defence-in-depth: derive canWrite from the resolved role config rather
+  // than the bare role key. A workspace can disable client editing for a
+  // role via /settings/roles, and that disable should propagate everywhere.
+  const perms = await resolveModulePermissionsForUser({
+    organizationId: context.organizationId,
+    roleKey: context.roleKey,
+    moduleKey: "clients",
+  });
+
   return {
     organizationId: context.organizationId,
     organizationName: context.organizationName,
     roleKey: context.roleKey,
-    canWrite: context.roleKey !== "client",
+    canWrite: perms.canCreate || perms.canEdit,
   };
 }
 
@@ -255,6 +250,7 @@ export async function getClientDetailForUser(userId: string, clientId: string) {
   const clientRows = await db
     .select({
       id: clients.id,
+      organizationId: clients.organizationId,
       name: clients.name,
       company: clients.company,
       contactName: clients.contactName,
@@ -276,6 +272,12 @@ export async function getClientDetailForUser(userId: string, clientId: string) {
     .limit(1);
 
   const clientRow = clientRows[0];
+  if (clientRow) {
+    assertSameTenant(clientRow.organizationId, access.organizationId, {
+      entity: "client",
+      entityId: clientRow.id,
+    });
+  }
 
   if (!clientRow) {
     return {
@@ -338,10 +340,7 @@ export async function getClientForEditForUser(userId: string, clientId: string) 
   };
 }
 
-export async function createClientForUser(
-  userId: string,
-  input: ClientFormValues,
-) {
+export async function createClientForUser(userId: string, input: ClientFormValues) {
   const access = await getClientModuleAccessForUser(userId);
 
   if (!access) {
@@ -424,7 +423,12 @@ export async function updateClientForUser(
   }
 
   const existing = await db
-    .select({ id: clients.id, name: clients.name, status: clients.status, company: clients.company })
+    .select({
+      id: clients.id,
+      name: clients.name,
+      status: clients.status,
+      company: clients.company,
+    })
     .from(clients)
     .where(
       and(

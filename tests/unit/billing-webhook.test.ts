@@ -144,37 +144,25 @@ describe("getSubscriptionIdFromInvoice", () => {
 describe("resolveSubscriptionChangeType", () => {
   it("returns 'cancelled' when cancel_at_period_end flips false → true", () => {
     expect(
-      resolveSubscriptionChangeType(
-        { cancelAtPeriodEnd: false },
-        { cancel_at_period_end: true },
-      ),
+      resolveSubscriptionChangeType({ cancelAtPeriodEnd: false }, { cancel_at_period_end: true }),
     ).toBe("cancelled");
   });
 
   it("returns 'resumed' when cancel_at_period_end flips true → false", () => {
     expect(
-      resolveSubscriptionChangeType(
-        { cancelAtPeriodEnd: true },
-        { cancel_at_period_end: false },
-      ),
+      resolveSubscriptionChangeType({ cancelAtPeriodEnd: true }, { cancel_at_period_end: false }),
     ).toBe("resumed");
   });
 
   it("returns 'upgraded' when cancel_at_period_end is unchanged (both false)", () => {
     expect(
-      resolveSubscriptionChangeType(
-        { cancelAtPeriodEnd: false },
-        { cancel_at_period_end: false },
-      ),
+      resolveSubscriptionChangeType({ cancelAtPeriodEnd: false }, { cancel_at_period_end: false }),
     ).toBe("upgraded");
   });
 
   it("returns 'upgraded' when cancel_at_period_end is unchanged (both true)", () => {
     expect(
-      resolveSubscriptionChangeType(
-        { cancelAtPeriodEnd: true },
-        { cancel_at_period_end: true },
-      ),
+      resolveSubscriptionChangeType({ cancelAtPeriodEnd: true }, { cancel_at_period_end: true }),
     ).toBe("upgraded");
   });
 });
@@ -197,7 +185,7 @@ describe("HANDLED_EVENT_TYPES", () => {
     );
   });
 
-  it("includes customer.subscription.created (critical — covers subs made outside checkout)", () => {
+  it("includes customer.subscription.created (critical - covers subs made outside checkout)", () => {
     expect(HANDLED_EVENT_TYPES).toContain("customer.subscription.created");
   });
 

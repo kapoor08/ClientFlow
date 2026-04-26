@@ -11,12 +11,7 @@ import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  authRoutes,
-  getAuthErrorMessage,
-  useGoogleSignIn,
-  useSignIn,
-} from "@/core/auth";
+import { authRoutes, getAuthErrorMessage, useGoogleSignIn, useSignIn } from "@/core/auth";
 import { useMutation } from "@tanstack/react-query";
 import { verifyTwoFactorCode } from "@/core/auth/repository";
 import { toast } from "sonner";
@@ -69,11 +64,11 @@ const SignIn = () => {
       // Check if org requires SSO before attempting password auth.
       // Fall back to allowing password auth if the check itself fails -
       // a transient SSO endpoint outage shouldn't block all sign-ins.
-      const ssoCheck = await fetch(
+      const ssoCheck = (await fetch(
         `/api/auth/sso/check?email=${encodeURIComponent(values.email.trim())}`,
       )
         .then((r) => (r.ok ? r.json() : { ssoRequired: false }))
-        .catch(() => ({ ssoRequired: false })) as { ssoRequired: boolean };
+        .catch(() => ({ ssoRequired: false }))) as { ssoRequired: boolean };
 
       if (ssoCheck.ssoRequired) {
         router.push(
@@ -91,11 +86,11 @@ const SignIn = () => {
       // Check IP allowlist immediately after credentials are verified -
       // before MFA screen or dashboard redirect - so a blocked IP never
       // progresses further in the auth flow.
-      const ipCheck = await fetch(
+      const ipCheck = (await fetch(
         `/api/auth/ip-check?email=${encodeURIComponent(values.email.trim())}`,
       )
         .then((r) => r.json())
-        .catch(() => ({ blocked: false })) as { blocked: boolean };
+        .catch(() => ({ blocked: false }))) as { blocked: boolean };
 
       if (ipCheck.blocked) {
         router.push("/ip-blocked");
@@ -133,7 +128,7 @@ const SignIn = () => {
         <div className="mt-6 space-y-4">
           {apiError && <AuthNotice tone="error" message={apiError} />}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground" htmlFor="totp-code">
+            <label className="text-foreground text-sm font-medium" htmlFor="totp-code">
               Verification code
             </label>
             <Input
@@ -157,8 +152,12 @@ const SignIn = () => {
           <div className="text-center">
             <button
               type="button"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => { setTwoFactorRequired(false); setTotpCode(""); setApiError(null); }}
+              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+              onClick={() => {
+                setTwoFactorRequired(false);
+                setTotpCode("");
+                setApiError(null);
+              }}
             >
               Back to sign in
             </button>
@@ -193,9 +192,9 @@ const SignIn = () => {
         </Button>
 
         <div className="relative flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
+          <div className="bg-border h-px flex-1" />
+          <span className="text-muted-foreground text-xs">OR</span>
+          <div className="bg-border h-px flex-1" />
         </div>
 
         <ControlledInput
@@ -218,10 +217,7 @@ const SignIn = () => {
           autoComplete="current-password"
           showPasswordToggle
           labelAddon={
-            <Link
-              href={authRoutes.forgotPassword}
-              className="text-xs text-primary hover:underline"
-            >
+            <Link href={authRoutes.forgotPassword} className="text-primary text-xs hover:underline">
               Forgot password?
             </Link>
           }
@@ -236,7 +232,7 @@ const SignIn = () => {
         </Button>
       </form>
 
-      <div className="mt-4 text-center text-sm text-muted-foreground">
+      <div className="text-muted-foreground mt-4 text-center text-sm">
         Don&apos;t have an account?{" "}
         <Link
           href={
@@ -244,18 +240,19 @@ const SignIn = () => {
               ? `${authRoutes.signUp}?redirectTo=${encodeURIComponent(redirectTo)}`
               : authRoutes.signUp
           }
-          className="font-medium text-primary hover:underline"
+          className="text-primary font-medium hover:underline"
         >
           Sign up
         </Link>
       </div>
 
-      <div className="mt-3 text-center">
-        <Link
-          href="/auth/sso"
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
+      <div className="text-muted-foreground mt-3 flex items-center justify-center gap-3 text-xs">
+        <Link href="/auth/sso" className="hover:text-foreground transition-colors">
           Sign in with SSO →
+        </Link>
+        <span className="text-border">·</span>
+        <Link href={authRoutes.signInOtp} className="hover:text-foreground transition-colors">
+          Email me a sign-in code
         </Link>
       </div>
     </AuthSplitLayout>

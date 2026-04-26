@@ -5,10 +5,9 @@ export const adminAuditLogsSearchParamsCache = createSearchParamsCache({
   page: parseAsInteger.withDefault(1),
   pageSize: parseAsInteger.withDefault(20),
   entityType: parseAsString.withDefault(""),
+  actor: parseAsString.withDefault(""),
   dateFrom: parseAsString.withDefault(""),
   dateTo: parseAsString.withDefault(""),
 });
 
-export type AdminAuditLogsSearchParams = ReturnType<
-  typeof adminAuditLogsSearchParamsCache.parse
->;
+export type AdminAuditLogsSearchParams = ReturnType<typeof adminAuditLogsSearchParamsCache.parse>;

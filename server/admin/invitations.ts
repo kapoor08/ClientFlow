@@ -2,18 +2,9 @@ import "server-only";
 
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import {
-  organizations,
-  organizationInvitations,
-  roles,
-  platformAdminActions,
-} from "@/db/schema";
+import { organizations, organizationInvitations, roles, platformAdminActions } from "@/db/schema";
 import { user } from "@/db/auth-schema";
-import {
-  buildPaginationMeta,
-  paginationOffset,
-  type PaginatedResult,
-} from "@/utils/pagination";
+import { buildPaginationMeta, paginationOffset, type PaginatedResult } from "@/utils/pagination";
 
 export type AdminInvitationRow = {
   id: string;
@@ -43,12 +34,7 @@ export async function listAdminInvitations(
 
   if (query?.trim()) {
     const q = `%${query.trim()}%`;
-    conditions.push(
-      or(
-        ilike(organizationInvitations.email, q),
-        ilike(organizations.name, q),
-      )!,
-    );
+    conditions.push(or(ilike(organizationInvitations.email, q), ilike(organizations.name, q))!);
   }
   if (status) conditions.push(eq(organizationInvitations.status, status));
 
@@ -120,7 +106,7 @@ export async function bulkRevokeInvitations(
 ): Promise<number> {
   if (invitationIds.length === 0) return 0;
 
-  // Only revoke pending invitations — skip accepted/expired/already-revoked
+  // Only revoke pending invitations - skip accepted/expired/already-revoked
   const eligible = await db
     .select({
       id: organizationInvitations.id,
@@ -141,7 +127,12 @@ export async function bulkRevokeInvitations(
   await db
     .update(organizationInvitations)
     .set({ status: "revoked", revokedAt: now, updatedAt: now })
-    .where(inArray(organizationInvitations.id, eligible.map((r) => r.id)));
+    .where(
+      inArray(
+        organizationInvitations.id,
+        eligible.map((r) => r.id),
+      ),
+    );
 
   await db.insert(platformAdminActions).values(
     eligible.map((r) => ({

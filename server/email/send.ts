@@ -2,34 +2,177 @@ import fs from "node:fs";
 import path from "node:path";
 import { sendTransactionalEmailViaEmailJs } from "@/server/third-party/emailjs";
 import { sendTransactionalEmailViaResend } from "@/server/third-party/resend";
+import { isSuppressed } from "@/server/email/suppressions";
+import { categoryForModule, isCategoryAllowed } from "@/server/email/category-preferences";
+import { getUnsubscribeUrl } from "@/server/email/unsubscribe-token";
+import { logger } from "@/server/observability/logger";
+import { inngest, isInngestConfigured } from "@/server/queue/inngest-client";
+import type { SendEmailInput } from "@/server/email/types";
+
+/**
+ * Retry policy for outbound email send.
+ *
+ * Both providers (Resend, EmailJS) throw a generic Error on any non-success
+ * status - they don't expose the HTTP status. We treat *every* failure as
+ * potentially transient and retry up to 2 times after the initial attempt.
+ *
+ * Backoff: 250ms, 1s, 4s. Jitter = ±25% to avoid thundering herd if many
+ * sends queue at once and all hit the same Resend incident.
+ *
+ * If all attempts fail we throw the last error so callers can decide whether
+ * to swallow it (Better Auth fallback prints to console) or surface it.
+ */
+const EMAIL_RETRY_DELAYS_MS = [250, 1000, 4000];
+
+function jitter(ms: number): number {
+  return ms + Math.floor(Math.random() * ms * 0.5) - Math.floor(ms * 0.25);
+}
+
+async function sendWithRetry<T>(
+  send: () => Promise<T>,
+  ctx: { to: string; tags?: Array<{ name: string; value: string }> },
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < EMAIL_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await send();
+    } catch (err) {
+      lastErr = err;
+      const isLast = attempt === EMAIL_RETRY_DELAYS_MS.length - 1;
+      logger.warn("email.send_failed", {
+        attempt: attempt + 1,
+        maxAttempts: EMAIL_RETRY_DELAYS_MS.length,
+        to: ctx.to,
+        tags: ctx.tags,
+        willRetry: !isLast,
+        errorMessage: err instanceof Error ? err.message : String(err),
+      });
+      if (isLast) break;
+      await new Promise((resolve) => setTimeout(resolve, jitter(EMAIL_RETRY_DELAYS_MS[attempt])));
+    }
+  }
+  throw lastErr;
+}
 
 // ─── Provider routing ─────────────────────────────────────────────────────────
 //
 // If EMAILJS_PUBLIC_KEY is set → use EmailJS.
 // Otherwise → use Resend (requires RESEND_API_KEY + EMAIL_FROM).
 
-type SendEmailInput = {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  tags?: Array<{ name: string; value: string }>;
-  idempotencyKey?: string;
-};
+// SendEmailInput is exported from server/email/types so the Inngest client
+// can reference it without pulling in this file's node:fs imports.
+export type { SendEmailInput };
 
+/**
+ * Modules whose emails are always delivered, even to suppressed addresses.
+ *
+ * - `auth`      - password reset, verify email, invite revocation, suspension.
+ * - `billing`   - invoices, failed payments, subscription changes, expiring cards.
+ * - `security`  - session alerts, forced logout, API-key exposure warnings.
+ *
+ * The reasoning: unsubscribe = "stop marketing / productivity nags". It is not
+ * a signal that the user no longer wants to hear about their account, their
+ * money, or threats to either. Everything else (tasks, files, portal, ops,
+ * notifications) is suppressible.
+ */
+const CRITICAL_MODULES = new Set(["auth", "billing", "security"]);
+
+function isCritical(tags?: Array<{ name: string; value: string }>): boolean {
+  // Renamed from `module` to dodge Next.js's no-assign-module-variable rule
+  // which flags any local named `module` (CommonJS reserved identifier).
+  const moduleName = tags?.find((t) => t.name === "module")?.value;
+  return moduleName ? CRITICAL_MODULES.has(moduleName) : false;
+}
+
+function appendUnsubscribeFooterHtml(html: string, unsubUrl: string): string {
+  const footer = `<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top:24px;border-top:1px solid #e5e7eb;"><tr><td style="padding:16px 24px;text-align:center;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:#9ca3af;line-height:1.5;">You received this email because you have an account at ClientFlow.<br><a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">Unsubscribe from non-essential emails</a>.</td></tr></table>`;
+  const bodyClose = html.lastIndexOf("</body>");
+  return bodyClose === -1
+    ? html + footer
+    : html.slice(0, bodyClose) + footer + html.slice(bodyClose);
+}
+
+function appendUnsubscribeFooterText(text: string, unsubUrl: string): string {
+  return `${text}\n\n---\nUnsubscribe from non-essential emails: ${unsubUrl}`;
+}
+
+/**
+ * Public send entrypoint. Behavior depends on `INNGEST_EVENT_KEY`:
+ *
+ *   - **Set** (production with Inngest configured): enqueues an
+ *     `email/send.requested` event and returns immediately. The actual send
+ *     happens in the Inngest worker which calls `sendEmailNow()`. This
+ *     decouples Resend latency from the request handler so a slow upstream
+ *     doesn't propagate into checkout / signup / password-reset latency.
+ *
+ *   - **Unset** (local dev, CI, prod-without-Inngest): falls through to a
+ *     direct synchronous send. Same code path as before this refactor, so
+ *     existing behavior is preserved.
+ *
+ * Either way, suppression / category / footer logic runs - just at a
+ * different point. Tests and existing call sites don't change.
+ */
 async function sendEmail(input: SendEmailInput) {
-  if (process.env.EMAILJS_PUBLIC_KEY) {
-    return sendTransactionalEmailViaEmailJs({
-      to: input.to,
-      subject: input.subject,
-      html: input.html,
-    });
+  if (isInngestConfigured) {
+    await inngest.send({ name: "email/send.requested", data: input });
+    return;
   }
-  return sendTransactionalEmailViaResend({
-    to: input.to,
-    subject: input.subject,
-    html: input.html,
-  });
+  return sendEmailNow(input);
+}
+
+/**
+ * Performs the actual send. Suppression check → category check → footer →
+ * provider with retry. Exported so the Inngest worker can call it.
+ */
+export async function sendEmailNow(input: SendEmailInput) {
+  // Suppression check - skip non-critical sends to unsubscribed / bounced /
+  // complained addresses. Critical modules (auth, billing, security) bypass.
+  const critical = isCritical(input.tags);
+  if (!critical && (await isSuppressed(input.to))) {
+    return;
+  }
+
+  // Category opt-out check. Honored only for non-critical mail; the user's
+  // per-category preferences (product/billing/marketing) are coarser than
+  // the per-event notificationPreferences table and apply at the email layer.
+  if (!critical) {
+    const moduleTag = input.tags?.find((t) => t.name === "module")?.value;
+    const category = categoryForModule(moduleTag);
+    if (!(await isCategoryAllowed(input.to, category))) {
+      return;
+    }
+  }
+
+  // Every outbound email carries a signed unsubscribe link. Even critical
+  // emails include it - so the footer template is stable - but clicking it
+  // from a critical email still honors the request for future non-critical
+  // sends.
+  const unsubUrl = getUnsubscribeUrl(input.to);
+  const html = appendUnsubscribeFooterHtml(input.html, unsubUrl);
+  // Text body is currently unused by the providers but we keep it enriched
+  // in case a future plaintext-capable provider is wired.
+  void appendUnsubscribeFooterText(input.text, unsubUrl);
+
+  if (process.env.EMAILJS_PUBLIC_KEY) {
+    return sendWithRetry(
+      () =>
+        sendTransactionalEmailViaEmailJs({
+          to: input.to,
+          subject: input.subject,
+          html,
+        }),
+      { to: input.to, tags: input.tags },
+    );
+  }
+  return sendWithRetry(
+    () =>
+      sendTransactionalEmailViaResend({
+        to: input.to,
+        subject: input.subject,
+        html,
+      }),
+    { to: input.to, tags: input.tags },
+  );
 }
 
 // ─── Template loader ──────────────────────────────────────────────────────────
@@ -38,12 +181,7 @@ const templateCache = new Map<string, string>();
 
 function loadTemplate(slug: string): string {
   if (templateCache.has(slug)) return templateCache.get(slug)!;
-  const filePath = path.join(
-    process.cwd(),
-    "emails",
-    "templates",
-    `${slug}.html`,
-  );
+  const filePath = path.join(process.cwd(), "emails", "templates", `${slug}.html`);
   const html = fs.readFileSync(filePath, "utf-8");
   templateCache.set(slug, html);
   return html;
@@ -75,10 +213,7 @@ export async function sendContactSubmissionInternal(
   return sendEmail({
     to,
     subject: `New contact submission from ${vars.name}`,
-    html: fillTemplate(
-      loadTemplate("public.contact_submission_internal"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("public.contact_submission_internal"), vars),
     text: `New contact submission from ${vars.name} (${vars.email}) at ${vars.company}.\n\nSubject: ${vars.subject}\n\n${vars.message}\n\nReceived at ${vars.timestamp}.`,
     tags: [{ name: "module", value: "public-contact" }],
   });
@@ -90,10 +225,7 @@ type ContactSubmissionAckVars = {
   support_email: string;
 };
 
-export async function sendContactSubmissionAck(
-  to: string,
-  vars: ContactSubmissionAckVars,
-) {
+export async function sendContactSubmissionAck(to: string, vars: ContactSubmissionAckVars) {
   return sendEmail({
     to,
     subject: `We received your message - ${vars.subject}`,
@@ -144,6 +276,26 @@ export async function sendPasswordReset(to: string, vars: PasswordResetVars) {
       { name: "module", value: "auth" },
     ],
     idempotencyKey: `reset:${to}:${vars.action_url}`,
+  });
+}
+
+type SignInOtpVars = {
+  recipient_name: string;
+  otp: string;
+  expires_in_minutes: string;
+};
+
+export async function sendSignInOtp(to: string, vars: SignInOtpVars) {
+  return sendEmail({
+    to,
+    subject: `Your sign-in code: ${vars.otp}`,
+    html: fillTemplate(loadTemplate("auth.sign_in_otp"), vars),
+    text: `Hi ${vars.recipient_name},\n\nYour ClientFlow sign-in code is ${vars.otp}. It expires in ${vars.expires_in_minutes} minutes.`,
+    tags: [
+      { name: "category", value: "sign_in_otp" },
+      { name: "module", value: "auth" },
+    ],
+    idempotencyKey: `signin_otp:${to}:${vars.otp}`,
   });
 }
 
@@ -230,10 +382,7 @@ type MembershipSuspendedVars = {
   support_email: string;
 };
 
-export async function sendMembershipSuspended(
-  to: string,
-  vars: MembershipSuspendedVars,
-) {
+export async function sendMembershipSuspended(to: string, vars: MembershipSuspendedVars) {
   return sendEmail({
     to,
     subject: `Your access to ${vars.org_name} has been suspended`,
@@ -253,10 +402,7 @@ type AccessRequestVars = {
   action_url: string;
 };
 
-export async function sendAccessRequestSubmitted(
-  to: string,
-  vars: AccessRequestVars,
-) {
+export async function sendAccessRequestSubmitted(to: string, vars: AccessRequestVars) {
   return sendEmail({
     to,
     subject: `Access request from ${vars.requester_name}`,
@@ -294,10 +440,7 @@ type AccountStatusChangedVars = {
   reason: string;
 };
 
-export async function sendAccountStatusChanged(
-  to: string,
-  vars: AccountStatusChangedVars,
-) {
+export async function sendAccountStatusChanged(to: string, vars: AccountStatusChangedVars) {
   return sendEmail({
     to,
     subject: `Your account status in ${vars.org_name} has changed`,
@@ -314,10 +457,7 @@ type OwnershipTransferVars = {
   timestamp: string;
 };
 
-export async function sendOwnershipTransferNotice(
-  to: string,
-  vars: OwnershipTransferVars,
-) {
+export async function sendOwnershipTransferNotice(to: string, vars: OwnershipTransferVars) {
   return sendEmail({
     to,
     subject: `Ownership transfer for ${vars.org_name}`,
@@ -336,10 +476,7 @@ type InviteAcceptedVars = {
   timestamp: string;
 };
 
-export async function sendInviteAcceptedNotice(
-  to: string,
-  vars: InviteAcceptedVars,
-) {
+export async function sendInviteAcceptedNotice(to: string, vars: InviteAcceptedVars) {
   return sendEmail({
     to,
     subject: `${vars.accepted_user_name} joined ${vars.org_name}`,
@@ -358,10 +495,7 @@ type ProjectMembershipChangedVars = {
   status: string;
 };
 
-export async function sendProjectMembershipChanged(
-  to: string,
-  vars: ProjectMembershipChangedVars,
-) {
+export async function sendProjectMembershipChanged(to: string, vars: ProjectMembershipChangedVars) {
   return sendEmail({
     to,
     subject: `Project membership update: ${vars.project_name}`,
@@ -382,10 +516,7 @@ type TaskAssignmentChangedVars = {
   due_date: string;
 };
 
-export async function sendTaskAssignmentChanged(
-  to: string,
-  vars: TaskAssignmentChangedVars,
-) {
+export async function sendTaskAssignmentChanged(to: string, vars: TaskAssignmentChangedVars) {
   return sendEmail({
     to,
     subject: `Task assigned: ${vars.task_title}`,
@@ -406,10 +537,7 @@ type TaskStatusChangedVars = {
   reason: string;
 };
 
-export async function sendTaskStatusChanged(
-  to: string,
-  vars: TaskStatusChangedVars,
-) {
+export async function sendTaskStatusChanged(to: string, vars: TaskStatusChangedVars) {
   return sendEmail({
     to,
     subject: `Task updated: ${vars.task_title} -> ${vars.to_status}`,
@@ -447,10 +575,7 @@ type TaskCommentAddedVars = {
   comment_snippet: string;
 };
 
-export async function sendTaskCommentAdded(
-  to: string,
-  vars: TaskCommentAddedVars,
-) {
+export async function sendTaskCommentAdded(to: string, vars: TaskCommentAddedVars) {
   return sendEmail({
     to,
     subject: `New comment on ${vars.task_title}`,
@@ -506,10 +631,7 @@ type TaskAttachmentAddedVars = {
   actor_name: string;
 };
 
-export async function sendTaskAttachmentAdded(
-  to: string,
-  vars: TaskAttachmentAddedVars,
-) {
+export async function sendTaskAttachmentAdded(to: string, vars: TaskAttachmentAddedVars) {
   return sendEmail({
     to,
     subject: `New attachment on ${vars.task_title}`,
@@ -529,10 +651,7 @@ type SharedFileUploadedVars = {
   actor_name: string;
 };
 
-export async function sendSharedFileUploaded(
-  to: string,
-  vars: SharedFileUploadedVars,
-) {
+export async function sendSharedFileUploaded(to: string, vars: SharedFileUploadedVars) {
   return sendEmail({
     to,
     subject: `New file shared in ${vars.project_name}`,
@@ -551,10 +670,7 @@ type ClientAccessEnabledVars = {
   support_email: string;
 };
 
-export async function sendClientAccessEnabled(
-  to: string,
-  vars: ClientAccessEnabledVars,
-) {
+export async function sendClientAccessEnabled(to: string, vars: ClientAccessEnabledVars) {
   return sendEmail({
     to,
     subject: `Your client portal access for ${vars.org_name} is ready`,
@@ -579,10 +695,7 @@ export async function sendUpgradeRequest(to: string, vars: UpgradeRequestVars) {
   return sendEmail({
     to,
     subject: `Upgrade request from ${vars.requester_name}`,
-    html: fillTemplate(
-      loadTemplate("billing.contact_owner_upgrade_request"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("billing.contact_owner_upgrade_request"), vars),
     text: `${vars.requester_name} in ${vars.org_name} tried to use ${vars.requested_feature} but hit the ${vars.plan_name} plan limit (${vars.current_usage}/${vars.limit}).`,
     tags: [{ name: "module", value: "billing" }],
   });
@@ -597,10 +710,7 @@ type UsageLimitWarningVars = {
   action_url: string;
 };
 
-export async function sendUsageLimitWarning(
-  to: string,
-  vars: UsageLimitWarningVars,
-) {
+export async function sendUsageLimitWarning(to: string, vars: UsageLimitWarningVars) {
   return sendEmail({
     to,
     subject: `Usage warning: ${vars.feature_name} approaching limit`,
@@ -620,10 +730,7 @@ type QuotaLimitReachedVars = {
   action_url: string;
 };
 
-export async function sendQuotaLimitReached(
-  to: string,
-  vars: QuotaLimitReachedVars,
-) {
+export async function sendQuotaLimitReached(to: string, vars: QuotaLimitReachedVars) {
   return sendEmail({
     to,
     subject: `Quota reached: ${vars.feature_name}`,
@@ -642,10 +749,7 @@ type SubscriptionChangedVars = {
   action_url: string;
 };
 
-export async function sendSubscriptionChanged(
-  to: string,
-  vars: SubscriptionChangedVars,
-) {
+export async function sendSubscriptionChanged(to: string, vars: SubscriptionChangedVars) {
   return sendEmail({
     to,
     subject: `Subscription ${vars.change_type}: ${vars.org_name}`,
@@ -664,10 +768,7 @@ type InvoiceAvailableVars = {
   due_date: string;
 };
 
-export async function sendInvoiceAvailable(
-  to: string,
-  vars: InvoiceAvailableVars,
-) {
+export async function sendInvoiceAvailable(to: string, vars: InvoiceAvailableVars) {
   return sendEmail({
     to,
     subject: `Invoice #${vars.invoice_number} - ${vars.amount_due} due ${vars.due_date}`,
@@ -709,10 +810,7 @@ type InvoicePastDueVars = {
   days_past_due: string;
 };
 
-export async function sendInvoicePastDueReminder(
-  to: string,
-  vars: InvoicePastDueVars,
-) {
+export async function sendInvoicePastDueReminder(to: string, vars: InvoicePastDueVars) {
   return sendEmail({
     to,
     subject: `Invoice #${vars.invoice_number} is ${vars.days_past_due} days past due`,
@@ -732,10 +830,7 @@ type PaymentMethodExpiringVars = {
   action_url: string;
 };
 
-export async function sendPaymentMethodExpiring(
-  to: string,
-  vars: PaymentMethodExpiringVars,
-) {
+export async function sendPaymentMethodExpiring(to: string, vars: PaymentMethodExpiringVars) {
   return sendEmail({
     to,
     subject: `Payment method expiring soon - ${vars.payment_method_brand} ****${vars.last4}`,
@@ -754,10 +849,7 @@ type PaymentMethodChangedVars = {
   action_url: string;
 };
 
-export async function sendPaymentMethodChanged(
-  to: string,
-  vars: PaymentMethodChangedVars,
-) {
+export async function sendPaymentMethodChanged(to: string, vars: PaymentMethodChangedVars) {
   return sendEmail({
     to,
     subject: `Payment method updated for ${vars.org_name}`,
@@ -778,10 +870,7 @@ type SessionActionNoticeVars = {
   security_url: string;
 };
 
-export async function sendSessionActionNotice(
-  to: string,
-  vars: SessionActionNoticeVars,
-) {
+export async function sendSessionActionNotice(to: string, vars: SessionActionNoticeVars) {
   return sendEmail({
     to,
     subject: `Security notice: ${vars.action_type}`,
@@ -802,17 +891,11 @@ type ForcedLogoutVars = {
   support_email: string;
 };
 
-export async function sendForcedLogoutDueToPolicyNotice(
-  to: string,
-  vars: ForcedLogoutVars,
-) {
+export async function sendForcedLogoutDueToPolicyNotice(to: string, vars: ForcedLogoutVars) {
   return sendEmail({
     to,
     subject: "You were signed out due to a security policy",
-    html: fillTemplate(
-      loadTemplate("security.forced_logout_due_to_policy"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("security.forced_logout_due_to_policy"), vars),
     text: `Hi ${vars.recipient_name},\n\nYou were signed out at ${vars.timestamp} due to the "${vars.policy_name}" policy.\n\nSign back in: ${vars.action_url}\n\nContact ${vars.support_email} for help.`,
     tags: [
       { name: "module", value: "security" },
@@ -831,10 +914,7 @@ type DataExportReadyVars = {
   timestamp: string;
 };
 
-export async function sendDataExportReady(
-  to: string,
-  vars: DataExportReadyVars,
-) {
+export async function sendDataExportReady(to: string, vars: DataExportReadyVars) {
   return sendEmail({
     to,
     subject: `Your ${vars.export_type} export is ready`,
@@ -852,10 +932,7 @@ type EventIngestionDelayVars = {
   action_url: string;
 };
 
-export async function sendEventIngestionDelayAlert(
-  to: string,
-  vars: EventIngestionDelayVars,
-) {
+export async function sendEventIngestionDelayAlert(to: string, vars: EventIngestionDelayVars) {
   return sendEmail({
     to,
     subject: `Event ingestion delay: ${vars.affected_stream}`,
@@ -874,17 +951,11 @@ type BillingWebhookDelayVars = {
   action_url: string;
 };
 
-export async function sendBillingWebhookDelayAlert(
-  to: string,
-  vars: BillingWebhookDelayVars,
-) {
+export async function sendBillingWebhookDelayAlert(to: string, vars: BillingWebhookDelayVars) {
   return sendEmail({
     to,
     subject: `Billing webhook delay: ${vars.provider} - ${vars.event_type}`,
-    html: fillTemplate(
-      loadTemplate("ops.billing_webhook_processing_delay_alert"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("ops.billing_webhook_processing_delay_alert"), vars),
     text: `A billing webhook from ${vars.provider} (${vars.event_type}) for ${vars.org_name} is delayed by ${vars.delay_minutes} minutes.\n\nInvestigate: ${vars.action_url}`,
     tags: [{ name: "module", value: "ops" }],
   });
@@ -905,10 +976,7 @@ export async function sendNotificationDeliveryFailureDigest(
   return sendEmail({
     to,
     subject: `Notification delivery failures: ${vars.failed_channel}`,
-    html: fillTemplate(
-      loadTemplate("ops.notification_delivery_failure_digest"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("ops.notification_delivery_failure_digest"), vars),
     text: `${vars.failure_count} notification delivery failures on ${vars.failed_channel} for ${vars.org_name}.\n\nLast error: ${vars.last_error}\n\nView: ${vars.action_url}`,
     tags: [{ name: "module", value: "ops" }],
   });
@@ -929,10 +997,7 @@ export async function sendWebhookEndpointVerificationFailed(
   return sendEmail({
     to,
     subject: `Webhook verification failed: ${vars.integration_name}`,
-    html: fillTemplate(
-      loadTemplate("ops.webhook_endpoint_verification_failed"),
-      vars,
-    ),
+    html: fillTemplate(loadTemplate("ops.webhook_endpoint_verification_failed"), vars),
     text: `Webhook endpoint verification for ${vars.integration_name} in ${vars.org_name} has failed.\n\nEndpoint: ${vars.endpoint_url}\nReason: ${vars.failure_reason}\n\nFix: ${vars.action_url}`,
     tags: [{ name: "module", value: "ops" }],
   });
@@ -946,10 +1011,7 @@ type ApiKeyExposureWarningVars = {
   action_url: string;
 };
 
-export async function sendApiKeyExposureWarning(
-  to: string,
-  vars: ApiKeyExposureWarningVars,
-) {
+export async function sendApiKeyExposureWarning(to: string, vars: ApiKeyExposureWarningVars) {
   return sendEmail({
     to,
     subject: `API key exposure warning: ${vars.key_name}`,
@@ -971,10 +1033,7 @@ type RateLimitAbuseBlockVars = {
   action_url: string;
 };
 
-export async function sendRateLimitAbuseBlockAlert(
-  to: string,
-  vars: RateLimitAbuseBlockVars,
-) {
+export async function sendRateLimitAbuseBlockAlert(to: string, vars: RateLimitAbuseBlockVars) {
   return sendEmail({
     to,
     subject: `Rate limit block activated: ${vars.route_key}`,
@@ -1025,10 +1084,7 @@ type GenericNotificationVars = {
   action_url?: string;
 };
 
-export async function sendGenericNotification(
-  to: string,
-  vars: GenericNotificationVars,
-) {
+export async function sendGenericNotification(to: string, vars: GenericNotificationVars) {
   const bodyParagraph = vars.body
     ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#6b7280;">${vars.body}</p>`
     : "";

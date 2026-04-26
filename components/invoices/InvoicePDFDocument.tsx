@@ -1,11 +1,4 @@
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  Image,
-} from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import type { InvoicePDFData } from "@/server/invoices";
 
 type AppLogoSrc = { data: Buffer; format: "png" } | string;
@@ -78,7 +71,12 @@ const s = StyleSheet.create({
   billLine: { fontSize: 9, color: C.primary, marginBottom: 2 },
 
   // ── Optional title ──────────────────────────────────────────────────────────
-  invoiceSubject: { fontSize: 12, fontFamily: "Helvetica-Bold", color: C.foreground, marginBottom: 14 },
+  invoiceSubject: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: C.foreground,
+    marginBottom: 14,
+  },
 
   // ── Table ────────────────────────────────────────────────────────────────────
   tableHeader: {
@@ -101,7 +99,13 @@ const s = StyleSheet.create({
   colQty: { width: 50, textAlign: "right" },
   colRate: { width: 70, textAlign: "right" },
   colAmount: { width: 80, textAlign: "right" },
-  thText: { fontSize: 8, fontFamily: "Helvetica-Bold", color: C.muted, textTransform: "uppercase", letterSpacing: 0.6 },
+  thText: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: C.muted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
   tdText: { fontSize: 9, color: C.foreground },
   tdAmount: { fontSize: 9, fontFamily: "Helvetica-Bold", color: C.foreground },
   tdMuted: { fontSize: 9, color: C.muted },
@@ -132,7 +136,12 @@ const s = StyleSheet.create({
 
   // ── Sections (plain) ────────────────────────────────────────────────────────
   section: { marginBottom: 14 },
-  sectionTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: C.foreground, marginBottom: 4 },
+  sectionTitle: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: C.foreground,
+    marginBottom: 4,
+  },
   sectionText: { fontSize: 8.5, color: C.muted, lineHeight: 1.5 },
 
   // ── Footer ─────────────────────────────────────────────────────────────────
@@ -196,10 +205,12 @@ export function InvoicePDFDocument({
   return (
     <Document title={`Invoice ${invoice.number ?? invoice.id.slice(0, 8)}`} author={orgName}>
       <Page size="A4" style={s.page}>
-
         {/* ── Brand bar (ClientFlow application logo) ─────────────────────── */}
         <View style={s.brandRow}>
           {appLogo ? (
+            // react-pdf <Image> renders into PDF and has no alt prop / a11y
+            // surface. The jsx-a11y/alt-text rule fires as a false positive.
+            // eslint-disable-next-line jsx-a11y/alt-text
             <Image src={appLogo} style={s.logo} />
           ) : (
             <Text style={s.orgBrand}>ClientFlow</Text>
@@ -212,7 +223,9 @@ export function InvoicePDFDocument({
           <View style={s.metaTable}>
             <View style={s.metaRow}>
               <Text style={s.metaLabel}>Invoice #</Text>
-              <Text style={s.metaValue}>{invoice.number ?? invoice.id.slice(0, 8).toUpperCase()}</Text>
+              <Text style={s.metaValue}>
+                {invoice.number ?? invoice.id.slice(0, 8).toUpperCase()}
+              </Text>
             </View>
             <View style={s.metaRow}>
               <Text style={s.metaLabel}>Date</Text>
@@ -240,10 +253,14 @@ export function InvoicePDFDocument({
           <View style={s.billBlock}>
             <Text style={s.billHeader}>Bill To</Text>
             {invoice.clientName && <Text style={s.billName}>{invoice.clientName}</Text>}
-            {invoice.clientContactEmail && <Text style={s.billLine}>{invoice.clientContactEmail}</Text>}
-            {invoice.clientContactPhone && <Text style={s.billLine}>{invoice.clientContactPhone}</Text>}
+            {invoice.clientContactEmail && (
+              <Text style={s.billLine}>{invoice.clientContactEmail}</Text>
+            )}
+            {invoice.clientContactPhone && (
+              <Text style={s.billLine}>{invoice.clientContactPhone}</Text>
+            )}
             {!invoice.clientName && !invoice.clientContactEmail && (
-              <Text style={[s.billLine, { color: C.muted }]}>—</Text>
+              <Text style={[s.billLine, { color: C.muted }]}>-</Text>
             )}
           </View>
         </View>
@@ -267,7 +284,9 @@ export function InvoicePDFDocument({
             <View key={i} style={s.tableRow}>
               <Text style={[s.tdText, s.colDesc]}>{li.description}</Text>
               <Text style={[s.tdMuted, s.colQty]}>{li.quantity}</Text>
-              <Text style={[s.tdMuted, s.colRate]}>{formatCents(li.unitPriceCents, currencyCode)}</Text>
+              <Text style={[s.tdMuted, s.colRate]}>
+                {formatCents(li.unitPriceCents, currencyCode)}
+              </Text>
               <Text style={[s.tdAmount, s.colAmount]}>
                 {formatCents(li.quantity * li.unitPriceCents, currencyCode)}
               </Text>
@@ -293,7 +312,9 @@ export function InvoicePDFDocument({
             {invoice.status === "paid" && invoice.amountPaidCents != null && (
               <View style={[s.totalRow, { marginTop: 4 }]}>
                 <Text style={s.paidLabel}>Amount Paid</Text>
-                <Text style={s.paidValue}>{formatCents(invoice.amountPaidCents, currencyCode)}</Text>
+                <Text style={s.paidValue}>
+                  {formatCents(invoice.amountPaidCents, currencyCode)}
+                </Text>
               </View>
             )}
           </View>
@@ -303,7 +324,8 @@ export function InvoicePDFDocument({
         <View style={s.section}>
           <Text style={s.sectionTitle}>Payment Terms</Text>
           <Text style={s.sectionText}>
-            Payment is due within 14 days of the invoice date. Late payments may incur a 1.5% monthly finance charge.
+            Payment is due within 14 days of the invoice date. Late payments may incur a 1.5%
+            monthly finance charge.
           </Text>
           <Text style={s.sectionText}>
             Accepted methods: Credit/Debit Card, ACH Bank Transfer, Wire Transfer.
@@ -328,7 +350,6 @@ export function InvoicePDFDocument({
             render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
           />
         </View>
-
       </Page>
     </Document>
   );

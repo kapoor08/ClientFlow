@@ -2,13 +2,7 @@ import "server-only";
 
 import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import {
-  plans,
-  planFeatureLimits,
-  planFeatureFlags,
-  subscriptions,
-  platformAdminActions,
-} from "@/db/schema";
+import { plans, planFeatureLimits, subscriptions, platformAdminActions } from "@/db/schema";
 import { PLAN_LIMITS } from "@/config/plan-limits";
 import {
   createStripeProductAndPrices,
@@ -38,12 +32,10 @@ async function logPlanAction(opts: {
 export async function getAdminPlansWithLimits() {
   const allPlans = await db.select().from(plans).orderBy(plans.displayOrder, plans.code);
   const allLimits = await db.select().from(planFeatureLimits);
-  const allFlags = await db.select().from(planFeatureFlags);
 
   return allPlans.map((plan) => ({
     ...plan,
     limits: allLimits.filter((l) => l.planId === plan.id),
-    flags: allFlags.filter((f) => f.planId === plan.id),
     configLimits: PLAN_LIMITS[plan.code as keyof typeof PLAN_LIMITS] ?? null,
   }));
 }
@@ -139,10 +131,8 @@ export async function updatePlan(planId: string, input: PlanInput, adminUserId: 
   const currencyCode = (input.currencyCode ?? existing.currencyCode ?? "USD").toUpperCase();
 
   // Detect price changes that require a new Stripe Price (Prices are immutable).
-  const monthlyChanged =
-    (input.monthlyPriceCents ?? null) !== (existing.monthlyPriceCents ?? null);
-  const yearlyChanged =
-    (input.yearlyPriceCents ?? null) !== (existing.yearlyPriceCents ?? null);
+  const monthlyChanged = (input.monthlyPriceCents ?? null) !== (existing.monthlyPriceCents ?? null);
+  const yearlyChanged = (input.yearlyPriceCents ?? null) !== (existing.yearlyPriceCents ?? null);
 
   let newMonthlyPriceId: string | null | undefined = existing.stripeMonthlyPriceId;
   let newYearlyPriceId: string | null | undefined = existing.stripeYearlyPriceId;
@@ -233,10 +223,7 @@ export async function togglePlanActive(planId: string, isActive: boolean, adminU
   const [existing] = await db.select().from(plans).where(eq(plans.id, planId)).limit(1);
   if (!existing) throw new Error("Plan not found.");
 
-  await db
-    .update(plans)
-    .set({ isActive, updatedAt: new Date() })
-    .where(eq(plans.id, planId));
+  await db.update(plans).set({ isActive, updatedAt: new Date() }).where(eq(plans.id, planId));
 
   if (existing.stripeProductId) {
     await setStripeProductActive(existing.stripeProductId, isActive);
@@ -263,10 +250,6 @@ export async function clonePlan(
     .select()
     .from(planFeatureLimits)
     .where(eq(planFeatureLimits.planId, sourcePlanId));
-  const sourceFlags = await db
-    .select()
-    .from(planFeatureFlags)
-    .where(eq(planFeatureFlags.planId, sourcePlanId));
 
   const newId = crypto.randomUUID();
   const currencyCode = (source.currencyCode ?? "USD").toUpperCase();
@@ -318,16 +301,6 @@ export async function clonePlan(
         planId: newId,
         featureKey: l.featureKey,
         limitValue: l.limitValue,
-      })),
-    );
-  }
-  if (sourceFlags.length > 0) {
-    await db.insert(planFeatureFlags).values(
-      sourceFlags.map((f) => ({
-        id: crypto.randomUUID(),
-        planId: newId,
-        featureKey: f.featureKey,
-        isEnabled: f.isEnabled,
       })),
     );
   }

@@ -1,25 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Building2,
-  Calendar,
-  Edit,
-  FolderKanban,
-  Mail,
-  Phone,
-  UserRound,
-} from "lucide-react";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
+import { Building2, Calendar, Edit, FolderKanban, Mail, Phone, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { getServerSession } from "@/server/auth/session";
 import { getClientDetailForUser } from "@/server/clients";
 import { getClientNotes } from "@/server/client-notes";
-import {
-  ClientDetailCard,
-  ClientLinkedProjects,
-  ClientNotesSection,
-} from "@/components/clients";
+import { ClientDetailCard, ClientLinkedProjects, ClientNotesSection } from "@/components/clients";
 import { formatDate } from "@/utils/date";
 
 type ClientDetailPageProps = {
@@ -39,8 +27,8 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
 
   if (!result.access) {
     return (
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-card border-border bg-card shadow-cf-1 border p-6">
+        <p className="text-muted-foreground text-sm">
           Complete workspace bootstrap before managing clients.
         </p>
       </div>
@@ -53,12 +41,10 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
 
   return (
     <div>
-      <Link
-        href="/clients"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft size={14} /> Back to Clients
-      </Link>
+      <Breadcrumbs
+        items={[{ label: "Clients", href: "/clients" }, { label: client.name }]}
+        className="mb-4"
+      />
 
       <ListPageLayout
         title={
@@ -106,27 +92,27 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
         </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="rounded-card border-border bg-card shadow-cf-1 border p-5">
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
               <Building2 size={16} /> Organization Fit
             </div>
-            <p className="mt-3 text-sm text-foreground">
+            <p className="text-foreground mt-3 text-sm">
               {client.company
                 ? `${client.name} is tracked under ${client.company}.`
                 : `${client.name} does not have a company specified yet.`}
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-2 text-xs">
               Last updated {formatDate(client.updatedAt)}
             </p>
           </div>
-          <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="rounded-card border-border bg-card shadow-cf-1 border p-5">
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
               <FolderKanban size={16} /> Linked Projects
             </div>
-            <div className="mt-3 font-display text-3xl font-bold text-foreground">
+            <div className="font-display text-foreground mt-3 text-3xl font-bold">
               {client.projectCount}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Active and archived projects associated with this client.
             </p>
           </div>
@@ -139,7 +125,7 @@ const ClientDetailsPage = async ({ params }: ClientDetailPageProps) => {
         />
 
         <div>
-          <h2 className="mb-4 font-display text-lg font-semibold text-foreground">
+          <h2 className="font-display text-foreground mb-4 text-lg font-semibold">
             Linked Projects
           </h2>
           <ClientLinkedProjects linkedProjects={result.linkedProjects} />

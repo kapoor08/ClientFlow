@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { ProjectForm } from "@/components/forms/projects";
 import { getProjectModuleAccessForUser } from "@/server/projects";
 import { listClientsForUser } from "@/server/clients";
@@ -26,23 +25,14 @@ export default async function NewProjectPage() {
   }));
 
   return (
-    <ListPageLayout
-      title="New Project"
-      description="Create a project and link it to a client."
-      action={
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft size={14} /> Back to Projects
-        </Link>
-      }
-    >
-      <ProjectForm
-        mode="create"
-        submitLabel="Create Project"
-        clients={clientOptions}
+    <div>
+      <Breadcrumbs
+        items={[{ label: "Projects", href: "/projects" }, { label: "New" }]}
+        className="mb-4"
       />
-    </ListPageLayout>
+      <ListPageLayout title="New Project" description="Create a project and link it to a client.">
+        <ProjectForm mode="create" submitLabel="Create Project" clients={clientOptions} />
+      </ListPageLayout>
+    </div>
   );
 }

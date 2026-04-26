@@ -1,19 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import {
-  ControlledInput,
-  ControlledSelect,
-  ControlledTextarea,
-} from "@/components/form";
+import { ControlledInput, ControlledSelect, ControlledTextarea } from "@/components/form";
 import { Button } from "@/components/ui/button";
 import { contactMethods } from "@/config/contact";
 import { type ContactActionState, submitContactFormAction } from "@/server/actions/contact";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 
 const SUBJECT_OPTIONS = [
   { value: "General Inquiry", label: "General Inquiry" },
@@ -38,10 +35,7 @@ const ContactPage = () => {
     status: "idle",
     message: "",
   };
-  const [state, formAction, isPending] = useActionState(
-    submitContactFormAction,
-    initialState,
-  );
+  const [state, formAction, isPending] = useActionState(submitContactFormAction, initialState);
   const submitted = state.status === "success";
 
   const {
@@ -59,6 +53,8 @@ const ContactPage = () => {
     },
   });
 
+  const [captchaToken, setCaptchaToken] = useState("");
+
   const onSubmit = (values: ContactFormValues) => {
     const formData = new FormData();
     formData.set("name", values.name);
@@ -66,30 +62,27 @@ const ContactPage = () => {
     formData.set("company", values.company ?? "");
     formData.set("subject", values.subject);
     formData.set("message", values.message);
+    formData.set("cf-turnstile-response", captchaToken);
     formAction(formData);
   };
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--cf-hero-gradient)" }}
-        />
-        <div className="container relative py-14 md:py-20">
+      <section className="border-border relative overflow-hidden border-b">
+        <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+        <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+        <div className="relative container py-14 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-3xl text-center"
           >
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+            <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
               Get in <span className="text-primary text-glow">touch</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-              Have a question, want a demo, or ready to start? We&apos;d love to
-              hear from you.
+            <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
+              Have a question, want a demo, or ready to start? We&apos;d love to hear from you.
             </p>
           </motion.div>
         </div>
@@ -99,25 +92,20 @@ const ContactPage = () => {
         <div className="container">
           <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2">
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">
-                Send us a message
-              </h2>
+              <h2 className="font-display text-foreground text-lg font-bold">Send us a message</h2>
               {submitted ? (
-                <div className="mt-5 rounded-xl border border-border bg-card p-8 text-center">
-                  <h3 className="font-display text-base font-semibold text-foreground">
+                <div className="border-border bg-card mt-5 rounded-xl border p-8 text-center">
+                  <h3 className="font-display text-foreground text-base font-semibold">
                     Thank you!
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-2 text-sm">
                     We&apos;ll get back to you within 24 hours.
                   </p>
                 </div>
               ) : (
-                <form
-                  onSubmit={handleSubmit(onSubmit)}
-                  className="mt-5 space-y-4"
-                >
+                <form onSubmit={handleSubmit(onSubmit)} className="mt-5 space-y-4">
                   {state.status === "error" ? (
-                    <div className="rounded-xl border border-error-border bg-error-surface px-4 py-3 text-sm text-error">
+                    <div className="border-error-border bg-error-surface text-error rounded-xl border px-4 py-3 text-sm">
                       {state.message}
                     </div>
                   ) : null}
@@ -180,18 +168,12 @@ const ContactPage = () => {
                     className="mt-1"
                   />
 
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="cursor-pointer"
-                    disabled={isPending}
-                  >
+                  <TurnstileWidget onToken={setCaptchaToken} />
+
+                  <Button type="submit" size="sm" className="cursor-pointer" disabled={isPending}>
                     {isPending ? (
                       <>
-                        <LoaderCircle
-                          size={14}
-                          className="mr-1.5 animate-spin"
-                        />
+                        <LoaderCircle size={14} className="mr-1.5 animate-spin" />
                         Sending...
                       </>
                     ) : (
@@ -203,28 +185,24 @@ const ContactPage = () => {
             </div>
 
             <div>
-              <h2 className="font-display text-lg font-bold text-foreground">
+              <h2 className="font-display text-foreground text-lg font-bold">
                 Other ways to reach us
               </h2>
               <div className="mt-5 space-y-3">
                 {contactMethods.map((m) => (
                   <div
                     key={m.title}
-                    className="flex gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30"
+                    className="border-border bg-card hover:border-primary/30 flex gap-3 rounded-xl border p-4 transition-all"
                   >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                    <div className="bg-primary/8 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
                       <m.icon size={18} />
                     </div>
                     <div>
-                      <h3 className="font-display text-[13px] font-semibold text-foreground">
+                      <h3 className="font-display text-foreground text-[13px] font-semibold">
                         {m.title}
                       </h3>
-                      <p className="text-[13px] font-medium text-primary">
-                        {m.value}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {m.desc}
-                      </p>
+                      <p className="text-primary text-[13px] font-medium">{m.value}</p>
+                      <p className="text-muted-foreground text-[11px]">{m.desc}</p>
                     </div>
                   </div>
                 ))}

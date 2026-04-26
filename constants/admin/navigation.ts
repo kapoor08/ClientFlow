@@ -7,11 +7,14 @@ import {
   Zap,
   FileKey2,
   Webhook,
+  Inbox,
+  AlertCircle,
   ClipboardList,
   BarChart3,
   Mail,
   LifeBuoy,
   MessageSquare,
+  Flag,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -34,4 +37,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Invitations", href: "/admin/invitations", icon: Mail },
   { label: "API Keys", href: "/admin/api-keys", icon: FileKey2 },
   { label: "Webhooks", href: "/admin/webhooks", icon: Webhook },
+  { label: "Webhook Deliveries", href: "/admin/webhook-deliveries", icon: Inbox },
+  { label: "Stripe Events", href: "/admin/billing-webhook-events", icon: AlertCircle },
+  { label: "Feature Flags", href: "/admin/feature-flags", icon: Flag },
 ];

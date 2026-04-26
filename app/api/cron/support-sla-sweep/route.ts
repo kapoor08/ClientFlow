@@ -6,7 +6,7 @@ import { assertCronAuth } from "@/server/cron/guard";
 import { logger } from "@/server/observability/logger";
 
 /**
- * Hourly SLA sweep — runs every hour at :15.
+ * Hourly SLA sweep - runs every hour at :15.
  *
  * Finds tickets that have breached their first-response or resolution SLA
  * without having been alerted yet. Writes a ticket event ("sla.first_response_breach"

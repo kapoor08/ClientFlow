@@ -16,6 +16,7 @@ describe("WEBHOOK_EVENTS declared list", () => {
         "client.created",
         "client.updated",
         "invoice.paid",
+        "invoice.refunded",
         "project.created",
         "project.deleted",
         "project.updated",

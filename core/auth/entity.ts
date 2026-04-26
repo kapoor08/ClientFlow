@@ -1,5 +1,6 @@
 export const authRoutes = {
   signIn: "/auth/sign-in",
+  signInOtp: "/auth/sign-in-otp",
   signUp: "/auth/sign-up",
   forgotPassword: "/auth/forgot-password",
   resetPassword: "/auth/reset-password",
@@ -19,10 +20,14 @@ export type SignUpInput = {
   email: string;
   password: string;
   callbackURL?: string;
+  /** Cloudflare Turnstile token. Server-side checked when configured. */
+  cfTurnstileResponse?: string;
 };
 
 export type ForgotPasswordInput = {
   email: string;
+  /** Cloudflare Turnstile token. Server-side checked when configured. */
+  cfTurnstileResponse?: string;
 };
 
 export type ResetPasswordInput = {

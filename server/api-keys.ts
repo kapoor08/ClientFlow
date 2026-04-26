@@ -1,11 +1,12 @@
 import "server-only";
 
 import { createHash, randomBytes } from "crypto";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { apiKeys } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { writeAuditLog } from "@/server/security/audit";
+import { getApiKeyMonthlyUsage } from "@/server/rate-limit";
 
 export type ApiKeyItem = {
   id: string;
@@ -16,6 +17,8 @@ export type ApiKeyItem = {
   expiresAt: Date | null;
   revokedAt: Date | null;
   isActive: boolean;
+  /** Calls made by this key in the current calendar month (Redis-backed, best-effort). */
+  monthlyUsage: number;
 };
 
 function hashKey(raw: string): string {
@@ -47,9 +50,14 @@ export async function listApiKeysForUser(userId: string): Promise<ApiKeyItem[] |
     .where(eq(apiKeys.organizationId, ctx.organizationId))
     .orderBy(desc(apiKeys.createdAt));
 
-  return rows.map((r) => ({
+  // Fetch monthly usage in parallel - one Redis GET per key. Cheap; the API
+  // key list typically has under a dozen rows per org.
+  const usages = await Promise.all(rows.map((r) => getApiKeyMonthlyUsage(r.id)));
+
+  return rows.map((r, i) => ({
     ...r,
     isActive: !r.revokedAt && (!r.expiresAt || r.expiresAt > new Date()),
+    monthlyUsage: usages[i],
   }));
 }
 
@@ -67,9 +75,7 @@ export async function createApiKeyForUser(
 
   const { raw, prefix, hash } = generateKey();
   const id = crypto.randomUUID();
-  const expiresAt = expiresInDays
-    ? new Date(Date.now() + expiresInDays * 86_400_000)
-    : null;
+  const expiresAt = expiresInDays ? new Date(Date.now() + expiresInDays * 86_400_000) : null;
 
   await db.insert(apiKeys).values({
     id,

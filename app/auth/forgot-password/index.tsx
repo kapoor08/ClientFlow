@@ -9,6 +9,7 @@ import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 import { authRoutes, getAuthErrorMessage, useForgotPassword } from "@/core/auth";
 
 const forgotPasswordSchema = z.object({
@@ -21,6 +22,7 @@ const ForgotPasswordPage = () => {
   const forgotPassword = useForgotPassword();
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const {
     control,
@@ -34,7 +36,10 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (values: ForgotPasswordFormValues) => {
     setApiError(null);
     try {
-      await forgotPassword.mutateAsync({ email: values.email });
+      await forgotPassword.mutateAsync({
+        email: values.email,
+        cfTurnstileResponse: captchaToken || undefined,
+      });
       setSubmittedEmail(values.email.trim());
     } catch (err) {
       setApiError(getAuthErrorMessage(err, "Unable to send a password reset link."));
@@ -80,6 +85,8 @@ const ForgotPasswordPage = () => {
             autoComplete="email"
           />
 
+          <TurnstileWidget onToken={setCaptchaToken} />
+
           <Button
             type="submit"
             className="w-full cursor-pointer"
@@ -88,7 +95,7 @@ const ForgotPasswordPage = () => {
             {forgotPassword.isPending ? "Sending link..." : "Send Reset Link"}
           </Button>
 
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-muted-foreground text-center text-sm">
             <Link href={authRoutes.signIn} className="text-primary hover:underline">
               Back to sign in
             </Link>

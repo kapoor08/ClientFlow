@@ -4,11 +4,7 @@ import { and, count, desc, eq, gte, ilike, lte, or } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { organizations, auditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
-import {
-  buildPaginationMeta,
-  paginationOffset,
-  type PaginatedResult,
-} from "@/utils/pagination";
+import { buildPaginationMeta, paginationOffset, type PaginatedResult } from "@/utils/pagination";
 
 export type AdminAuditLogRow = {
   id: string;
@@ -28,6 +24,8 @@ type ListAdminAuditLogsOptions = {
   page?: number;
   pageSize?: number;
   entityType?: string;
+  /** Free-text match on the actor's name OR email. */
+  actor?: string;
   dateFrom?: string;
   dateTo?: string;
 };
@@ -35,7 +33,7 @@ type ListAdminAuditLogsOptions = {
 export async function listAdminAuditLogs(
   opts: ListAdminAuditLogsOptions = {},
 ): Promise<PaginatedResult<AdminAuditLogRow>> {
-  const { query, page = 1, pageSize = 20, entityType, dateFrom, dateTo } = opts;
+  const { query, page = 1, pageSize = 20, entityType, actor, dateFrom, dateTo } = opts;
 
   // ── WHERE conditions ────────────────────────────────────────────────────────
   const conditions = [];
@@ -43,10 +41,14 @@ export async function listAdminAuditLogs(
   if (query?.trim()) {
     const q = `%${query.trim()}%`;
     conditions.push(
-      or(ilike(auditLogs.action, q), ilike(auditLogs.entityType, q))!,
+      or(ilike(auditLogs.action, q), ilike(auditLogs.entityType, q), ilike(auditLogs.entityId, q))!,
     );
   }
   if (entityType) conditions.push(eq(auditLogs.entityType, entityType));
+  if (actor?.trim()) {
+    const a = `%${actor.trim()}%`;
+    conditions.push(or(ilike(user.name, a), ilike(user.email, a))!);
+  }
   if (dateFrom) conditions.push(gte(auditLogs.createdAt, new Date(dateFrom)));
   if (dateTo) {
     const end = new Date(dateTo);
@@ -59,6 +61,7 @@ export async function listAdminAuditLogs(
   const [{ total }] = await db
     .select({ total: count(auditLogs.id) })
     .from(auditLogs)
+    .leftJoin(user, eq(auditLogs.actorUserId, user.id))
     .where(where);
 
   const pagination = buildPaginationMeta(total, page, pageSize);
@@ -94,14 +97,20 @@ const MAX_EXPORT_ROWS = 10_000;
 export async function exportAdminAuditLogs(
   opts: Omit<ListAdminAuditLogsOptions, "page" | "pageSize"> = {},
 ): Promise<AdminAuditLogRow[]> {
-  const { query, entityType, dateFrom, dateTo } = opts;
+  const { query, entityType, actor, dateFrom, dateTo } = opts;
 
   const conditions = [];
   if (query?.trim()) {
     const q = `%${query.trim()}%`;
-    conditions.push(or(ilike(auditLogs.action, q), ilike(auditLogs.entityType, q))!);
+    conditions.push(
+      or(ilike(auditLogs.action, q), ilike(auditLogs.entityType, q), ilike(auditLogs.entityId, q))!,
+    );
   }
   if (entityType) conditions.push(eq(auditLogs.entityType, entityType));
+  if (actor?.trim()) {
+    const a = `%${actor.trim()}%`;
+    conditions.push(or(ilike(user.name, a), ilike(user.email, a))!);
+  }
   if (dateFrom) conditions.push(gte(auditLogs.createdAt, new Date(dateFrom)));
   if (dateTo) {
     const end = new Date(dateTo);

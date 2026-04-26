@@ -5,10 +5,15 @@ import { auditLogs } from "@/db/schema";
 
 export type WriteAuditLogOptions = {
   organizationId: string;
-  actorUserId: string;
+  /**
+   * The user who performed the action. Use `null` for system-initiated work
+   * (cron jobs, API-key calls without an associated session, anonymisation
+   * jobs).
+   */
+  actorUserId: string | null;
   action: string;
   entityType: string;
-  entityId?: string;
+  entityId?: string | null;
   ipAddress?: string;
   userAgent?: string;
   metadata?: Record<string, unknown>;
@@ -27,4 +32,3 @@ export async function writeAuditLog(opts: WriteAuditLogOptions): Promise<void> {
     metadata: opts.metadata ?? null,
   });
 }
-

@@ -3,6 +3,7 @@ import {
   BarChart3,
   Bell,
   CheckSquare,
+  Clock,
   Code2,
   CreditCard,
   FileText,
@@ -18,9 +19,7 @@ import {
 export const navGroups = [
   {
     label: "Overview",
-    items: [
-      { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    ],
+    items: [{ icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" }],
   },
   {
     label: "Work Management",
@@ -28,6 +27,7 @@ export const navGroups = [
       { icon: Users, label: "Clients", href: "/clients" },
       { icon: FolderKanban, label: "Projects", href: "/projects" },
       { icon: CheckSquare, label: "Tasks", href: "/tasks" },
+      { icon: Clock, label: "Time Tracking", href: "/time-tracking" },
       { icon: FileText, label: "Files", href: "/files" },
       { icon: Activity, label: "Activity Logs", href: "/activity-logs" },
     ],
@@ -56,7 +56,7 @@ export const navGroups = [
         href: "/settings",
       },
       { icon: Users, label: "Team & Roles", href: "/teams" },
-{ icon: Shield, label: "Security", href: "/org-security" },
+      { icon: Shield, label: "Security", href: "/org-security" },
       { icon: Code2, label: "Developer", href: "/developer" },
     ],
   },

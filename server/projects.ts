@@ -2,7 +2,20 @@ import "server-only";
 
 import { writeAuditLog } from "@/server/security/audit";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
-import { and, asc, count, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
@@ -16,12 +29,15 @@ import {
 } from "@/utils/pagination";
 import {
   PROJECT_STATUS_OPTIONS,
-  PROJECT_PRIORITY_OPTIONS,
   type ProjectFormValues,
   type ProjectStatus,
   type ProjectPriority,
   type ProjectBudgetType,
 } from "@/schemas/projects";
+import { captureServerEvent, orgDistinctId } from "@/lib/analytics/server";
+import { FUNNEL_EVENTS } from "@/lib/analytics/events";
+import { assertSameTenant } from "@/server/auth/tenant-guard";
+import { resolveModulePermissionsForUser } from "@/server/auth/permissions";
 
 export type ProjectModuleAccess = {
   organizationId: string;
@@ -93,9 +109,7 @@ function createId() {
 
 function resolveSort(sort: string | undefined, order: "asc" | "desc") {
   const col =
-    SORTABLE_COLUMNS[
-      (sort as SortKey) in SORTABLE_COLUMNS ? (sort as SortKey) : "updatedAt"
-    ];
+    SORTABLE_COLUMNS[(sort as SortKey) in SORTABLE_COLUMNS ? (sort as SortKey) : "updatedAt"];
   return order === "asc" ? asc(col) : desc(col);
 }
 
@@ -116,11 +130,18 @@ export async function getProjectModuleAccessForUser(
 ): Promise<ProjectModuleAccess | null> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
+  // Defence-in-depth: derive canWrite from the resolved role config so a
+  // workspace-level disable in /settings/roles propagates to mutations.
+  const perms = await resolveModulePermissionsForUser({
+    organizationId: context.organizationId,
+    roleKey: context.roleKey,
+    moduleKey: "projects",
+  });
   return {
     organizationId: context.organizationId,
     organizationName: context.organizationName,
     roleKey: context.roleKey,
-    canWrite: context.roleKey !== "client",
+    canWrite: perms.canCreate || perms.canEdit,
   };
 }
 
@@ -159,10 +180,7 @@ export async function listProjectsForUser(
     options.archivedOnly ? isNotNull(projects.deletedAt) : isNull(projects.deletedAt),
     clientId ? eq(projects.clientId, clientId) : undefined,
     trimmedQuery
-      ? or(
-          ilike(projects.name, `%${trimmedQuery}%`),
-          ilike(clients.name, `%${trimmedQuery}%`),
-        )
+      ? or(ilike(projects.name, `%${trimmedQuery}%`), ilike(clients.name, `%${trimmedQuery}%`))
       : undefined,
     status ? eq(projects.status, status) : undefined,
     priority ? eq(projects.priority, priority) : undefined,
@@ -219,10 +237,7 @@ export async function listProjectsForUser(
   };
 }
 
-export async function getProjectDetailForUser(
-  userId: string,
-  projectId: string,
-) {
+export async function getProjectDetailForUser(userId: string, projectId: string) {
   const access = await getProjectModuleAccessForUser(userId);
 
   if (!access) {
@@ -232,6 +247,7 @@ export async function getProjectDetailForUser(
   const rows = await db
     .select({
       id: projects.id,
+      organizationId: projects.organizationId,
       name: projects.name,
       clientId: projects.clientId,
       clientName: clients.name,
@@ -259,6 +275,10 @@ export async function getProjectDetailForUser(
 
   const row = rows[0];
   if (!row) return { access, project: null };
+  assertSameTenant(row.organizationId, access.organizationId, {
+    entity: "project",
+    entityId: row.id,
+  });
 
   return {
     access,
@@ -272,10 +292,7 @@ export async function getProjectDetailForUser(
   };
 }
 
-export async function getProjectForEditForUser(
-  userId: string,
-  projectId: string,
-) {
+export async function getProjectForEditForUser(userId: string, projectId: string) {
   const detail = await getProjectDetailForUser(userId, projectId);
 
   if (!detail.access || !detail.project) {
@@ -303,10 +320,7 @@ export async function getProjectForEditForUser(
   };
 }
 
-export async function createProjectForUser(
-  userId: string,
-  input: ProjectFormValues,
-) {
+export async function createProjectForUser(userId: string, input: ProjectFormValues) {
   const access = await getProjectModuleAccessForUser(userId);
 
   if (!access) {
@@ -338,6 +352,23 @@ export async function createProjectForUser(
     budgetCents: parseBudgetToCents(input.budget ?? ""),
     createdByUserId: userId,
   });
+
+  // Activation funnel: detect "first project for this org". Counts the just-
+  // inserted row, so a count of 1 means this was the first.
+  const [{ value: projectCount } = { value: 0 }] = await db
+    .select({ value: count() })
+    .from(projects)
+    .where(eq(projects.organizationId, access.organizationId));
+  if (projectCount === 1) {
+    void captureServerEvent({
+      distinctId: orgDistinctId(access.organizationId),
+      event: FUNNEL_EVENTS.firstProjectCreated,
+      properties: {
+        organizationId: access.organizationId,
+        projectId,
+      },
+    });
+  }
 
   writeAuditLog({
     organizationId: access.organizationId,
@@ -384,7 +415,12 @@ export async function updateProjectForUser(
   }
 
   const existing = await db
-    .select({ id: projects.id, name: projects.name, status: projects.status, priority: projects.priority })
+    .select({
+      id: projects.id,
+      name: projects.name,
+      status: projects.status,
+      priority: projects.priority,
+    })
     .from(projects)
     .where(
       and(
@@ -439,9 +475,7 @@ export async function updateProjectForUser(
 
   // Determine the most specific event key based on what changed
   const eventKey =
-    input.status === "completed"
-      ? "project_completed"
-      : ("project_updated" as const);
+    input.status === "completed" ? "project_completed" : ("project_updated" as const);
 
   // Notify all org members about the update (awaited so notification is in DB before response)
   const memberIdsForUpdate = await getOrgMemberUserIds(access.organizationId);
@@ -519,12 +553,7 @@ export async function restoreProjectForUser(userId: string, projectId: string) {
   const existing = await db
     .select({ id: projects.id, name: projects.name, deletedAt: projects.deletedAt })
     .from(projects)
-    .where(
-      and(
-        eq(projects.organizationId, access.organizationId),
-        eq(projects.id, projectId),
-      ),
-    )
+    .where(and(eq(projects.organizationId, access.organizationId), eq(projects.id, projectId)))
     .limit(1);
 
   if (!existing[0]) {

@@ -21,7 +21,7 @@ const METERED_FEATURES = [
 ] as const;
 
 /**
- * Monthly rollover — runs on the 1st of each month at 00:15 UTC.
+ * Monthly rollover - runs on the 1st of each month at 00:15 UTC.
  *
  * 1. Usage counter rollover: open fresh rows for every active org × metered
  *    feature for the new month. Previous month's rows stay in place as a
@@ -50,16 +50,14 @@ export async function POST(request: Request) {
     let rows = 0;
     for (const org of orgs) {
       for (const featureKey of METERED_FEATURES) {
-        await db
-          .insert(usageCounters)
-          .values({
-            id: crypto.randomUUID(),
-            organizationId: org.id,
-            featureKey,
-            periodStart: thisMonthStart,
-            periodEnd: nextMonthStart,
-            usedValue: 0,
-          });
+        await db.insert(usageCounters).values({
+          id: crypto.randomUUID(),
+          organizationId: org.id,
+          featureKey,
+          periodStart: thisMonthStart,
+          periodEnd: nextMonthStart,
+          usedValue: 0,
+        });
         rows++;
       }
     }
@@ -95,9 +93,7 @@ export async function POST(request: Request) {
         );
 
       const completionRate =
-        agg && agg.tasksCreated > 0
-          ? (agg.tasksCompleted / agg.tasksCreated).toFixed(4)
-          : "0";
+        agg && agg.tasksCreated > 0 ? (agg.tasksCompleted / agg.tasksCreated).toFixed(4) : "0";
 
       await db
         .insert(analyticsMonthlyOrgMetrics)
@@ -105,7 +101,7 @@ export async function POST(request: Request) {
           id: crypto.randomUUID(),
           organizationId: org.id,
           metricMonth: lastMonthStart,
-          newClients: 0, // placeholder — can be filled in by a future enrichment job
+          newClients: 0, // placeholder - can be filled in by a future enrichment job
           retainedClients: 0,
           taskCompletionRate: completionRate,
           mrrCents: agg?.mrrCents ?? 0,

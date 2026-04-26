@@ -70,6 +70,52 @@ export const notificationPreferences = pgTable(
   ],
 );
 
+/**
+ * Addresses we must not send to.
+ *
+ * - `unsubscribe` - the user clicked the unsubscribe link in an email footer.
+ * - `bounce` - Resend webhook reported a hard bounce.
+ * - `complaint` - the recipient's mail provider reported the message as spam.
+ *
+ * Checked before every send in `server/email/send.ts`. Critical transactional
+ * categories (auth, billing, security) bypass this list.
+ */
+export const emailSuppressions = pgTable("email_suppressions", {
+  email: text("email").primaryKey(),
+  reason: text("reason").notNull(),
+  source: text("source"),
+  metadata: jsonb("metadata"),
+  createdAt: createdAt(),
+});
+
+/**
+ * Per-email opt-in/opt-out for coarse email categories.
+ *
+ * Sits *alongside* the all-or-nothing `emailSuppressions` list and the
+ * per-event `notificationPreferences` table. Granularity is intentionally
+ * coarse (3 buckets) so the UI stays simple and our send-time check is one
+ * boolean lookup. Critical mail (auth/billing/security) ignores this table -
+ * those modules are never opt-out-able by category.
+ *
+ * Keyed by lowercased email so the row exists even before the recipient has
+ * a user account (e.g. invitee unsubscribing from invite reminders).
+ */
+export const emailCategoryPreferences = pgTable("email_category_preferences", {
+  email: text("email").primaryKey(),
+  // "Product" = task/project/file/notification/portal updates - the day-to-day
+  // workflow noise.
+  productOptIn: boolean("product_opt_in").default(true).notNull(),
+  // "Billing" here means *non-critical* billing nudges (usage warnings, plan
+  // suggestions). Hard billing events (invoice available, payment failed)
+  // route through the critical-modules bypass and ignore this flag.
+  billingOptIn: boolean("billing_opt_in").default(true).notNull(),
+  // "Marketing" = announcements, newsletters, growth pitches. Off-by-default
+  // would be ideal but we can't retroactively flip everyone; new rows default
+  // to true and the UI surfaces this clearly.
+  marketingOptIn: boolean("marketing_opt_in").default(true).notNull(),
+  updatedAt: updatedAt(),
+});
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -146,27 +192,48 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: createdAt(),
 });
 
-export const rateLimitBuckets = pgTable(
-  "rate_limit_buckets",
+// ── Feature flags ────────────────────────────────────────────────────────────
+
+/**
+ * Feature flags. Two-tier evaluation:
+ *
+ *   1. Per-organization override in featureFlagOverrides - wins if set.
+ *   2. Global default in featureFlags.enabled.
+ *
+ * The runtime helper (lib/feature-flags.ts) resolves a flag for a given org;
+ * platform admins can flip both tiers from /admin/feature-flags.
+ *
+ * Keys are short, dot-namespaced strings (e.g. "billing.proration_preview").
+ * Add a new key to FEATURE_FLAG_KEYS in lib/feature-flags.ts and seed it via
+ * /admin/feature-flags - code never reads an unseeded key directly.
+ */
+export const featureFlags = pgTable(
+  "feature_flags",
   {
     id: text("id").primaryKey(),
-    scopeType: text("scope_type").notNull(),
-    scopeKey: text("scope_key").notNull(),
-    routeKey: text("route_key").notNull(),
-    windowStart: timestamp("window_start").notNull(),
-    windowEnd: timestamp("window_end").notNull(),
-    requestCount: integer("request_count").default(0).notNull(),
-    blockedUntil: timestamp("blocked_until"),
+    key: text("key").notNull(),
+    description: text("description"),
+    enabled: boolean("enabled").default(false).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [uniqueIndex("feature_flags_key_unique").on(table.key)],
+);
+
+export const featureFlagOverrides = pgTable(
+  "feature_flag_overrides",
+  {
+    id: text("id").primaryKey(),
+    flagKey: text("flag_key").notNull(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").notNull(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
-    uniqueIndex("rate_limit_buckets_scope_route_window_unique").on(
-      table.scopeType,
-      table.scopeKey,
-      table.routeKey,
-      table.windowStart,
-    ),
+    uniqueIndex("feature_flag_overrides_flag_org_unique").on(table.flagKey, table.organizationId),
   ],
 );
 
@@ -212,34 +279,28 @@ export const platformAdminActions = pgTable("platform_admin_actions", {
 
 // ── Platform-wide analytics tables ───────────────────────────────────────────
 
-export const platformAnalyticsDailyMetrics = pgTable(
-  "platform_analytics_daily_metrics",
-  {
-    id: text("id").primaryKey(),
-    metricDate: timestamp("metric_date").notNull().unique(),
-    newSignups: integer("new_signups").default(0).notNull(),
-    activeOrgs: integer("active_orgs").default(0).notNull(),
-    dau: integer("dau").default(0).notNull(),
-    mau: integer("mau").default(0).notNull(),
-    newSubscriptions: integer("new_subscriptions").default(0).notNull(),
-    canceledSubscriptions: integer("canceled_subscriptions").default(0).notNull(),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-);
+export const platformAnalyticsDailyMetrics = pgTable("platform_analytics_daily_metrics", {
+  id: text("id").primaryKey(),
+  metricDate: timestamp("metric_date").notNull().unique(),
+  newSignups: integer("new_signups").default(0).notNull(),
+  activeOrgs: integer("active_orgs").default(0).notNull(),
+  dau: integer("dau").default(0).notNull(),
+  mau: integer("mau").default(0).notNull(),
+  newSubscriptions: integer("new_subscriptions").default(0).notNull(),
+  canceledSubscriptions: integer("canceled_subscriptions").default(0).notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
 
-export const platformAnalyticsMonthlyMetrics = pgTable(
-  "platform_analytics_monthly_metrics",
-  {
-    id: text("id").primaryKey(),
-    metricMonth: timestamp("metric_month").notNull().unique(),
-    mrrCents: integer("mrr_cents").default(0).notNull(),
-    arrCents: integer("arr_cents").default(0).notNull(),
-    newOrgs: integer("new_orgs").default(0).notNull(),
-    churnedOrgs: integer("churned_orgs").default(0).notNull(),
-    churnRate: numeric("churn_rate"),
-    trialConversionRate: numeric("trial_conversion_rate"),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-  },
-);
+export const platformAnalyticsMonthlyMetrics = pgTable("platform_analytics_monthly_metrics", {
+  id: text("id").primaryKey(),
+  metricMonth: timestamp("metric_month").notNull().unique(),
+  mrrCents: integer("mrr_cents").default(0).notNull(),
+  arrCents: integer("arr_cents").default(0).notNull(),
+  newOrgs: integer("new_orgs").default(0).notNull(),
+  churnedOrgs: integer("churned_orgs").default(0).notNull(),
+  churnRate: numeric("churn_rate"),
+  trialConversionRate: numeric("trial_conversion_rate"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

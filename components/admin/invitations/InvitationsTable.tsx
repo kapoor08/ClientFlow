@@ -52,7 +52,7 @@ function buildColumns(
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className="text-muted-foreground/30">—</span>
+          <span className="text-muted-foreground/30">-</span>
         ),
     },
     {
@@ -71,8 +71,8 @@ function buildColumns(
       header: "Invitee",
       cell: (inv) => (
         <>
-          <p className="text-sm font-medium text-foreground">{inv.email}</p>
-          <p className="text-xs text-muted-foreground">{inv.orgName}</p>
+          <p className="text-foreground text-sm font-medium">{inv.email}</p>
+          <p className="text-muted-foreground text-xs">{inv.orgName}</p>
         </>
       ),
     },
@@ -81,22 +81,20 @@ function buildColumns(
       header: "Role",
       hideOnMobile: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground capitalize">{inv.roleName}</span>
+        <span className="text-muted-foreground text-xs capitalize">{inv.roleName}</span>
       ),
     },
     {
       key: "status",
       header: "Status",
-      cell: (inv) => (
-        <StatusBadge status={inv.status} colorMap={ADMIN_INVITATION_STATUS_COLORS} />
-      ),
+      cell: (inv) => <StatusBadge status={inv.status} colorMap={ADMIN_INVITATION_STATUS_COLORS} />,
     },
     {
       key: "inviterName",
       header: "Invited By",
       hideOnTablet: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground">{inv.inviterName ?? "-"}</span>
+        <span className="text-muted-foreground text-xs">{inv.inviterName ?? "-"}</span>
       ),
     },
     {
@@ -104,7 +102,7 @@ function buildColumns(
       header: "Expires",
       hideOnMobile: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
           {formatDistanceToNow(new Date(inv.expiresAt), { addSuffix: true })}
         </span>
       ),
@@ -114,7 +112,7 @@ function buildColumns(
       header: "Sent",
       hideOnTablet: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
+        <span className="text-muted-foreground text-xs whitespace-nowrap">
           {formatDistanceToNow(new Date(inv.createdAt), { addSuffix: true })}
         </span>
       ),
@@ -202,15 +200,15 @@ export function InvitationsTable({ data, pagination }: Props) {
   return (
     <>
       {selected.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2.5">
+        <div className="rounded-card border-primary/30 bg-primary/5 mb-3 flex flex-wrap items-center justify-between gap-3 border px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-foreground">{selected.size}</span>
+            <span className="text-foreground font-semibold">{selected.size}</span>
             <span className="text-muted-foreground">
               pending invitation{selected.size === 1 ? "" : "s"} selected
             </span>
             <button
               onClick={clearSelection}
-              className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              className="text-muted-foreground hover:text-foreground ml-2 inline-flex cursor-pointer items-center gap-1 text-xs"
             >
               <X size={11} /> Clear
             </button>
@@ -220,13 +218,9 @@ export function InvitationsTable({ data, pagination }: Props) {
             size="sm"
             onClick={handleBulkRevoke}
             disabled={isBulkPending}
-            className="gap-1.5 cursor-pointer border-warning/40 text-warning hover:bg-warning/10"
+            className="border-warning/40 text-warning hover:bg-warning/10 cursor-pointer gap-1.5"
           >
-            {isBulkPending ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <XCircle size={13} />
-            )}
+            {isBulkPending ? <Loader2 size={13} className="animate-spin" /> : <XCircle size={13} />}
             Revoke
           </Button>
         </div>

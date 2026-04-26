@@ -11,6 +11,11 @@ export const user = pgTable("user", {
   isPlatformAdmin: boolean("is_platform_admin").default(false).notNull(),
   isSuspended: boolean("is_suspended").default(false).notNull(),
   lastLoginAt: timestamp("last_login_at"),
+  // GDPR Article 17 - self-service account deletion.
+  // `deletionScheduledAt` = end of 30-day grace period (user can cancel until then).
+  // `deletedAt`           = tombstone set by the nightly housekeeping cron after anonymization.
+  deletionScheduledAt: timestamp("deletion_scheduled_at"),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

@@ -28,7 +28,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
  *   - Writes the new IDs back to the plans row
  *
  * Plans with $0 pricing (Free Trial) or no price (Enterprise) will get a
- * Product but no Price — those plans aren't purchasable via Stripe checkout
+ * Product but no Price - those plans aren't purchasable via Stripe checkout
  * and that's fine.
  */
 async function backfill() {
@@ -40,7 +40,7 @@ async function backfill() {
   `;
 
   if (rows.length === 0) {
-    console.log("No plans need backfilling — every plan already has a Stripe product ID.");
+    console.log("No plans need backfilling - every plan already has a Stripe product ID.");
     return;
   }
 

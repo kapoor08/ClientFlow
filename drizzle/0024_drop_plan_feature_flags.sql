@@ -1,0 +1,1 @@
+DROP TABLE "plan_feature_flags" CASCADE;

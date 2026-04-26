@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,14 +10,12 @@ import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import {
-  authRoutes,
-  getAuthErrorMessage,
-  useGoogleSignIn,
-  useSignUp,
-} from "@/core/auth";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { authRoutes, getAuthErrorMessage, useGoogleSignIn, useSignUp } from "@/core/auth";
 import { toast } from "sonner";
 import GooogleIcon from "@/components/ui/google-icon";
+import { captureClientEvent } from "@/lib/analytics/client";
+import { FUNNEL_EVENTS } from "@/lib/analytics/events";
 
 const signUpSchema = z
   .object({
@@ -35,10 +33,11 @@ const signUpSchema = z
       })
       .refine((v) => /[0-9]/.test(v), {
         message: "Password must include at least one number.",
+      })
+      .refine((v) => /[^A-Za-z0-9]/.test(v), {
+        message: "Password must include at least one symbol.",
       }),
-    confirmPassword: z
-      .string()
-      .min(1, { message: "Please confirm your password." }),
+    confirmPassword: z.string().min(1, { message: "Please confirm your password." }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match.",
@@ -54,6 +53,14 @@ const SignUp = () => {
   const signUp = useSignUp();
   const googleSignIn = useGoogleSignIn();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
+
+  useEffect(() => {
+    captureClientEvent(FUNNEL_EVENTS.signUpStarted, {
+      method: "email",
+      redirectTo: redirectTo || null,
+    });
+  }, [redirectTo]);
 
   const {
     control,
@@ -79,7 +86,9 @@ const SignUp = () => {
         email: values.email,
         password: values.password,
         callbackURL: authRoutes.signIn,
+        cfTurnstileResponse: captchaToken || undefined,
       });
+      captureClientEvent(FUNNEL_EVENTS.signUpDone, { method: "email" });
       toast.success("Account created. Please verify your email.");
       const verifyUrl = `${authRoutes.verifyEmail}?email=${encodeURIComponent(values.email.trim())}${redirectTo ? `&redirectTo=${encodeURIComponent(redirectTo)}` : ""}`;
       router.push(verifyUrl);
@@ -90,6 +99,7 @@ const SignUp = () => {
 
   async function handleGoogleSignUp() {
     setApiError(null);
+    captureClientEvent(FUNNEL_EVENTS.signUpStarted, { method: "google" });
     try {
       await googleSignIn.mutateAsync(authRoutes.dashboard);
     } catch (err) {
@@ -119,9 +129,9 @@ const SignUp = () => {
         </Button>
 
         <div className="relative flex items-center gap-3">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">OR</span>
-          <div className="h-px flex-1 bg-border" />
+          <div className="bg-border h-px flex-1" />
+          <span className="text-muted-foreground text-xs">OR</span>
+          <div className="bg-border h-px flex-1" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -175,6 +185,8 @@ const SignUp = () => {
           showPasswordToggle
         />
 
+        <TurnstileWidget onToken={setCaptchaToken} />
+
         <Button
           type="submit"
           className="w-full cursor-pointer"
@@ -184,7 +196,7 @@ const SignUp = () => {
         </Button>
       </form>
 
-      <p className="mt-3 text-center text-xs text-muted-foreground">
+      <p className="text-muted-foreground mt-3 text-center text-xs">
         By signing up, you agree to our{" "}
         <Link href="/terms" className="text-primary hover:underline">
           Terms
@@ -196,7 +208,7 @@ const SignUp = () => {
         .
       </p>
 
-      <div className="mt-4 text-center text-sm text-muted-foreground">
+      <div className="text-muted-foreground mt-4 text-center text-sm">
         Already have an account?{" "}
         <Link
           href={
@@ -204,7 +216,7 @@ const SignUp = () => {
               ? `${authRoutes.signIn}?redirectTo=${encodeURIComponent(redirectTo)}`
               : authRoutes.signIn
           }
-          className="font-medium text-primary hover:underline"
+          className="text-primary font-medium hover:underline"
         >
           Sign in
         </Link>

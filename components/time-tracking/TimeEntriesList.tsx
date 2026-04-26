@@ -25,9 +25,9 @@ type Props = {
   taskId?: string;
   /** When set (and no taskId), lists entries scoped to this project. */
   projectId?: string;
-  /** Current user — used to gate the delete button to entry owners. */
+  /** Current user - used to gate the delete button to entry owners. */
   currentUserId: string;
-  /** Collapsed by default — click the header to expand. */
+  /** Collapsed by default - click the header to expand. */
   defaultExpanded?: boolean;
 };
 
@@ -91,11 +91,11 @@ export function TimeEntriesList({
   }
 
   return (
-    <div className="rounded-md border border-border">
+    <div className="border-border rounded-md border">
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-secondary/40 transition-colors cursor-pointer"
+        className="hover:bg-secondary/40 flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left transition-colors"
       >
         <div className="flex items-center gap-2 text-sm">
           {expanded ? (
@@ -104,9 +104,7 @@ export function TimeEntriesList({
             <ChevronRight size={13} className="text-muted-foreground" />
           )}
           <Clock size={13} className="text-muted-foreground" />
-          <span className="font-medium text-foreground">
-            {minutesToEstimate(totalMinutes)}
-          </span>
+          <span className="text-foreground font-medium">{minutesToEstimate(totalMinutes)}</span>
           <span className="text-muted-foreground">
             · {entries.length} {entries.length === 1 ? "entry" : "entries"}
           </span>
@@ -114,10 +112,10 @@ export function TimeEntriesList({
       </button>
 
       {expanded && (
-        <div className="divide-y divide-border border-t border-border">
+        <div className="divide-border border-border divide-y border-t">
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 size={14} className="animate-spin text-muted-foreground" />
+              <Loader2 size={14} className="text-muted-foreground animate-spin" />
             </div>
           ) : (
             entries.map((entry) => {
@@ -129,18 +127,16 @@ export function TimeEntriesList({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                      <span className="font-medium text-foreground">
+                      <span className="text-foreground font-medium">
                         {minutesToEstimate(entry.minutes)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        by {entry.userName}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground/70">
+                      <span className="text-muted-foreground text-xs">by {entry.userName}</span>
+                      <span className="text-muted-foreground/70 text-[10px]">
                         · {formatDistanceToNow(new Date(entry.loggedAt), { addSuffix: true })}
                       </span>
                     </div>
                     {entry.description && (
-                      <p className="mt-0.5 text-xs text-muted-foreground leading-snug">
+                      <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
                         {entry.description}
                       </p>
                     )}
@@ -150,7 +146,7 @@ export function TimeEntriesList({
                       type="button"
                       onClick={() => deleteMutation.mutate(entry.id)}
                       disabled={deleteMutation.isPending}
-                      className="shrink-0 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:text-danger group-hover:opacity-100 cursor-pointer disabled:opacity-40"
+                      className="text-muted-foreground hover:text-danger shrink-0 cursor-pointer rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-40"
                       title="Delete entry"
                     >
                       {deleteMutation.isPending && deleteMutation.variables === entry.id ? (

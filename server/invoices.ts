@@ -6,6 +6,7 @@ import { invoices, clients } from "@/db/schema";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import type { InvoiceLineItem } from "@/db/schemas/billing";
 import { writeAuditLog } from "@/server/security/audit";
+import { assertSameTenant } from "@/server/auth/tenant-guard";
 import {
   DEFAULT_PAGE_SIZE,
   buildPaginationMeta,
@@ -63,9 +64,7 @@ type InvoiceSortKey = keyof typeof SORTABLE_INVOICE_COLUMNS;
 function resolveInvoiceSort(sort: string | undefined, order: "asc" | "desc") {
   const col =
     SORTABLE_INVOICE_COLUMNS[
-      (sort as InvoiceSortKey) in SORTABLE_INVOICE_COLUMNS
-        ? (sort as InvoiceSortKey)
-        : "createdAt"
+      (sort as InvoiceSortKey) in SORTABLE_INVOICE_COLUMNS ? (sort as InvoiceSortKey) : "createdAt"
     ];
   return order === "asc" ? asc(col) : desc(col);
 }
@@ -167,6 +166,7 @@ export async function getInvoiceForUser(
   const [row] = await db
     .select({
       id: invoices.id,
+      organizationId: invoices.organizationId,
       number: invoices.number,
       title: invoices.title,
       status: invoices.status,
@@ -186,15 +186,14 @@ export async function getInvoiceForUser(
     })
     .from(invoices)
     .leftJoin(clients, eq(invoices.clientId, clients.id))
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!row) return null;
+  assertSameTenant(row.organizationId, ctx.organizationId, {
+    entity: "invoice",
+    entityId: row.id,
+  });
 
   return {
     ...row,
@@ -209,12 +208,7 @@ async function nextInvoiceNumber(organizationId: string): Promise<string> {
   const existing = await db
     .select({ number: invoices.number })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.organizationId, organizationId),
-        eq(invoices.isManual, true),
-      ),
-    );
+    .where(and(eq(invoices.organizationId, organizationId), eq(invoices.isManual, true)));
 
   const used = new Set(existing.map((r) => r.number).filter(Boolean));
   let seq = used.size + 1;
@@ -279,19 +273,13 @@ export async function updateInvoiceForUser(
   const [existing] = await db
     .select({ id: invoices.id, isManual: invoices.isManual })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!existing) throw new Error("Invoice not found.");
   if (!existing.isManual) throw new Error("Stripe invoices cannot be edited here.");
 
-  const amountDueCents =
-    input.lineItems ? calcAmountDue(input.lineItems) : undefined;
+  const amountDueCents = input.lineItems ? calcAmountDue(input.lineItems) : undefined;
 
   await db
     .update(invoices)
@@ -308,7 +296,11 @@ export async function updateInvoiceForUser(
 
   // Re-fetch for audit metadata
   const [updated] = await db
-    .select({ number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents })
+    .select({
+      number: invoices.number,
+      title: invoices.title,
+      amountDueCents: invoices.amountDueCents,
+    })
     .from(invoices)
     .where(eq(invoices.id, invoiceId))
     .limit(1);
@@ -327,23 +319,21 @@ export async function updateInvoiceForUser(
   }).catch(console.error);
 }
 
-export async function markInvoicePaidForUser(
-  userId: string,
-  invoiceId: string,
-): Promise<void> {
+export async function markInvoicePaidForUser(userId: string, invoiceId: string): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
   if (!ctx.canManageSettings) throw new Error("Only admins can mark invoices as paid.");
 
   const [existing] = await db
-    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual })
+    .select({
+      id: invoices.id,
+      number: invoices.number,
+      title: invoices.title,
+      amountDueCents: invoices.amountDueCents,
+      isManual: invoices.isManual,
+    })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!existing) throw new Error("Invoice not found.");
@@ -373,23 +363,21 @@ export async function markInvoicePaidForUser(
   }).catch(console.error);
 }
 
-export async function markInvoiceSentForUser(
-  userId: string,
-  invoiceId: string,
-): Promise<void> {
+export async function markInvoiceSentForUser(userId: string, invoiceId: string): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
   if (!ctx.canManageSettings) throw new Error("Only admins can send invoices.");
 
   const [existing] = await db
-    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual })
+    .select({
+      id: invoices.id,
+      number: invoices.number,
+      title: invoices.title,
+      amountDueCents: invoices.amountDueCents,
+      isManual: invoices.isManual,
+    })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!existing) throw new Error("Invoice not found.");
@@ -452,12 +440,7 @@ export async function getInvoicePDFDataForUser(
     })
     .from(invoices)
     .leftJoin(clients, eq(invoices.clientId, clients.id))
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!row) return null;
@@ -475,23 +458,22 @@ export async function getInvoicePDFDataForUser(
   };
 }
 
-export async function deleteInvoiceForUser(
-  userId: string,
-  invoiceId: string,
-): Promise<void> {
+export async function deleteInvoiceForUser(userId: string, invoiceId: string): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
   if (!ctx.canManageSettings) throw new Error("Only admins can delete invoices.");
 
   const [existing] = await db
-    .select({ id: invoices.id, number: invoices.number, title: invoices.title, amountDueCents: invoices.amountDueCents, isManual: invoices.isManual, status: invoices.status })
+    .select({
+      id: invoices.id,
+      number: invoices.number,
+      title: invoices.title,
+      amountDueCents: invoices.amountDueCents,
+      isManual: invoices.isManual,
+      status: invoices.status,
+    })
     .from(invoices)
-    .where(
-      and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!existing) throw new Error("Invoice not found.");

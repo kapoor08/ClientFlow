@@ -4,9 +4,7 @@ import { exportAdminAuditLogs } from "@/server/admin/audit-logs";
 
 function escape(v: unknown): string {
   const s = v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
-  return s.includes(",") || s.includes('"') || s.includes("\n")
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
+  return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export async function GET(req: NextRequest) {
@@ -18,6 +16,7 @@ export async function GET(req: NextRequest) {
   const rows = await exportAdminAuditLogs({
     query: sp.get("q") || undefined,
     entityType: sp.get("entityType") || undefined,
+    actor: sp.get("actor") || undefined,
     dateFrom: sp.get("dateFrom") || undefined,
     dateTo: sp.get("dateTo") || undefined,
   });

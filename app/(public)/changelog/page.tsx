@@ -1,9 +1,11 @@
+import { buildMetadata } from "@/lib/seo";
 import ChangelogPage from ".";
 
-export const metdata = {
-  title: "Changelog - ClientFlow",
+export const metadata = buildMetadata({
+  title: "Changelog",
   description:
-    "Stay updated with the latest changes in ClientFlow. Explore new features, improvements, and bug fixes in our changelog. See what's new in each release and how we're enhancing your client management experience.",
-};
+    "Stay updated with the latest changes in ClientFlow. Explore new features, improvements, and bug fixes in our changelog.",
+  path: "/changelog",
+});
 
 export default ChangelogPage;

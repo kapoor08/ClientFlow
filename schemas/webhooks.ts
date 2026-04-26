@@ -8,6 +8,7 @@ export const WEBHOOK_EVENTS = [
   "client.created",
   "client.updated",
   "invoice.paid",
+  "invoice.refunded",
   "team.member_added",
   "team.member_removed",
 ] as const;

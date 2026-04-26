@@ -11,12 +11,8 @@ import {
   organizationCurrentSubscriptions,
   platformAdminActions,
 } from "@/db/schema";
-import { stripe, isStripeConfigured } from "@/server/third-party/stripe";
-import {
-  buildPaginationMeta,
-  paginationOffset,
-  type PaginatedResult,
-} from "@/utils/pagination";
+import { stripe, isStripeConfigured, withStripeBreaker } from "@/server/third-party/stripe";
+import { buildPaginationMeta, paginationOffset, type PaginatedResult } from "@/utils/pagination";
 
 type ListAdminSubscriptionsOptions = {
   query?: string;
@@ -64,7 +60,10 @@ export async function listAdminSubscriptions(
     .from(organizationCurrentSubscriptions)
     .innerJoin(subscriptions, eq(organizationCurrentSubscriptions.subscriptionId, subscriptions.id))
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .innerJoin(organizations, eq(organizationCurrentSubscriptions.organizationId, organizations.id));
+    .innerJoin(
+      organizations,
+      eq(organizationCurrentSubscriptions.organizationId, organizations.id),
+    );
 
   const [{ total }] = await baseFrom.where(where);
   const pagination = buildPaginationMeta(total, page, pageSize);
@@ -100,8 +99,14 @@ export async function getAdminBillingStats() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [activeRows, trialingRows, canceledThisMonth, mrrRows] = await Promise.all([
-    db.select({ value: count(subscriptions.id) }).from(subscriptions).where(eq(subscriptions.status, "active")),
-    db.select({ value: count(subscriptions.id) }).from(subscriptions).where(eq(subscriptions.status, "trialing")),
+    db
+      .select({ value: count(subscriptions.id) })
+      .from(subscriptions)
+      .where(eq(subscriptions.status, "active")),
+    db
+      .select({ value: count(subscriptions.id) })
+      .from(subscriptions)
+      .where(eq(subscriptions.status, "trialing")),
     db
       .select({ value: count(subscriptions.id) })
       .from(subscriptions)
@@ -178,11 +183,7 @@ async function logPlatformAdminAction(opts: {
   });
 }
 
-export async function extendTrial(
-  subscriptionId: string,
-  days: number,
-  adminUserId: string,
-) {
+export async function extendTrial(subscriptionId: string, days: number, adminUserId: string) {
   const [sub] = await db
     .select({ trialEndsAt: subscriptions.trialEndsAt })
     .from(subscriptions)
@@ -299,7 +300,7 @@ export async function refundStripeInvoice(
   opts: { amountCents?: number; reason?: string } = {},
 ): Promise<RefundResult> {
   if (!isStripeConfigured) {
-    throw new Error("Stripe is not configured — cannot process refunds.");
+    throw new Error("Stripe is not configured - cannot process refunds.");
   }
 
   const [invoice] = await db
@@ -317,14 +318,16 @@ export async function refundStripeInvoice(
 
   if (!invoice) throw new Error("Invoice not found.");
   if (!invoice.externalInvoiceId) {
-    throw new Error("Invoice is not synced with Stripe — nothing to refund.");
+    throw new Error("Invoice is not synced with Stripe - nothing to refund.");
   }
   if (invoice.status !== "paid") {
     throw new Error(`Cannot refund an invoice in status "${invoice.status}".`);
   }
 
   // Fetch the Stripe invoice to get its payment_intent
-  const stripeInvoice = await stripe.invoices.retrieve(invoice.externalInvoiceId);
+  const stripeInvoice = await withStripeBreaker("invoices.retrieve", () =>
+    stripe.invoices.retrieve(invoice.externalInvoiceId!),
+  );
   const inv = stripeInvoice as unknown as Record<string, unknown>;
   const paymentIntentId =
     typeof inv.payment_intent === "string" ? (inv.payment_intent as string) : null;
@@ -341,18 +344,23 @@ export async function refundStripeInvoice(
       ? opts.reason
       : "requested_by_customer";
 
-  const refund = await stripe.refunds.create({
-    ...(paymentIntentId ? { payment_intent: paymentIntentId } : { charge: chargeId! }),
-    ...(opts.amountCents != null && opts.amountCents > 0 ? { amount: opts.amountCents } : {}),
-    reason: reasonEnum,
-    metadata: {
-      organizationId: invoice.organizationId,
-      internalInvoiceId: invoice.id,
-      adminUserId,
-    },
-  });
+  const refund = await withStripeBreaker("refunds.create", () =>
+    stripe.refunds.create({
+      ...(paymentIntentId ? { payment_intent: paymentIntentId } : { charge: chargeId! }),
+      ...(opts.amountCents != null && opts.amountCents > 0 ? { amount: opts.amountCents } : {}),
+      reason: reasonEnum,
+      metadata: {
+        organizationId: invoice.organizationId,
+        internalInvoiceId: invoice.id,
+        adminUserId,
+      },
+    }),
+  );
 
-  const refundedCents = typeof refund.amount === "number" ? refund.amount : opts.amountCents ?? invoice.amountPaidCents ?? 0;
+  const refundedCents =
+    typeof refund.amount === "number"
+      ? refund.amount
+      : (opts.amountCents ?? invoice.amountPaidCents ?? 0);
   const isFull = refundedCents >= (invoice.amountPaidCents ?? 0);
 
   await db

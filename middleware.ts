@@ -9,7 +9,7 @@ import { authRatelimit, apiRatelimit } from "@/server/rate-limit";
  */
 const SESSION_COOKIES = [
   "__Secure-better-auth.session_token", // production (Vercel / any HTTPS)
-  "better-auth.session_token",           // development (localhost HTTP)
+  "better-auth.session_token", // development (localhost HTTP)
 ];
 
 /**
@@ -38,13 +38,7 @@ const PROTECTED_PREFIXES = [
 /**
  * Paths that are always public (never redirect to sign-in).
  */
-const PUBLIC_PREFIXES = [
-  "/auth/",
-  "/api/auth/",
-  "/_next/",
-  "/favicon",
-  "/logo",
-];
+const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/_next/", "/favicon", "/logo"];
 
 /**
  * Auth API routes that get the stricter rate limit.
@@ -66,17 +60,38 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-export async function proxy(request: NextRequest) {
+/**
+ * Trust upstream `x-request-id` if present (Vercel forwards one), otherwise
+ * mint a fresh one. The ID is forwarded onto the request so server components
+ * can read it via `headers().get("x-request-id")` and is echoed back on the
+ * response so clients can quote it when reporting bugs.
+ */
+function ensureRequestId(request: NextRequest): { id: string; headers: Headers } {
+  const incoming = request.headers.get("x-request-id");
+  const id = incoming && incoming.length <= 200 ? incoming : crypto.randomUUID();
+  const headers = new Headers(request.headers);
+  headers.set("x-request-id", id);
+  return { id, headers };
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ip = getClientIp(request);
+  const { id: requestId, headers: forwardedHeaders } = ensureRequestId(request);
+
+  const withRequestId = (res: NextResponse) => {
+    res.headers.set("x-request-id", requestId);
+    return res;
+  };
+  const passThrough = () =>
+    withRequestId(NextResponse.next({ request: { headers: forwardedHeaders } }));
 
   // Rate limit auth endpoints (stricter)
   if (AUTH_API_PREFIXES.some((p) => pathname.startsWith(p))) {
     const { success, limit, remaining, reset } = await authRatelimit.limit(ip);
     if (!success) {
-      return new NextResponse(
-        JSON.stringify({ error: "Too many requests. Please try again later." }),
-        {
+      return withRequestId(
+        new NextResponse(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: {
             "Content-Type": "application/json",
@@ -85,19 +100,21 @@ export async function proxy(request: NextRequest) {
             "X-RateLimit-Reset": String(reset),
             "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
           },
-        },
+        }),
       );
     }
-    return NextResponse.next();
+    return passThrough();
   }
 
-  // Rate limit all other API routes (general)
+  // Rate limit all other API routes (general).
+  // /api/health is intentionally included - uptime probes at 60s cadence from
+  // a single IP stay well under the 120/60s bucket, and any runaway caller
+  // shouldn't bypass the limit just because the endpoint is cheap.
   if (pathname.startsWith("/api/")) {
     const { success, limit, remaining, reset } = await apiRatelimit.limit(ip);
     if (!success) {
-      return new NextResponse(
-        JSON.stringify({ error: "Too many requests. Please try again later." }),
-        {
+      return withRequestId(
+        new NextResponse(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: {
             "Content-Type": "application/json",
@@ -106,38 +123,36 @@ export async function proxy(request: NextRequest) {
             "X-RateLimit-Reset": String(reset),
             "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
           },
-        },
+        }),
       );
     }
-    return NextResponse.next();
+    return passThrough();
   }
 
   // Always allow public paths
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+    return passThrough();
   }
 
   // Check if this is a protected route
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  if (!isProtected) return NextResponse.next();
+  if (!isProtected) return passThrough();
 
   // Check for a session cookie (works for both dev and production cookie names)
-  const sessionToken = SESSION_COOKIES.some(
-    (name) => request.cookies.get(name)?.value,
-  );
+  const sessionToken = SESSION_COOKIES.some((name) => request.cookies.get(name)?.value);
 
   if (!sessionToken) {
     // No session - redirect to sign-in, preserving the intended destination
     const signInUrl = new URL("/auth/sign-in", request.url);
     signInUrl.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(signInUrl);
+    return withRequestId(NextResponse.redirect(signInUrl));
   }
 
   // Session exists - allow through.
   // Deep SSO enforcement (checking if the org requires SSO for this specific
   // user) is handled at the application layer in server components, since
   // middleware runs on the Edge Runtime without access to the database.
-  return NextResponse.next();
+  return passThrough();
 }
 
 export const config = {

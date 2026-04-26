@@ -1,10 +1,12 @@
 "use server";
 
 import { sql } from "drizzle-orm";
+import { headers } from "next/headers";
 import { db } from "@/server/db/client";
 import { contactSubmissions } from "@/db/schema";
 import { sendContactEmailViaEmailJs } from "@/server/third-party/emailjs";
 import { onContactFormSubmitted } from "@/server/email/triggers";
+import { verifyTurnstileToken } from "@/server/security/turnstile";
 
 export type ContactActionState = {
   status: "idle" | "success" | "error";
@@ -57,6 +59,18 @@ export async function submitContactFormAction(
     };
   }
 
+  // Bot challenge - soft-skipped if TURNSTILE_SECRET_KEY isn't configured.
+  const reqHeaders = await headers();
+  const remoteIp =
+    reqHeaders.get("x-real-ip") ?? reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const captcha = await verifyTurnstileToken(getField(formData, "cf-turnstile-response"), remoteIp);
+  if (!captcha.ok) {
+    return {
+      status: "error",
+      message: "Could not verify the challenge. Please try again.",
+    };
+  }
+
   try {
     const tasks: Promise<unknown>[] = [
       // Persist to database
@@ -84,9 +98,7 @@ export async function submitContactFormAction(
 
     // EmailJS contact template - only when EmailJS is the configured provider
     if (process.env.EMAILJS_PUBLIC_KEY) {
-      tasks.push(
-        sendContactEmailViaEmailJs({ name, email, company, subject, message }),
-      );
+      tasks.push(sendContactEmailViaEmailJs({ name, email, company, subject, message }));
     }
 
     await Promise.all(tasks);
@@ -98,10 +110,7 @@ export async function submitContactFormAction(
   } catch (error) {
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : "Unable to send your message right now.",
+      message: error instanceof Error ? error.message : "Unable to send your message right now.",
     };
   }
 }

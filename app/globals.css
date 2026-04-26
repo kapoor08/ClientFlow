@@ -1,5 +1,15 @@
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../app/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../components/**/*.{js,ts,jsx,tsx,mdx}";
+@source "../constants/**/*.{js,ts,jsx,tsx}";
+@source "../core/**/*.{js,ts,jsx,tsx}";
+@source "../emails/**/*.{js,ts,jsx,tsx}";
+@source "../hooks/**/*.{js,ts,jsx,tsx}";
+@source "../lib/**/*.{js,ts,jsx,tsx}";
+@source "../providers/**/*.{js,ts,jsx,tsx}";
+@source "../server/**/*.{js,ts,jsx,tsx}";
+@source "../utils/**/*.{js,ts,jsx,tsx}";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -245,7 +255,7 @@
   }
 
   body {
-    @apply antialiased bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--cf-font-body);
   }
 

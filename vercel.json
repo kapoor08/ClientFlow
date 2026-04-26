@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["bom1"],
+  "functions": {
+    "app/api/billing/webhook/route.ts": { "maxDuration": 30 },
+    "app/api/invoices/[id]/pdf/route.ts": { "maxDuration": 60 },
+    "app/api/exports/[entity]/route.ts": { "maxDuration": 60 },
+    "app/api/cron/analytics-daily-rollup/route.ts": { "maxDuration": 300 },
+    "app/api/cron/daily-expirations/route.ts": { "maxDuration": 300 },
+    "app/api/cron/monthly-rollover/route.ts": { "maxDuration": 300 },
+    "app/api/cron/nightly-housekeeping/route.ts": { "maxDuration": 300 },
+    "app/api/cron/payment-method-reminders/route.ts": { "maxDuration": 300 },
+    "app/api/cron/support-sla-sweep/route.ts": { "maxDuration": 300 },
+    "app/api/cron/task-notifications/route.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/cron/task-notifications", "schedule": "0 * * * *" },
+    { "path": "/api/cron/support-sla-sweep", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/daily-expirations", "schedule": "0 1 * * *" },
+    { "path": "/api/cron/analytics-daily-rollup", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/nightly-housekeeping", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/payment-method-reminders", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/monthly-rollover", "schedule": "0 2 1 * *" }
+  ]
+}

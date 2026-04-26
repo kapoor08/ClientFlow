@@ -19,13 +19,21 @@ export default defineConfig({
     {
       // Public tests - no authentication required
       name: "public",
-      testMatch: "**/auth.spec.ts",
+      testMatch: ["**/auth.spec.ts", "**/a11y-public.spec.ts"],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       // Authenticated tests - reuse saved session state
       name: "authenticated",
-      testMatch: ["**/projects.spec.ts", "**/tasks.spec.ts", "**/invoices.spec.ts"],
+      testMatch: [
+        "**/projects.spec.ts",
+        "**/tasks.spec.ts",
+        "**/invoices.spec.ts",
+        "**/clients.spec.ts",
+        "**/settings.spec.ts",
+        "**/org-security.spec.ts",
+        "**/a11y-protected.spec.ts",
+      ],
       use: {
         ...devices["Desktop Chrome"],
         storageState: "tests/e2e/.auth-state.json",

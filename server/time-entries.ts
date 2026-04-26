@@ -47,12 +47,7 @@ export async function logTimeForUser(
   const [project] = await db
     .select({ id: projects.id, name: projects.name })
     .from(projects)
-    .where(
-      and(
-        eq(projects.id, input.projectId),
-        eq(projects.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(projects.id, input.projectId), eq(projects.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!project) throw new Error("Project not found.");
@@ -138,10 +133,7 @@ export async function listTimeEntriesForProject(
     .leftJoin(tasks, eq(timeEntries.taskId, tasks.id))
     .leftJoin(user, eq(timeEntries.userId, user.id))
     .where(
-      and(
-        eq(timeEntries.projectId, projectId),
-        eq(timeEntries.organizationId, ctx.organizationId),
-      ),
+      and(eq(timeEntries.projectId, projectId), eq(timeEntries.organizationId, ctx.organizationId)),
     )
     .orderBy(desc(timeEntries.loggedAt));
 
@@ -174,12 +166,7 @@ export async function listTimeEntriesForTask(
     .from(timeEntries)
     .leftJoin(tasks, eq(timeEntries.taskId, tasks.id))
     .leftJoin(user, eq(timeEntries.userId, user.id))
-    .where(
-      and(
-        eq(timeEntries.taskId, taskId),
-        eq(timeEntries.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(timeEntries.taskId, taskId), eq(timeEntries.organizationId, ctx.organizationId)))
     .orderBy(desc(timeEntries.loggedAt));
 
   return rows.map((r) => ({
@@ -188,22 +175,14 @@ export async function listTimeEntriesForTask(
   }));
 }
 
-export async function deleteTimeEntryForUser(
-  userId: string,
-  entryId: string,
-): Promise<void> {
+export async function deleteTimeEntryForUser(userId: string, entryId: string): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
 
   const [entry] = await db
     .select({ id: timeEntries.id, userId: timeEntries.userId })
     .from(timeEntries)
-    .where(
-      and(
-        eq(timeEntries.id, entryId),
-        eq(timeEntries.organizationId, ctx.organizationId),
-      ),
-    )
+    .where(and(eq(timeEntries.id, entryId), eq(timeEntries.organizationId, ctx.organizationId)))
     .limit(1);
 
   if (!entry) throw new Error("Time entry not found.");
@@ -224,6 +203,136 @@ export async function deleteTimeEntryForUser(
   }).catch(console.error);
 }
 
+// ─── Org-wide listing + summary (used by /time-tracking) ────────────────────
+
+export type OrgTimeEntryFilters = {
+  projectId?: string;
+  userId?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  pageSize?: number;
+};
+
+export type OrgTimeEntriesPage = {
+  entries: TimeEntryItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  totalMinutes: number;
+};
+
+export async function listTimeEntriesForOrg(
+  userId: string,
+  filters: OrgTimeEntryFilters = {},
+): Promise<OrgTimeEntriesPage | null> {
+  const ctx = await getOrganizationSettingsContextForUser(userId);
+  if (!ctx) return null;
+
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 25));
+
+  const conditions = [eq(timeEntries.organizationId, ctx.organizationId)];
+  if (filters.projectId) conditions.push(eq(timeEntries.projectId, filters.projectId));
+  if (filters.userId) conditions.push(eq(timeEntries.userId, filters.userId));
+  if (filters.dateFrom) {
+    conditions.push(sql`${timeEntries.loggedAt} >= ${filters.dateFrom.toISOString()}`);
+  }
+  if (filters.dateTo) {
+    conditions.push(sql`${timeEntries.loggedAt} <= ${filters.dateTo.toISOString()}`);
+  }
+  const where = and(...conditions);
+
+  const [{ total = 0, total_minutes = 0 } = {}] = await db
+    .select({
+      total: sql<number>`count(*)`,
+      total_minutes: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+    })
+    .from(timeEntries)
+    .where(where);
+
+  const rows = await db
+    .select({
+      id: timeEntries.id,
+      projectId: timeEntries.projectId,
+      projectName: projects.name,
+      taskId: timeEntries.taskId,
+      taskTitle: tasks.title,
+      userId: timeEntries.userId,
+      userName: user.name,
+      minutes: timeEntries.minutes,
+      description: timeEntries.description,
+      loggedAt: timeEntries.loggedAt,
+      createdAt: timeEntries.createdAt,
+    })
+    .from(timeEntries)
+    .leftJoin(projects, eq(timeEntries.projectId, projects.id))
+    .leftJoin(tasks, eq(timeEntries.taskId, tasks.id))
+    .leftJoin(user, eq(timeEntries.userId, user.id))
+    .where(where)
+    .orderBy(desc(timeEntries.loggedAt))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  return {
+    entries: rows.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      taskId: r.taskId,
+      taskTitle: r.taskTitle,
+      userId: r.userId,
+      userName: r.userName ?? "Unknown",
+      minutes: r.minutes,
+      description: r.description,
+      loggedAt: r.loggedAt,
+      createdAt: r.createdAt,
+      // Extra field consumers can read off the unioned type when present.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      projectName: (r as any).projectName ?? null,
+    })),
+    pagination: {
+      page,
+      pageSize,
+      total: Number(total ?? 0),
+      totalPages: Math.max(1, Math.ceil(Number(total ?? 0) / pageSize)),
+    },
+    totalMinutes: Number(total_minutes ?? 0),
+  };
+}
+
+export type OrgTimeSummary = {
+  weekMinutes: number;
+  monthMinutes: number;
+  allTimeMinutes: number;
+};
+
+export async function getOrgTimeSummary(userId: string): Promise<OrgTimeSummary> {
+  const ctx = await getOrganizationSettingsContextForUser(userId);
+  if (!ctx) return { weekMinutes: 0, monthMinutes: 0, allTimeMinutes: 0 };
+
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [row] = await db
+    .select({
+      week: sql<number>`coalesce(sum(case when ${timeEntries.loggedAt} >= ${weekAgo.toISOString()} then ${timeEntries.minutes} else 0 end), 0)`,
+      month: sql<number>`coalesce(sum(case when ${timeEntries.loggedAt} >= ${monthAgo.toISOString()} then ${timeEntries.minutes} else 0 end), 0)`,
+      all: sql<number>`coalesce(sum(${timeEntries.minutes}), 0)`,
+    })
+    .from(timeEntries)
+    .where(eq(timeEntries.organizationId, ctx.organizationId));
+
+  return {
+    weekMinutes: Number(row?.week ?? 0),
+    monthMinutes: Number(row?.month ?? 0),
+    allTimeMinutes: Number(row?.all ?? 0),
+  };
+}
+
 export async function getProjectTimeSummary(
   userId: string,
   projectId: string,
@@ -238,10 +347,7 @@ export async function getProjectTimeSummary(
     })
     .from(timeEntries)
     .where(
-      and(
-        eq(timeEntries.projectId, projectId),
-        eq(timeEntries.organizationId, ctx.organizationId),
-      ),
+      and(eq(timeEntries.projectId, projectId), eq(timeEntries.organizationId, ctx.organizationId)),
     );
 
   return {

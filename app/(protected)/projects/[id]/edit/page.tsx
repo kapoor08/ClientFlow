@@ -1,12 +1,8 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { Breadcrumbs } from "@/components/common/Breadcrumbs";
 import { ProjectForm } from "@/components/forms/projects";
-import {
-  getProjectForEditForUser,
-  getProjectModuleAccessForUser,
-} from "@/server/projects";
+import { getProjectForEditForUser } from "@/server/projects";
 import { listClientsForUser } from "@/server/clients";
 import { getServerSession } from "@/server/auth/session";
 
@@ -14,9 +10,7 @@ type EditProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function EditProjectPage({
-  params,
-}: EditProjectPageProps) {
+export default async function EditProjectPage({ params }: EditProjectPageProps) {
   const session = await getServerSession();
   const userId = session!.user.id;
   const { id } = await params;
@@ -42,25 +36,30 @@ export default async function EditProjectPage({
   }));
 
   return (
-    <ListPageLayout
-      title={`Edit ${result.project.values.name}`}
-      description="Update the project details and timeline."
-      action={
-        <Link
-          href={`/projects/${result.project.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft size={14} /> Back to Project
-        </Link>
-      }
-    >
-      <ProjectForm
-        mode="edit"
-        projectId={result.project.id}
-        submitLabel="Save Changes"
-        initialValues={result.project.values}
-        clients={clientOptions}
+    <div>
+      <Breadcrumbs
+        items={[
+          { label: "Projects", href: "/projects" },
+          {
+            label: result.project.values.name,
+            href: `/projects/${result.project.id}`,
+          },
+          { label: "Edit" },
+        ]}
+        className="mb-4"
       />
-    </ListPageLayout>
+      <ListPageLayout
+        title={`Edit ${result.project.values.name}`}
+        description="Update the project details and timeline."
+      >
+        <ProjectForm
+          mode="edit"
+          projectId={result.project.id}
+          submitLabel="Save Changes"
+          initialValues={result.project.values}
+          clients={clientOptions}
+        />
+      </ListPageLayout>
+    </div>
   );
 }

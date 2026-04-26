@@ -1,0 +1,65 @@
+name: Lighthouse
+
+on:
+  pull_request:
+    branches: [main]
+  # Also run nightly against main so we have a baseline to compare PRs against.
+  schedule:
+    - cron: "30 2 * * *"
+
+# Non-blocking by design - perf scores are noisy and we don't want flaky
+# Lighthouse runs to block merges. Use the GitHub status check + the assertion
+# results uploaded to LHCI temp public storage to spot regressions trend-wise.
+jobs:
+  lighthouse:
+    name: Public-page perf budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    continue-on-error: true
+
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      EMAIL_FROM: ci@example.com
+      RESEND_API_KEY: re_ci_dummy
+      RESEND_WEBHOOK_SECRET: whsec_ci_dummy
+      STRIPE_SECRET_KEY: sk_test_ci_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_ci_dummy
+      CRON_SECRET: ci-cron-secret
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          # Limit to public marketing pages - protected pages need auth and
+          # would either require a synthetic session or always score badly.
+          urls: |
+            http://localhost:3000/
+            http://localhost:3000/pricing
+            http://localhost:3000/features
+            http://localhost:3000/about
+            http://localhost:3000/contact
+          # Boot Next.js for the run.
+          runs: 1
+          # Budget assertions are advisory - regressions land in the PR check
+          # output but don't fail the workflow (continue-on-error above).
+          configPath: ./.lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

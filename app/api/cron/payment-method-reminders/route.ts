@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import {
-  subscriptions,
-  organizations,
-  organizationMemberships,
-  roles,
-} from "@/db/schema";
+import { subscriptions, organizations, organizationMemberships, roles } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { stripe, isStripeConfigured } from "@/server/third-party/stripe";
 import { assertCronAuth } from "@/server/cron/guard";
@@ -14,7 +9,7 @@ import { logger } from "@/server/observability/logger";
 import { onPaymentMethodExpiring } from "@/server/email/triggers";
 
 /**
- * Weekly payment-method reminders — runs Mondays 09:00 UTC.
+ * Weekly payment-method reminders - runs Mondays 09:00 UTC.
  *
  * For every active subscription with a Stripe customer ID, fetches the
  * default payment method and, if it expires within the next 14 days and
@@ -72,9 +67,13 @@ export async function POST(request: Request) {
             });
 
             if (customer.deleted) return;
-            const defaultMethod = (customer.invoice_settings as unknown as {
-              default_payment_method?: { card?: { brand?: string; last4?: string; exp_month?: number; exp_year?: number } };
-            })?.default_payment_method;
+            const defaultMethod = (
+              customer.invoice_settings as unknown as {
+                default_payment_method?: {
+                  card?: { brand?: string; last4?: string; exp_month?: number; exp_year?: number };
+                };
+              }
+            )?.default_payment_method;
             const card = defaultMethod?.card;
             if (!card?.exp_month || !card?.exp_year) return;
 
@@ -93,7 +92,10 @@ export async function POST(request: Request) {
               })
               .from(organizationMemberships)
               .innerJoin(user, eq(organizationMemberships.userId, user.id))
-              .innerJoin(organizations, eq(organizationMemberships.organizationId, organizations.id))
+              .innerJoin(
+                organizations,
+                eq(organizationMemberships.organizationId, organizations.id),
+              )
               .innerJoin(roles, eq(organizationMemberships.roleId, roles.id))
               .where(
                 and(
@@ -106,7 +108,11 @@ export async function POST(request: Request) {
             if (!ownerRow?.ownerEmail) return;
 
             await onPaymentMethodExpiring({
-              owner: { id: ownerRow.ownerId, name: ownerRow.ownerName ?? "Owner", email: ownerRow.ownerEmail },
+              owner: {
+                id: ownerRow.ownerId,
+                name: ownerRow.ownerName ?? "Owner",
+                email: ownerRow.ownerEmail,
+              },
               org: { id: sub.organizationId, name: ownerRow.orgName },
               card: {
                 brand: card.brand ?? "card",

@@ -12,7 +12,6 @@ import {
   startOfMonth,
   startOfWeek,
   subMonths,
-  isSameDay,
 } from "date-fns";
 import { ChevronLeft, ChevronRight, CalendarDays, AlertCircle } from "lucide-react";
 import { cn } from "@/utils/cn";
@@ -77,23 +76,23 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
   return (
     <div className="flex flex-col gap-3">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-card px-3 py-2">
+      <div className="rounded-card border-border bg-card flex flex-wrap items-center justify-between gap-2 border px-3 py-2">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setCursor((c) => subMonths(c, 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors"
             aria-label="Previous month"
           >
             <ChevronLeft size={14} />
           </button>
-          <h2 className="min-w-[10rem] text-center text-sm font-semibold text-foreground">
+          <h2 className="text-foreground min-w-[10rem] text-center text-sm font-semibold">
             {format(cursor, "MMMM yyyy")}
           </h2>
           <button
             type="button"
             onClick={() => setCursor((c) => addMonths(c, 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors"
             aria-label="Next month"
           >
             <ChevronRight size={14} />
@@ -101,12 +100,12 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
           <button
             type="button"
             onClick={() => setCursor(new Date())}
-            className="ml-1 flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground cursor-pointer transition-colors"
+            className="border-border bg-background text-muted-foreground hover:bg-secondary hover:text-foreground ml-1 flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors"
           >
             <CalendarDays size={12} /> Today
           </button>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-500" /> Urgent
           </span>
@@ -124,10 +123,10 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
 
       {/* Unscheduled tasks banner */}
       {unscheduled.length > 0 && (
-        <div className="flex flex-wrap items-start gap-2 rounded-card border border-warning/30 bg-warning/5 px-3 py-2">
-          <AlertCircle size={13} className="mt-0.5 shrink-0 text-warning" />
+        <div className="rounded-card border-warning/30 bg-warning/5 flex flex-wrap items-start gap-2 border px-3 py-2">
+          <AlertCircle size={13} className="text-warning mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-foreground">
+            <p className="text-foreground text-xs font-medium">
               {unscheduled.length} task{unscheduled.length === 1 ? "" : "s"} without a due date
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1">
@@ -137,20 +136,23 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
                   type="button"
                   onClick={() => onTaskClick(t)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors hover:opacity-80 cursor-pointer",
+                    "inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors hover:opacity-80",
                     chipClass(t.status),
                   )}
                 >
                   {t.priority && (
                     <span
-                      className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_DOT[t.priority] ?? PRIORITY_DOT.low)}
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        PRIORITY_DOT[t.priority] ?? PRIORITY_DOT.low,
+                      )}
                     />
                   )}
                   <span className="max-w-[14rem] truncate">{t.title}</span>
                 </button>
               ))}
               {unscheduled.length > 8 && (
-                <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] text-muted-foreground">
+                <span className="text-muted-foreground inline-flex items-center rounded-md px-2 py-0.5 text-[11px]">
                   +{unscheduled.length - 8} more
                 </span>
               )}
@@ -160,13 +162,13 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
       )}
 
       {/* Month grid */}
-      <div className="overflow-hidden rounded-card border border-border bg-card">
+      <div className="rounded-card border-border bg-card overflow-hidden border">
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b border-border bg-secondary/30">
+        <div className="border-border bg-secondary/30 grid grid-cols-7 border-b">
           {WEEKDAYS.map((wd) => (
             <div
               key={wd}
-              className="px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+              className="text-muted-foreground px-2 py-1.5 text-center text-[10px] font-semibold tracking-wide uppercase"
             >
               {wd}
             </div>
@@ -186,7 +188,7 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
               <div
                 key={dayKey}
                 className={cn(
-                  "relative min-h-[6rem] border-b border-r border-border p-1.5",
+                  "border-border relative min-h-[6rem] border-r border-b p-1.5",
                   !inMonth && "bg-secondary/10",
                 )}
               >
@@ -204,7 +206,7 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
                     {format(day, "d")}
                   </span>
                   {dayTasks.length > 3 && (
-                    <span className="text-[9px] font-medium text-muted-foreground">
+                    <span className="text-muted-foreground text-[9px] font-medium">
                       {dayTasks.length}
                     </span>
                   )}
@@ -217,13 +219,13 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
                       type="button"
                       onClick={() => onTaskClick(t)}
                       className={cn(
-                        "flex w-full items-center gap-1 rounded border px-1 py-0.5 text-left text-[10.5px] font-medium transition-colors hover:opacity-80 cursor-pointer",
+                        "flex w-full cursor-pointer items-center gap-1 rounded border px-1 py-0.5 text-left text-[10.5px] font-medium transition-colors hover:opacity-80",
                         chipClass(t.status),
                         // Overdue highlight: due before today, not completed
                         pastDue &&
                           t.status !== "completed" &&
                           t.status !== "cancelled" &&
-                          "ring-1 ring-danger/40",
+                          "ring-danger/40 ring-1",
                       )}
                       title={t.title}
                     >
@@ -242,12 +244,12 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        // Open the first overflow task — simple, keeps interaction obvious.
+                        // Open the first overflow task - simple, keeps interaction obvious.
                         // (Users can inspect the rest in the list view.)
                         const overflow = dayTasks[3];
                         if (overflow) onTaskClick(overflow);
                       }}
-                      className="w-full rounded px-1 py-0.5 text-left text-[10px] text-muted-foreground hover:bg-secondary/50 cursor-pointer"
+                      className="text-muted-foreground hover:bg-secondary/50 w-full cursor-pointer rounded px-1 py-0.5 text-left text-[10px]"
                     >
                       + {dayTasks.length - 3} more…
                     </button>
@@ -256,7 +258,7 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
 
                 {/* Today marker (subtle corner accent) */}
                 {today && (
-                  <span className="pointer-events-none absolute right-1 top-1 h-1 w-1 rounded-full bg-primary" />
+                  <span className="bg-primary pointer-events-none absolute top-1 right-1 h-1 w-1 rounded-full" />
                 )}
               </div>
             );
@@ -264,8 +266,8 @@ export function TaskCalendarView({ tasks, onTaskClick }: Props) {
         </div>
       </div>
 
-      <p className="text-[11px] text-muted-foreground">
-        Showing {tasks.length} task{tasks.length === 1 ? "" : "s"} — click any task to open its
+      <p className="text-muted-foreground text-[11px]">
+        Showing {tasks.length} task{tasks.length === 1 ? "" : "s"} - click any task to open its
         details.
       </p>
     </div>
