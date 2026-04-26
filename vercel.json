@@ -12,14 +12,5 @@
     "app/api/cron/payment-method-reminders/route.ts": { "maxDuration": 300 },
     "app/api/cron/support-sla-sweep/route.ts": { "maxDuration": 300 },
     "app/api/cron/task-notifications/route.ts": { "maxDuration": 300 }
-  },
-  "crons": [
-    { "path": "/api/cron/task-notifications", "schedule": "0 * * * *" },
-    { "path": "/api/cron/support-sla-sweep", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/daily-expirations", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/analytics-daily-rollup", "schedule": "30 2 * * *" },
-    { "path": "/api/cron/nightly-housekeeping", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/payment-method-reminders", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/monthly-rollover", "schedule": "0 2 1 * *" }
-  ]
+  }
 }
