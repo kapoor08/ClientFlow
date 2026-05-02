@@ -470,13 +470,13 @@ PostgreSQL via Neon. Managed with Drizzle ORM.
 
 **Schema domains:**
 
-| Domain   | Key Tables                                                                                                                                                                                                                                                         |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Access   | `organizations`, `organization_settings`, `organization_memberships`, `organization_invitations`, `roles`, `permissions`, `role_permissions`, `api_keys`, `outbound_webhooks`, `outbound_webhook_deliveries`                                                       |
-| Work     | `clients`, `projects`, `project_files`, `project_members`, `project_templates`, `task_board_columns`, `tasks`, `task_comments`, `task_attachments`, `task_audit_logs`, `task_assignees`, `time_entries`                                                            |
-| Billing  | `plans`, `plan_feature_limits`, `subscriptions`, `organization_current_subscriptions`, `invoices` (incl. India GST snapshot fields), `usage_counters`, `billing_webhook_events`, `api_idempotency_keys`                                                            |
-| Platform | `notifications`, `notification_deliveries`, `notification_preferences`, `email_suppressions`, `email_category_preferences`, `push_subscriptions`, `feature_flags`, `feature_flag_overrides`, `analytics_daily_org_metrics`, `audit_logs`, `platform_admin_actions` |
-| Support  | `support_tickets`, `support_messages`                                                                                                                                                                                                                              |
+| Domain   | Key Tables                                                                                                                                                                                                                              |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access   | `organizations`, `organization_settings`, `organization_memberships`, `organization_invitations`, `roles`, `permissions`, `role_permissions`, `api_keys`, `outbound_webhooks`, `outbound_webhook_deliveries`                            |
+| Work     | `clients`, `projects`, `project_files`, `project_members`, `project_templates`, `task_board_columns`, `tasks`, `task_comments`, `task_attachments`, `task_audit_logs`, `task_assignees`, `time_entries`                                 |
+| Billing  | `plans`, `plan_feature_limits`, `subscriptions`, `organization_current_subscriptions`, `invoices` (incl. India GST snapshot fields), `usage_counters`, `billing_webhook_events`, `api_idempotency_keys`                                 |
+| Platform | `notifications`, `notification_preferences`, `email_suppressions`, `email_category_preferences`, `push_subscriptions`, `feature_flags`, `feature_flag_overrides`, `analytics_daily_org_metrics`, `audit_logs`, `platform_admin_actions` |
+| Support  | `support_tickets`, `support_messages`                                                                                                                                                                                                   |
 
 **Migrations:** managed via `drizzle-kit`. The convention is documented in [`drizzle/README.md`](./drizzle/README.md) - prefer semantic names (`add_invoice_tax_breakdown`) over auto-generated ones; this is a code-review rule, not enforced.
 
@@ -631,7 +631,51 @@ The app is stateless by design - all session state, pub/sub, and rate-limit stat
 
 **Security layers:** Rate limiting at middleware (per-IP + per-API-key), RBAC at service layer, tenant scoping at query layer, defence-in-depth tenant assertions in detail fetchers, optional Postgres RLS as a fourth layer, HMAC signing on webhooks (in and out), hashed storage for API keys, composite FK constraints at database layer, full security-header set including enforcing CSP.
 
-**Observability:** Request correlation IDs forwarded across handlers and stamped on every log line and Sentry event. Structured logger. Sentry with PII scrubbing and 10 % trace sampling in production. Public status page probes DB + Stripe + Resend with neutral "unmonitored" pills when API keys are absent. Cron failures captured to Sentry via `runCron` wrapper with the cron name + duration tag.
+**Observability:** Request correlation IDs forwarded across handlers and stamped on every log line and Sentry event. Structured logger. Sentry with PII scrubbing and 10 % trace sampling in production. Cron failures captured to Sentry via `runCron` wrapper with the cron name + duration tag. Self-hosted status page (see below) with synthetic + signal-based probes, auto-incident opening, 90-day uptime bars, and email subscribers.
+
+---
+
+## Status page
+
+A self-hosted public status page lives at the `status.<host>` subdomain (production: `status.client-flow.in`, dev: `status.localhost:3000`). Middleware rewrites `status.<host>/*` to the internal `/status/*` route group; the URL bar stays on the subdomain. Owner can post incidents from `/admin/status/incidents` and manage components from `/admin/status/components`.
+
+### One-time setup
+
+1. **DNS**: add a CNAME record `status` → `cname.vercel-dns.com` (or the per-project hostname Vercel shows). Add `status.client-flow.in` as a domain in the Vercel project. SSL is auto-issued.
+2. **Env vars** (Vercel production):
+   - `NEXT_PUBLIC_STATUS_URL=https://status.client-flow.in` (optional; defaults to the hardcoded subdomain in production).
+   - `STATUS_MONITORING_API_KEY=<key>` — used by the public-API probe. Create a dedicated organization in `/admin/organizations`, generate an API key for it in `/admin/api-keys`, and put the value here.
+   - `STATUS_HEARTBEAT_EMAIL=<dev/null inbox>` (optional) — destination for the daily heartbeat that keeps the email-delivery signal fresh on low-traffic days.
+3. **Seed components**: `npm run db:seed:status-components` creates the seven default components with probe configs (idempotent — re-run after probe-config edits).
+4. **Cron jobs** (cron-job.org or any external scheduler hitting POST with `Authorization: Bearer $CRON_SECRET`):
+   - `ClientFlow Status Probe` → `/api/cron/status-probe`, every minute
+   - `ClientFlow Status Daily Rollup` → `/api/cron/status-daily-rollup`, daily ~02:00 UTC
+   - `ClientFlow Status Email Heartbeat` → `/api/cron/status-email-heartbeat`, daily
+
+### Schema
+
+Eight tables (see `db/schemas/status.ts`):
+
+- `status_components` — services we monitor with a discriminated `probeConfig` JSONB (`http` / `stripe_balance` / `signal`)
+- `status_check_results` — minute-cadence raw probes (90-day retention)
+- `status_check_daily_rollups` — per-day aggregates with uptime in basis points (powers the 90-day bar)
+- `status_service_signals` — heartbeat keys (`email_send_success`, `stripe_webhook_received`) bumped from inside live code paths
+- `status_incidents` — slug-keyed, with scheduled-maintenance fields and `is_auto_opened` flag
+- `status_incident_updates` — chronological timeline with state-at-post
+- `status_incident_components` — m2m
+- `status_subscribers` — public email list with random-token verification + HMAC unsubscribe + per-recipient throttle
+
+### Operator workflows
+
+- **Open an incident**: `/admin/status/incidents` → "New incident". Pick affected components, impact, initial state + body. Email goes out to verified subscribers automatically.
+- **Post an update**: open the incident, choose the new state in the "Post update" form. State transitions: `investigating` → `identified` → `monitoring` → `resolved`.
+- **Resolve**: separate "Resolve incident" button; optional resolution note becomes the final timeline entry; `resolved_at` is stamped.
+- **Schedule maintenance**: same "New incident" form, check "This is scheduled maintenance", pick start + end. Component bars overlay blue/sky during the window via the maintenance-overlay logic in the rollup.
+- **Auto-incidents**: when a component opted into `autoOpenIncidentAfterMin` has been in `outage` for that many minutes, the prober opens an incident automatically (slug `auto-<component>-<timestamp>`, `is_auto_opened: true`). De-duped on slug to prevent overlapping creates.
+
+### Honest tradeoff
+
+Probes run on the same Vercel/Neon infrastructure as the app. A regional Vercel issue may show green here while customers can't reach the platform. The footer on the public page says so. For independent verification, point an external monitor (Better Stack, Cronitor) at `https://www.client-flow.in/api/health` as a complement.
 
 ---
 

@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Plus, LayoutTemplate, Archive, ArrowLeft } from "lucide-react";
+import { LayoutTemplate, Archive, ArrowLeft } from "lucide-react";
 import { listProjectsForUser } from "@/server/projects";
+import { getProjectCapStatus } from "@/server/subscription/plan-enforcement";
 import { projectsSearchParamsCache } from "@/core/projects/searchParams";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { AtLimitNewButton } from "@/components/common/AtLimitNewButton";
 import { ProjectsTable } from "@/components/tables/ProjectsTable";
 import { getServerSession } from "@/server/auth/session";
 
@@ -17,31 +19,29 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
 
   const archivedOnly = view === "archived";
 
-  const { access, projects, pagination } = await listProjectsForUser(
-    session!.user.id,
-    {
-      query: q,
-      page,
-      pageSize,
-      sort,
-      order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
-      status: status || undefined,
-      priority: priority || undefined,
-      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
-      dateTo: dateTo ? new Date(dateTo) : undefined,
-      archivedOnly,
-    },
-  );
+  const { access, projects, pagination } = await listProjectsForUser(session!.user.id, {
+    query: q,
+    page,
+    pageSize,
+    sort,
+    order: sort ? (order === "asc" ? "asc" : "desc") : "desc",
+    status: status || undefined,
+    priority: priority || undefined,
+    dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+    dateTo: dateTo ? new Date(dateTo) : undefined,
+    archivedOnly,
+  });
 
   if (!access) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground">
-          No active organization found.
-        </p>
+        <p className="text-muted-foreground">No active organization found.</p>
       </div>
     );
   }
+
+  const capStatus =
+    access.canWrite && !archivedOnly ? await getProjectCapStatus(access.organizationId) : null;
 
   return (
     <ListPageLayout
@@ -52,7 +52,7 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
           {archivedOnly ? (
             <Link
               href="/projects"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              className="border-border bg-card text-foreground hover:bg-secondary inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
               <ArrowLeft size={14} />
               Back to active
@@ -60,28 +60,22 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
           ) : (
             <Link
               href="/projects?view=archived"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+              className="border-border bg-card text-foreground hover:bg-secondary inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
             >
               <Archive size={14} />
               Archived
             </Link>
           )}
-          {access.canWrite && !archivedOnly && (
+          {access.canWrite && !archivedOnly && capStatus && (
             <>
               <Link
                 href="/projects/templates"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
+                className="border-border bg-card text-foreground hover:bg-secondary inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
               >
                 <LayoutTemplate size={14} />
                 Templates
               </Link>
-              <Link
-                href="/projects/new"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus size={15} />
-                New Project
-              </Link>
+              <AtLimitNewButton href="/projects/new" label="New Project" capStatus={capStatus} />
             </>
           )}
         </div>

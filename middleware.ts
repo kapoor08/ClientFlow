@@ -41,6 +41,21 @@ const PROTECTED_PREFIXES = [
 const PUBLIC_PREFIXES = ["/auth/", "/api/auth/", "/_next/", "/favicon", "/logo"];
 
 /**
+ * Production hostname for the status page. The status subdomain is *also*
+ * served from the main app codebase via internal rewrite to `/status/*`;
+ * users only ever see `status.client-flow.in/...` in the URL bar.
+ *
+ * In dev, `status.localhost:3000` works the same way - modern browsers
+ * (Chrome 65+, Firefox 84+, Safari 14+) resolve `*.localhost` to loopback
+ * automatically per RFC 6761, so no /etc/hosts edit is required.
+ */
+const PRODUCTION_STATUS_HOST = "status.client-flow.in";
+
+function isStatusHost(host: string): boolean {
+  return host.toLowerCase().startsWith("status.");
+}
+
+/**
  * Auth API routes that get the stricter rate limit.
  */
 const AUTH_API_PREFIXES = [
@@ -71,11 +86,17 @@ function ensureRequestId(request: NextRequest): { id: string; headers: Headers }
   const id = incoming && incoming.length <= 200 ? incoming : crypto.randomUUID();
   const headers = new Headers(request.headers);
   headers.set("x-request-id", id);
+  // Forward the request pathname so server components / layouts can gate on
+  // it (e.g. plan-based route access). `headers().get('x-pathname')` then
+  // returns the URL the user requested, regardless of Next's internal
+  // rewrites.
+  headers.set("x-pathname", request.nextUrl.pathname);
   return { id, headers };
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") ?? "";
   const ip = getClientIp(request);
   const { id: requestId, headers: forwardedHeaders } = ensureRequestId(request);
 
@@ -85,6 +106,33 @@ export async function middleware(request: NextRequest) {
   };
   const passThrough = () =>
     withRequestId(NextResponse.next({ request: { headers: forwardedHeaders } }));
+
+  // ── Status subdomain routing ──────────────────────────────────────────────
+  // Requests to `status.<host>` are rewritten internally to `/status/...`.
+  // The user-visible URL stays on the subdomain. Pages and route handlers
+  // therefore live under `app/status/`, not at the root.
+  if (isStatusHost(host)) {
+    // Avoid double-rewriting if Next has already routed internally.
+    if (!pathname.startsWith("/status")) {
+      const rewriteUrl = request.nextUrl.clone();
+      rewriteUrl.pathname = pathname === "/" ? "/status" : `/status${pathname}`;
+      return withRequestId(
+        NextResponse.rewrite(rewriteUrl, { request: { headers: forwardedHeaders } }),
+      );
+    }
+    return passThrough();
+  }
+
+  // Main host hitting `/status/*` in production - send the user to the
+  // canonical subdomain. In dev, allow the path-based variant so localhost
+  // testing without a subdomain still works.
+  if (process.env.NODE_ENV === "production" && pathname.startsWith("/status")) {
+    const targetPath = pathname.replace(/^\/status/, "") || "/";
+    const target = new URL(
+      `https://${PRODUCTION_STATUS_HOST}${targetPath}${request.nextUrl.search}`,
+    );
+    return NextResponse.redirect(target, 308);
+  }
 
   // Rate limit auth endpoints (stricter)
   if (AUTH_API_PREFIXES.some((p) => pathname.startsWith(p))) {

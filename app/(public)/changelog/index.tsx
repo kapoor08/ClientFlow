@@ -1,3 +1,5 @@
+"use client";
+
 import { releases } from "@/config/changelog";
 import { motion } from "framer-motion";
 import { Tag } from "lucide-react";
@@ -10,23 +12,20 @@ const typeBadge: Record<string, string> = {
 
 const ChangelogPage = () => (
   <>
-    <section className="relative overflow-hidden border-b border-border">
-      <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-      <div
-        className="absolute inset-0"
-        style={{ background: "var(--cf-hero-gradient)" }}
-      />
-      <div className="container relative py-14 md:py-20">
+    <section className="border-border relative overflow-hidden border-b">
+      <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+      <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+      <div className="relative container py-14 md:py-20">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+          <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
             Changelog
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
+          <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
             Product updates, new features, and improvements.
           </p>
         </motion.div>
@@ -35,7 +34,7 @@ const ChangelogPage = () => (
 
     <section className="py-12 md:py-16">
       <div className="container mx-auto max-w-3xl">
-        <div className="relative space-y-10 before:absolute before:left-1.75 before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-border">
+        <div className="before:bg-border relative space-y-10 before:absolute before:top-2 before:left-1.75 before:h-[calc(100%-16px)] before:w-px">
           {releases.map((r) => (
             <motion.div
               key={r.version}
@@ -44,14 +43,12 @@ const ChangelogPage = () => (
               viewport={{ once: true }}
               className="relative pl-7"
             >
-              <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-primary bg-card" />
+              <div className="border-primary bg-card absolute top-1.5 left-0 h-3.5 w-3.5 rounded-full border-2" />
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-mono text-[11px] font-bold text-primary">
+                <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-bold">
                   <Tag size={11} /> v{r.version}
                 </span>
-                <time className="text-[11px] text-muted-foreground">
-                  {r.date}
-                </time>
+                <time className="text-muted-foreground text-[11px]">{r.date}</time>
               </div>
               <ul className="mt-3 space-y-1.5">
                 {r.items.map((item, i) => (

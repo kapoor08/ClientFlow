@@ -30,21 +30,6 @@ export const notifications = pgTable("notifications", {
   createdAt: createdAt(),
 });
 
-export const notificationDeliveries = pgTable("notification_deliveries", {
-  id: text("id").primaryKey(),
-  notificationId: text("notification_id")
-    .notNull()
-    .references(() => notifications.id, { onDelete: "cascade" }),
-  channel: text("channel").notNull(),
-  status: text("status").notNull(),
-  providerMessageId: text("provider_message_id"),
-  attempts: integer("attempts").default(0).notNull(),
-  sentAt: timestamp("sent_at"),
-  lastError: text("last_error"),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
-
 export const notificationPreferences = pgTable(
   "notification_preferences",
   {

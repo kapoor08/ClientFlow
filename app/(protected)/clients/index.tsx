@@ -1,9 +1,8 @@
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
+import { AtLimitNewButton } from "@/components/common/AtLimitNewButton";
 import { getServerSession } from "@/server/auth/session";
 import { listClientsForUser } from "@/server/clients";
+import { getClientCapStatus } from "@/server/subscription/plan-enforcement";
 import { ClientsTable } from "@/components/tables/ClientsTable";
 import { clientsSearchParamsCache } from "@/core/clients/searchParams";
 
@@ -32,6 +31,8 @@ const ClientsPage = async ({ searchParams }: ClientsPageProps) => {
 
   const canWrite = result.access?.canWrite ?? false;
   const orgName = result.access?.organizationName;
+  const orgId = result.access?.organizationId;
+  const capStatus = canWrite && orgId ? await getClientCapStatus(orgId) : null;
 
   return (
     <ListPageLayout
@@ -42,27 +43,19 @@ const ClientsPage = async ({ searchParams }: ClientsPageProps) => {
           : "No active organization found for this account."
       }
       action={
-        canWrite ? (
-          <Button asChild>
-            <Link href="/clients/new">
-              <Plus size={16} /> Add Client
-            </Link>
-          </Button>
+        canWrite && capStatus ? (
+          <AtLimitNewButton href="/clients/new" label="Add Client" capStatus={capStatus} />
         ) : undefined
       }
     >
       {!result.access ? (
-        <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
-          <p className="text-sm text-muted-foreground">
+        <div className="rounded-card border-border bg-card shadow-cf-1 border p-6">
+          <p className="text-muted-foreground text-sm">
             Complete workspace bootstrap before managing clients.
           </p>
         </div>
       ) : (
-        <ClientsTable
-          clients={result.clients}
-          pagination={result.pagination}
-          canWrite={canWrite}
-        />
+        <ClientsTable clients={result.clients} pagination={result.pagination} canWrite={canWrite} />
       )}
     </ListPageLayout>
   );

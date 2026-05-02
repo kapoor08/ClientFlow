@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import GooogleIcon from "@/components/ui/google-icon";
 import { captureClientEvent } from "@/lib/analytics/client";
 import { FUNNEL_EVENTS } from "@/lib/analytics/events";
+import { safeInternalRedirect } from "@/lib/safe-redirect";
 
 const signUpSchema = z
   .object({
@@ -49,7 +50,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 const SignUp = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "";
+  const redirectTo = safeInternalRedirect(searchParams.get("redirectTo"), "");
   const signUp = useSignUp();
   const googleSignIn = useGoogleSignIn();
   const [apiError, setApiError] = useState<string | null>(null);

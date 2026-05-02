@@ -186,17 +186,26 @@ export const usageCounters = pgTable("usage_counters", {
   updatedAt: updatedAt(),
 });
 
-export const billingWebhookEvents = pgTable("billing_webhook_events", {
-  id: text("id").primaryKey(),
-  provider: text("provider").notNull(),
-  eventId: text("event_id").notNull(),
-  eventType: text("event_type").notNull(),
-  organizationId: text("organization_id").references(() => organizations.id),
-  payload: jsonb("payload"),
-  receivedAt: timestamp("received_at").defaultNow().notNull(),
-  processedAt: timestamp("processed_at"),
-  processingError: text("processing_error"),
-});
+export const billingWebhookEvents = pgTable(
+  "billing_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    eventId: text("event_id").notNull(),
+    eventType: text("event_type").notNull(),
+    organizationId: text("organization_id").references(() => organizations.id),
+    payload: jsonb("payload"),
+    receivedAt: timestamp("received_at").defaultNow().notNull(),
+    processedAt: timestamp("processed_at"),
+    processingError: text("processing_error"),
+  },
+  (table) => [
+    // Idempotency key. Stripe (and any other future provider) delivers the
+    // same eventId on retries; we rely on this constraint to atomically claim
+    // the row via INSERT ... ON CONFLICT DO NOTHING in the webhook handler.
+    uniqueIndex("billing_webhook_events_provider_event_unique").on(table.provider, table.eventId),
+  ],
+);
 
 export const apiIdempotencyKeys = pgTable(
   "api_idempotency_keys",

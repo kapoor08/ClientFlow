@@ -23,6 +23,7 @@ import {
 } from "@/server/organization-settings";
 import { getActiveOrgIdFromCookie } from "@/server/auth/active-org";
 import { isIpAllowed, getClientIp } from "@/server/security/ip-allowlist";
+import { canAccessHref } from "@/config/plan-limits";
 
 export default async function ProtectedLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
@@ -80,6 +81,17 @@ export default async function ProtectedLayout({ children }: { children: ReactNod
     const clientIp = getClientIp(reqHeaders);
     if (!isIpAllowed(clientIp, orgCtx.ipAllowlist)) {
       redirect("/ip-blocked");
+    }
+  }
+
+  // Plan-based route gating. Mirrors the sidebar visibility rules so a user
+  // who types a gated URL directly (e.g. /teams on the free plan) is sent to
+  // the upgrade page instead of seeing the route render. Skipped for client
+  // portal users since their access is governed by role permissions, not plan.
+  if (sub.roleKey !== "client") {
+    const pathname = reqHeaders.get("x-pathname") ?? "";
+    if (pathname && !canAccessHref(sub.planCode, pathname)) {
+      redirect("/plans");
     }
   }
 

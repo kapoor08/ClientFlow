@@ -6,16 +6,13 @@ import { useState } from "react";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { Button } from "@/components/ui/button";
-import {
-  authRoutes,
-  getAuthErrorMessage,
-  useResendVerificationEmail,
-} from "@/core/auth";
+import { authRoutes, getAuthErrorMessage, useResendVerificationEmail } from "@/core/auth";
+import { safeInternalRedirect } from "@/lib/safe-redirect";
 
 const VerifyEmailPage = () => {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
-  const redirectTo = searchParams.get("redirectTo") || "";
+  const redirectTo = safeInternalRedirect(searchParams.get("redirectTo"), "");
   const resendVerificationEmail = useResendVerificationEmail();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +30,7 @@ const VerifyEmailPage = () => {
       await resendVerificationEmail.mutateAsync({ email });
       setFeedback("A fresh verification link has been prepared.");
     } catch (currentError) {
-      setError(
-        getAuthErrorMessage(
-          currentError,
-          "Unable to resend the verification email."
-        )
-      );
+      setError(getAuthErrorMessage(currentError, "Unable to resend the verification email."));
     }
   }
 
@@ -51,10 +43,7 @@ const VerifyEmailPage = () => {
     >
       <div className="mt-6 space-y-4">
         {email ? (
-          <AuthNotice
-            tone="info"
-            message={`Verification email destination: ${email}`}
-          />
+          <AuthNotice tone="info" message={`Verification email destination: ${email}`} />
         ) : null}
         {feedback ? <AuthNotice tone="success" message={feedback} /> : null}
         {error ? <AuthNotice tone="error" message={error} /> : null}
@@ -71,14 +60,16 @@ const VerifyEmailPage = () => {
           onClick={handleResend}
           disabled={resendVerificationEmail.isPending}
         >
-          {resendVerificationEmail.isPending
-            ? "Sending..."
-            : "Resend Verification Email"}
+          {resendVerificationEmail.isPending ? "Sending..." : "Resend Verification Email"}
         </Button>
 
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-center text-sm">
           <Link
-            href={redirectTo ? `${authRoutes.signIn}?redirectTo=${encodeURIComponent(redirectTo)}` : authRoutes.signIn}
+            href={
+              redirectTo
+                ? `${authRoutes.signIn}?redirectTo=${encodeURIComponent(redirectTo)}`
+                : authRoutes.signIn
+            }
             className="text-primary hover:underline"
           >
             Back to sign in

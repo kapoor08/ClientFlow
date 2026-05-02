@@ -43,6 +43,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify migrations are in sync
+        # Catches schema/migration drift before merge: errors out if a
+        # generated SQL file is missing or two migrations conflict. Doesn't
+        # touch a real database. Production migrations themselves run from
+        # `vercel-build` against the prod DATABASE_URL on deploy.
+        run: npm run db:check
+
       - name: Typecheck
         run: npm run typecheck
 

@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/utils/auth-client";
 import { authRoutes } from "@/core/auth";
+import { safeInternalRedirect } from "@/lib/safe-redirect";
 
 type Stage = "request" | "verify";
 
 const SignInOtp = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || authRoutes.dashboard;
+  const redirectTo = safeInternalRedirect(searchParams.get("redirectTo"), authRoutes.dashboard);
 
   const [stage, setStage] = useState<Stage>("request");
   const [email, setEmail] = useState("");

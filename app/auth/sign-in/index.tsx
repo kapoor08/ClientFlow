@@ -16,6 +16,7 @@ import { useMutation } from "@tanstack/react-query";
 import { verifyTwoFactorCode } from "@/core/auth/repository";
 import { toast } from "sonner";
 import GooogleIcon from "@/components/ui/google-icon";
+import { safeInternalRedirect } from "@/lib/safe-redirect";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address." }),
@@ -27,7 +28,7 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 const SignIn = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || authRoutes.dashboard;
+  const redirectTo = safeInternalRedirect(searchParams.get("redirectTo"), authRoutes.dashboard);
 
   const reason = searchParams.get("reason");
 

@@ -6,6 +6,11 @@ import { clients, projects, tasks, taskBoardColumns } from "@/db/schema";
 import { writeAuditLog } from "@/server/security/audit";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
 import { ApiError } from "@/server/api/helpers";
+import {
+  enforceClientCap,
+  enforceProjectCap,
+  enforceTaskCreationLimit,
+} from "@/server/subscription/plan-enforcement";
 
 /**
  * Mutating helpers for the public `/api/v1` surface. Unlike the
@@ -13,12 +18,9 @@ import { ApiError } from "@/server/api/helpers";
  * an organizationId directly (the v1 caller is an API key, not a user) and
  * record audit-log + webhook side effects with `actorUserId: null`.
  *
- * Plan-limit enforcement is intentionally NOT applied here yet - the existing
- * `enforceClientCap` etc. throw `PlanLimitError` from request paths designed
- * for human users with upgrade flows. Calling them from an API path would
- * surface as a 402 with no actionable information for an integration. A
- * follow-up should add a v1-specific cap-check that returns a structured
- * `{error, limit, current, upgradeUrl}` payload.
+ * Plan-limit enforcement IS applied here. PlanLimitError carries structured
+ * meta ({featureKey, limit, current, upgradeUrl}) and apiErrorResponse maps
+ * it to a 402 with that payload, which is actionable for integrations.
  */
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
@@ -37,6 +39,7 @@ export async function createClientV1(organizationId: string, input: CreateClient
   if (!input.name?.trim()) {
     throw new ApiError("`name` is required.", 422);
   }
+  await enforceClientCap(organizationId);
   const status = input.status ?? "active";
   const clientId = crypto.randomUUID();
 
@@ -87,6 +90,8 @@ export type CreateProjectV1Input = {
 export async function createProjectV1(organizationId: string, input: CreateProjectV1Input) {
   if (!input.name?.trim()) throw new ApiError("`name` is required.", 422);
   if (!input.clientId) throw new ApiError("`clientId` is required.", 422);
+
+  await enforceProjectCap(organizationId);
 
   // Verify the referenced client belongs to this org before inserting -
   // the FK would raise but with a less helpful message.
@@ -147,6 +152,8 @@ export type CreateTaskV1Input = {
 export async function createTaskV1(organizationId: string, input: CreateTaskV1Input) {
   if (!input.title?.trim()) throw new ApiError("`title` is required.", 422);
   if (!input.projectId) throw new ApiError("`projectId` is required.", 422);
+
+  await enforceTaskCreationLimit(organizationId);
 
   const [projectRow] = await db
     .select({ id: projects.id })

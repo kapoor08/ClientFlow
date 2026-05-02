@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "node ./scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -21,6 +22,8 @@
     "db:seed:roles": "node ./scripts/seed-roles.mjs",
     "db:seed:plans": "node ./scripts/seed-plans.mjs",
     "db:seed:platform-admin": "node ./scripts/seed-platform-admin.mjs",
+    "db:seed:status-components": "node ./scripts/seed-status-components.mjs",
+    "status:generate-monitoring-key": "node ./scripts/generate-status-monitoring-key.mjs",
     "stripe:backfill-plans": "node ./scripts/backfill-stripe-plans.mjs",
     "emails:generate": "node ./scripts/generate-email-html.mjs",
     "test": "vitest run",

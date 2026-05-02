@@ -16,11 +16,22 @@ import { checkMonthlyUsage, incrementMonthlyUsage } from "@/server/subscription/
 
 // ─── Error ────────────────────────────────────────────────────────────────────
 
+export type PlanLimitMeta = {
+  featureKey: string;
+  limit: number;
+  current: number;
+  upgradeUrl: string;
+};
+
+const DEFAULT_UPGRADE_URL = "/billing";
+
 export class PlanLimitError extends Error {
   readonly statusCode = 402;
-  constructor(message: string) {
+  readonly meta: PlanLimitMeta;
+  constructor(message: string, meta: PlanLimitMeta) {
     super(message);
     this.name = "PlanLimitError";
+    this.meta = meta;
   }
 }
 
@@ -30,15 +41,75 @@ async function getOrgPlanCode(organizationId: string): Promise<string> {
   const [row] = await db
     .select({ code: plans.code })
     .from(organizationCurrentSubscriptions)
-    .innerJoin(
-      subscriptions,
-      eq(organizationCurrentSubscriptions.subscriptionId, subscriptions.id),
-    )
+    .innerJoin(subscriptions, eq(organizationCurrentSubscriptions.subscriptionId, subscriptions.id))
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
     .where(eq(organizationCurrentSubscriptions.organizationId, organizationId))
     .limit(1);
 
   return row?.code ?? "free";
+}
+
+// ─── Cap-status (non-throwing, for UI) ────────────────────────────────────────
+
+export type CapStatus = {
+  used: number;
+  limit: number | null;
+  atLimit: boolean;
+};
+
+const UNLIMITED: CapStatus = { used: 0, limit: null, atLimit: false };
+
+async function countActiveClients(organizationId: string): Promise<number> {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(clients)
+    .where(and(eq(clients.organizationId, organizationId), isNull(clients.deletedAt)));
+  return total;
+}
+
+async function countActiveProjects(organizationId: string): Promise<number> {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(projects)
+    .where(and(eq(projects.organizationId, organizationId), isNull(projects.deletedAt)));
+  return total;
+}
+
+async function countActiveMembers(organizationId: string): Promise<number> {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(organizationMemberships)
+    .where(
+      and(
+        eq(organizationMemberships.organizationId, organizationId),
+        eq(organizationMemberships.status, "active"),
+      ),
+    );
+  return total;
+}
+
+export async function getClientCapStatus(organizationId: string): Promise<CapStatus> {
+  const planCode = await getOrgPlanCode(organizationId);
+  const limit = getPlanLimits(planCode).clients;
+  if (limit === null) return UNLIMITED;
+  const used = await countActiveClients(organizationId);
+  return { used, limit, atLimit: used >= limit };
+}
+
+export async function getProjectCapStatus(organizationId: string): Promise<CapStatus> {
+  const planCode = await getOrgPlanCode(organizationId);
+  const limit = getPlanLimits(planCode).projects;
+  if (limit === null) return UNLIMITED;
+  const used = await countActiveProjects(organizationId);
+  return { used, limit, atLimit: used >= limit };
+}
+
+export async function getMemberCapStatus(organizationId: string): Promise<CapStatus> {
+  const planCode = await getOrgPlanCode(organizationId);
+  const limit = getPlanLimits(planCode).teamMembers;
+  if (limit === null) return UNLIMITED;
+  const used = await countActiveMembers(organizationId);
+  return { used, limit, atLimit: used >= limit };
 }
 
 // ─── Entity cap checks ────────────────────────────────────────────────────────
@@ -51,13 +122,12 @@ export async function enforceClientCap(organizationId: string): Promise<void> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(clients)
-    .where(
-      and(eq(clients.organizationId, organizationId), isNull(clients.deletedAt)),
-    );
+    .where(and(eq(clients.organizationId, organizationId), isNull(clients.deletedAt)));
 
   if (total >= limit) {
     throw new PlanLimitError(
       `You've reached the ${limit}-client limit on your current plan. Upgrade to add more clients.`,
+      { featureKey: "clients", limit, current: total, upgradeUrl: DEFAULT_UPGRADE_URL },
     );
   }
 }
@@ -70,16 +140,12 @@ export async function enforceProjectCap(organizationId: string): Promise<void> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(projects)
-    .where(
-      and(
-        eq(projects.organizationId, organizationId),
-        isNull(projects.deletedAt),
-      ),
-    );
+    .where(and(eq(projects.organizationId, organizationId), isNull(projects.deletedAt)));
 
   if (total >= limit) {
     throw new PlanLimitError(
       `You've reached the ${limit}-project limit on your current plan. Upgrade to add more projects.`,
+      { featureKey: "projects", limit, current: total, upgradeUrl: DEFAULT_UPGRADE_URL },
     );
   }
 }
@@ -100,6 +166,7 @@ export async function enforceFilesPerProjectCap(
   if (total >= limit) {
     throw new PlanLimitError(
       `This project has reached the ${limit}-file limit on your current plan. Upgrade to upload more files.`,
+      { featureKey: "files_per_project", limit, current: total, upgradeUrl: DEFAULT_UPGRADE_URL },
     );
   }
 }
@@ -122,6 +189,7 @@ export async function enforceMemberCap(organizationId: string): Promise<void> {
   if (total >= limit) {
     throw new PlanLimitError(
       `You've reached the ${limit}-member limit on your current plan. Upgrade to add more team members.`,
+      { featureKey: "team_members", limit, current: total, upgradeUrl: DEFAULT_UPGRADE_URL },
     );
   }
 }
@@ -161,6 +229,12 @@ async function enforceMonthlyLimit(
     };
     throw new PlanLimitError(
       `You've reached your ${labelMap[featureKey]} limit for this month. Upgrade your plan to continue.`,
+      {
+        featureKey,
+        limit: usage.limit,
+        current: usage.used,
+        upgradeUrl: DEFAULT_UPGRADE_URL,
+      },
     );
   }
 

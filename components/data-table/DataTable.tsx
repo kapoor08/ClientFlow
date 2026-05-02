@@ -3,12 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import {
-  parseAsInteger,
-  parseAsString,
-  useQueryState,
-  useQueryStates,
-} from "nuqs";
+import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
 import {
   ChevronDown,
   ChevronLeft,
@@ -64,11 +59,7 @@ function buildPageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages: (number | "...")[] = [1];
   if (current > 3) pages.push("...");
-  for (
-    let i = Math.max(2, current - 1);
-    i <= Math.min(total - 1, current + 1);
-    i++
-  ) {
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
     pages.push(i);
   }
   if (current < total - 2) pages.push("...");
@@ -92,10 +83,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
   }
 
   const rangeStart = (pagination.page - 1) * pagination.pageSize + 1;
-  const rangeEnd = Math.min(
-    pagination.page * pagination.pageSize,
-    pagination.total,
-  );
+  const rangeEnd = Math.min(pagination.page * pagination.pageSize, pagination.total);
   const pages = buildPageNumbers(pagination.page, pagination.pageCount);
 
   const pageSizeSelect = (
@@ -108,7 +96,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
         })
       }
     >
-      <SelectTrigger size="sm" className="bg-white cursor-pointer h-7 text-xs">
+      <SelectTrigger size="sm" className="bg-card h-7 cursor-pointer text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper" side="top" className="w-fit!">
@@ -116,7 +104,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
           <SelectItem
             key={size}
             value={String(size)}
-            className="text-xs cursor-pointer aria-selected:bg-primary/80 hover:bg-primary! aria-selected:text-foreground"
+            className="aria-selected:bg-primary/80 hover:bg-primary! aria-selected:text-foreground cursor-pointer text-xs"
           >
             {size} / page
           </SelectItem>
@@ -127,7 +115,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         {pagination.total === 0
           ? "No results"
           : pagination.pageCount <= 1
@@ -145,7 +133,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
               <Button
                 variant="ghost"
                 size="default"
-                className="pl-1.5! cursor-pointer"
+                className="cursor-pointer pl-1.5!"
                 disabled={!pagination.hasPreviousPage}
                 onClick={() => goToPage(pagination.page - 1)}
               >
@@ -165,10 +153,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
                   <Button
                     variant={p === pagination.page ? "outline" : "ghost"}
                     size="icon"
-                    className={cn(
-                      "cursor-pointer size-8",
-                      p === pagination.page && "bg-white",
-                    )}
+                    className={cn("size-8 cursor-pointer", p === pagination.page && "bg-card")}
                     aria-current={p === pagination.page ? "page" : undefined}
                     onClick={() => goToPage(p as number)}
                   >
@@ -183,7 +168,7 @@ function TablePagination({ pagination }: { pagination: PaginationMeta }) {
               <Button
                 variant="ghost"
                 size="default"
-                className="pr-1.5! cursor-pointer"
+                className="cursor-pointer pr-1.5!"
                 disabled={!pagination.hasNextPage}
                 onClick={() => goToPage(pagination.page + 1)}
               >
@@ -237,24 +222,24 @@ function Toolbar({
   if (!searchPlaceholder && !searchExtra && !hasGridView) return null;
 
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
+    <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
       {searchPlaceholder ? (
         <div className="relative max-w-xs flex-1">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
           />
           <Input
             value={q}
             onChange={(e) => setParams({ q: e.target.value, page: 1 })}
             placeholder={searchPlaceholder}
-            className="pl-9 pr-9 bg-white"
+            className="bg-card pr-9 pl-9"
           />
           {q ? (
             <button
               type="button"
               onClick={() => setParams({ q: "", page: 1 })}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-colors"
               aria-label="Clear search"
             >
               <X size={14} />
@@ -269,13 +254,13 @@ function Toolbar({
       <div className="flex items-center gap-2">
         {searchExtra}
         {hasGridView ? (
-          <div className="flex rounded-lg border border-border">
+          <div className="border-border flex rounded-lg border">
             <button
               type="button"
               onClick={() => onViewChange("list")}
               aria-label="List view"
               className={cn(
-                "rounded-l-lg px-2.5 py-1.5 transition-colors cursor-pointer",
+                "cursor-pointer rounded-l-lg px-2.5 py-1.5 transition-colors",
                 view === "list"
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:bg-secondary/50",
@@ -288,7 +273,7 @@ function Toolbar({
               onClick={() => onViewChange("grid")}
               aria-label="Grid view"
               className={cn(
-                "rounded-r-lg px-2.5 py-1.5 transition-colors cursor-pointer",
+                "cursor-pointer rounded-r-lg px-2.5 py-1.5 transition-colors",
                 view === "grid"
                   ? "bg-secondary text-foreground"
                   : "text-muted-foreground hover:bg-secondary/50",
@@ -366,7 +351,7 @@ export function DataTable<T>({
     setNextPage(2);
     setHasMore(pagination?.hasNextPage ?? false);
     setIsLoadingMore(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   // IntersectionObserver sentinel
@@ -454,7 +439,7 @@ export function DataTable<T>({
       ) : null}
 
       {data.length === 0 ? (
-        <Empty className="rounded-card border border-border bg-card py-16 shadow-cf-1">
+        <Empty className="rounded-card border-border bg-card shadow-cf-1 border py-16">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <TableIcon />
@@ -466,12 +451,7 @@ export function DataTable<T>({
         </Empty>
       ) : view === "grid" && gridCard ? (
         <>
-          <div
-            className={cn(
-              "grid gap-4",
-              gridColsClass[gridCols] ?? gridColsClass[3],
-            )}
-          >
+          <div className={cn("grid gap-4", gridColsClass[gridCols] ?? gridColsClass[3])}>
             {(infiniteScroll ? accumulatedItems : data).map((row) => (
               <div key={getRowKey(row)}>{gridCard(row)}</div>
             ))}
@@ -481,13 +461,13 @@ export function DataTable<T>({
             <div className="mt-6 flex flex-col items-center gap-2">
               <div ref={sentinelRef} className="h-1 w-full" />
               {isLoadingMore && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   <Loader2 size={15} className="animate-spin" />
                   Loading more…
                 </div>
               )}
               {!hasMore && !isLoadingMore && accumulatedItems.length > 0 && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   All {accumulatedItems.length} items loaded
                 </p>
               )}
@@ -495,15 +475,15 @@ export function DataTable<T>({
           )}
         </>
       ) : (
-        <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
+        <div className="rounded-card border-border bg-card shadow-cf-1 overflow-hidden border">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-border bg-secondary/50 hover:bg-secondary/50">
+              <TableRow className="border-border bg-secondary/50 hover:bg-secondary/50 border-b">
                 {columns.map((col) => (
                   <TableHead
                     key={col.key}
                     className={cn(
-                      "px-4 py-3 font-medium text-muted-foreground",
+                      "text-muted-foreground px-4 py-3 font-medium",
                       col.hideOnMobile && "hidden sm:table-cell",
                       col.hideOnTablet && "hidden md:table-cell",
                       col.headerClassName,
@@ -513,7 +493,7 @@ export function DataTable<T>({
                       <button
                         type="button"
                         onClick={() => handleSort(col.key)}
-                        className="flex items-center gap-1 transition-colors hover:text-foreground"
+                        className="hover:text-foreground flex items-center gap-1 transition-colors"
                       >
                         {col.header}
                         {sort === col.key ? (
@@ -537,7 +517,7 @@ export function DataTable<T>({
               {data.map((row) => (
                 <TableRow
                   key={getRowKey(row)}
-                  className="border-b border-border last:border-0 hover:bg-secondary/30"
+                  className="border-border hover:bg-secondary/30 border-b last:border-0"
                 >
                   {columns.map((col) => (
                     <TableCell

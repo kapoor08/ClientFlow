@@ -157,7 +157,7 @@ const AppSidebar = (props: AppSidebarProps) => {
             />
           ) : collapsed ? (
             <Image
-              src="/favicon.png"
+              src="/logo-app.png"
               alt="ClientFlow"
               width={32}
               height={32}

@@ -3,6 +3,12 @@
  * Supports exact IPv4 addresses and CIDR ranges (e.g. "192.168.1.0/24").
  */
 
+import { and, eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { db } from "@/server/db/client";
+import { organizationMemberships, organizationSettings } from "@/db/schema";
+import { getActiveOrgIdFromCookie } from "@/server/auth/active-org";
+
 function ipToInt(ip: string): number | null {
   const parts = ip.split(".");
   if (parts.length !== 4) return null;
@@ -20,15 +26,15 @@ function ipToInt(ip: string): number | null {
  * Each entry can be a bare IPv4 address or a CIDR range.
  * Returns true (allow) when allowlist is empty or null.
  */
-export function isIpAllowed(
-  clientIp: string | null,
-  allowlist: string[] | null,
-): boolean {
+export function isIpAllowed(clientIp: string | null, allowlist: string[] | null): boolean {
   if (!allowlist || allowlist.length === 0) return true;
   if (!clientIp) return false;
 
   // Strip IPv6-mapped IPv4 prefix (::ffff:1.2.3.4)
-  const normalizedIp = clientIp.replace(/^::ffff:/, "").split(",")[0].trim();
+  const normalizedIp = clientIp
+    .replace(/^::ffff:/, "")
+    .split(",")[0]
+    .trim();
   const clientInt = ipToInt(normalizedIp);
   if (clientInt === null) return false;
 
@@ -57,9 +63,100 @@ export function isIpAllowed(
  * Extracts the best-available client IP from standard forwarded headers.
  */
 export function getClientIp(headers: Headers): string | null {
-  return (
-    headers.get("x-real-ip") ??
-    headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    null
-  );
+  return headers.get("x-real-ip") ?? headers.get("x-forwarded-for")?.split(",")[0].trim() ?? null;
+}
+
+/**
+ * Look up the IP allowlist for an org and return it (or null if none set).
+ * Returns null without any allowlist set so callers can short-circuit.
+ */
+async function loadOrgIpAllowlist(organizationId: string): Promise<string[] | null> {
+  const [row] = await db
+    .select({ ipAllowlist: organizationSettings.ipAllowlist })
+    .from(organizationSettings)
+    .where(eq(organizationSettings.organizationId, organizationId))
+    .limit(1);
+  const allowlist = row?.ipAllowlist;
+  if (!allowlist || allowlist.length === 0) return null;
+  return allowlist;
+}
+
+/**
+ * Resolve the user's active org and return its IP allowlist.
+ * Honours the active-org cookie when present so the check matches whichever
+ * workspace the user is currently in; falls back to their first active
+ * membership if the cookie is absent or stale.
+ */
+async function loadUserActiveOrgIpAllowlist(userId: string): Promise<string[] | null> {
+  const cookieOrgId = await getActiveOrgIdFromCookie();
+  let activeOrgId: string | null = null;
+
+  if (cookieOrgId) {
+    const [membership] = await db
+      .select({ organizationId: organizationMemberships.organizationId })
+      .from(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.userId, userId),
+          eq(organizationMemberships.organizationId, cookieOrgId),
+          eq(organizationMemberships.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (membership) activeOrgId = membership.organizationId;
+  }
+
+  if (!activeOrgId) {
+    const [membership] = await db
+      .select({ organizationId: organizationMemberships.organizationId })
+      .from(organizationMemberships)
+      .where(
+        and(
+          eq(organizationMemberships.userId, userId),
+          eq(organizationMemberships.status, "active"),
+        ),
+      )
+      .limit(1);
+    if (!membership) return null;
+    activeOrgId = membership.organizationId;
+  }
+
+  return loadOrgIpAllowlist(activeOrgId);
+}
+
+/**
+ * Throws-style guard for use inside API route handlers and server actions.
+ * Pages already get this via the protected layout; this closes the gap for
+ * `/api/*` routes which bypass the layout entirely.
+ *
+ * Returns silently if no allowlist is configured or the request IP matches.
+ * Throws with a 403-shaped error message if blocked - callers map to
+ * NextResponse via apiErrorResponse.
+ */
+export async function assertIpAllowedForUser(userId: string): Promise<void> {
+  const allowlist = await loadUserActiveOrgIpAllowlist(userId);
+  if (!allowlist) return;
+  const reqHeaders = await headers();
+  const ip = getClientIp(reqHeaders);
+  if (!isIpAllowed(ip, allowlist)) {
+    throw new IpAllowlistError();
+  }
+}
+
+export async function assertIpAllowedForOrg(organizationId: string): Promise<void> {
+  const allowlist = await loadOrgIpAllowlist(organizationId);
+  if (!allowlist) return;
+  const reqHeaders = await headers();
+  const ip = getClientIp(reqHeaders);
+  if (!isIpAllowed(ip, allowlist)) {
+    throw new IpAllowlistError();
+  }
+}
+
+export class IpAllowlistError extends Error {
+  readonly statusCode = 403;
+  constructor() {
+    super("Access denied from this IP address.");
+    this.name = "IpAllowlistError";
+  }
 }

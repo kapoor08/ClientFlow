@@ -15,6 +15,8 @@ import {
   LifeBuoy,
   MessageSquare,
   Flag,
+  Activity,
+  Megaphone,
 } from "lucide-react";
 
 export type AdminNavItem = {
@@ -40,4 +42,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { label: "Webhook Deliveries", href: "/admin/webhook-deliveries", icon: Inbox },
   { label: "Stripe Events", href: "/admin/billing-webhook-events", icon: AlertCircle },
   { label: "Feature Flags", href: "/admin/feature-flags", icon: Flag },
+  { label: "Status Components", href: "/admin/status/components", icon: Activity },
+  { label: "Status Incidents", href: "/admin/status/incidents", icon: Megaphone },
 ];

@@ -7,6 +7,7 @@ import { categoryForModule, isCategoryAllowed } from "@/server/email/category-pr
 import { getUnsubscribeUrl } from "@/server/email/unsubscribe-token";
 import { logger } from "@/server/observability/logger";
 import { inngest, isInngestConfigured } from "@/server/queue/inngest-client";
+import { bumpSignal, SIGNAL_KEYS } from "@/server/status/signals";
 import type { SendEmailInput } from "@/server/email/types";
 
 /**
@@ -146,15 +147,17 @@ export async function sendEmailNow(input: SendEmailInput) {
   // Every outbound email carries a signed unsubscribe link. Even critical
   // emails include it - so the footer template is stable - but clicking it
   // from a critical email still honors the request for future non-critical
-  // sends.
-  const unsubUrl = getUnsubscribeUrl(input.to);
+  // sends. Callers may override the URL (e.g. status-subscriber emails point
+  // it at a status-only unsubscribe page) so the click scope matches the
+  // subscription scope.
+  const unsubUrl = input.unsubscribeUrlOverride ?? getUnsubscribeUrl(input.to);
   const html = appendUnsubscribeFooterHtml(input.html, unsubUrl);
   // Text body is currently unused by the providers but we keep it enriched
   // in case a future plaintext-capable provider is wired.
   void appendUnsubscribeFooterText(input.text, unsubUrl);
 
   if (process.env.EMAILJS_PUBLIC_KEY) {
-    return sendWithRetry(
+    const result = await sendWithRetry(
       () =>
         sendTransactionalEmailViaEmailJs({
           to: input.to,
@@ -163,8 +166,12 @@ export async function sendEmailNow(input: SendEmailInput) {
         }),
       { to: input.to, tags: input.tags },
     );
+    // Best-effort heartbeat. Status page reads `email_send_success` to
+    // derive the email-delivery component state without making test sends.
+    void bumpSignal(SIGNAL_KEYS.EMAIL_SEND_SUCCESS, { provider: "emailjs" });
+    return result;
   }
-  return sendWithRetry(
+  const result = await sendWithRetry(
     () =>
       sendTransactionalEmailViaResend({
         to: input.to,
@@ -173,6 +180,8 @@ export async function sendEmailNow(input: SendEmailInput) {
       }),
     { to: input.to, tags: input.tags },
   );
+  void bumpSignal(SIGNAL_KEYS.EMAIL_SEND_SUCCESS, { provider: "resend" });
+  return result;
 }
 
 // ─── Template loader ──────────────────────────────────────────────────────────
@@ -1084,7 +1093,11 @@ type GenericNotificationVars = {
   action_url?: string;
 };
 
-export async function sendGenericNotification(to: string, vars: GenericNotificationVars) {
+export async function sendGenericNotification(
+  to: string,
+  vars: GenericNotificationVars,
+  options?: { unsubscribeUrlOverride?: string; module?: string },
+) {
   const bodyParagraph = vars.body
     ? `<p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#6b7280;">${vars.body}</p>`
     : "";
@@ -1102,6 +1115,7 @@ export async function sendGenericNotification(to: string, vars: GenericNotificat
       action_button: actionButton,
     }),
     text: `${vars.title}\n\n${vars.body ?? ""}${vars.action_url ? `\n\n${vars.action_url}` : ""}`,
-    tags: [{ name: "module", value: "notifications" }],
+    tags: [{ name: "module", value: options?.module ?? "notifications" }],
+    unsubscribeUrlOverride: options?.unsubscribeUrlOverride,
   });
 }
