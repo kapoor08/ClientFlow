@@ -1,41 +1,45 @@
-import { Key, Globe, Lock, Webhook } from "lucide-react";
+import { Key, Globe, ShieldCheck, RefreshCcw } from "lucide-react";
 
+/**
+ * Public REST API surface (v1). Only endpoints that actually exist under
+ * `app/api/v1/*` are listed here. Webhooks and OAuth are intentionally not
+ * documented - both are on the roadmap, neither ships today.
+ */
 export const endpoints = [
   {
     method: "GET",
     path: "/api/v1/clients",
-    desc: "List all clients in the organization.",
+    desc: "List all clients in the organization with pagination.",
   },
   {
     method: "POST",
     path: "/api/v1/clients",
-    desc: "Create a new client record.",
+    desc: "Create a new client record. Plan limits are enforced server-side.",
   },
   {
     method: "GET",
     path: "/api/v1/projects",
-    desc: "List projects with optional filters.",
-  },
-  { method: "POST", path: "/api/v1/projects", desc: "Create a new project." },
-  {
-    method: "GET",
-    path: "/api/v1/tasks",
-    desc: "List tasks with status and assignee filters.",
-  },
-  {
-    method: "PATCH",
-    path: "/api/v1/tasks/:id",
-    desc: "Update task status, assignee, or priority.",
-  },
-  {
-    method: "GET",
-    path: "/api/v1/billing/invoices",
-    desc: "List invoices for the organization.",
+    desc: "List projects with optional client and status filters.",
   },
   {
     method: "POST",
-    path: "/api/v1/webhooks",
-    desc: "Register a webhook endpoint.",
+    path: "/api/v1/projects",
+    desc: "Create a new project. Plan limits are enforced server-side.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/tasks",
+    desc: "List tasks with status, assignee, and project filters.",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/tasks",
+    desc: "Create a new task. Counts against the monthly task-creation limit on metered plans.",
+  },
+  {
+    method: "GET",
+    path: "/api/v1/invoices",
+    desc: "List invoices for the organization with status filters.",
   },
 ];
 
@@ -43,21 +47,21 @@ export const features = [
   {
     icon: Key,
     title: "API Keys",
-    desc: "Generate and manage API keys from your organization settings.",
+    desc: "Generate and rotate organization-scoped API keys from Settings → Developer. Pass as a Bearer token.",
   },
   {
     icon: Globe,
     title: "RESTful Design",
-    desc: "Standard REST conventions with JSON request/response bodies.",
+    desc: "Predictable resource URLs, standard HTTP verbs, and JSON request and response bodies.",
   },
   {
-    icon: Lock,
-    title: "OAuth 2.0",
-    desc: "Secure token-based authentication for third-party integrations.",
+    icon: ShieldCheck,
+    title: "Rate Limiting",
+    desc: "Per-key sliding-window limits. Quota and reset windows are returned in standard X-RateLimit-* headers.",
   },
   {
-    icon: Webhook,
-    title: "Webhooks",
-    desc: "Real-time event notifications for task, project, and billing changes.",
+    icon: RefreshCcw,
+    title: "Idempotency",
+    desc: "Pass an Idempotency-Key header on POST requests to safely retry without creating duplicates.",
   },
 ];

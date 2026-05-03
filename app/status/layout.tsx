@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SubscribeButton } from "@/components/status/SubscribeButton";
 
 /**
  * Status page layout.
@@ -20,16 +21,25 @@ export default function StatusLayout({ children }: { children: ReactNode }) {
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="border-border border-b">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-5">
           <Link href="/" className="text-foreground text-lg font-semibold">
             ClientFlow Status
           </Link>
-          <Link
-            href="https://www.client-flow.in"
-            className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-          >
-            Back to ClientFlow →
-          </Link>
+          <nav className="flex items-center gap-4">
+            <Link
+              href="/history"
+              className="text-muted-foreground hover:text-foreground hidden text-sm transition-colors sm:inline"
+            >
+              History
+            </Link>
+            <Link
+              href="https://www.client-flow.in"
+              className="text-muted-foreground hover:text-foreground hidden text-sm transition-colors sm:inline"
+            >
+              Back to ClientFlow →
+            </Link>
+            <SubscribeButton />
+          </nav>
         </div>
       </header>
       <main className="mx-auto max-w-4xl px-6 py-10">{children}</main>

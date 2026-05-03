@@ -23,10 +23,11 @@ const ChangelogPage = () => (
           className="mx-auto max-w-3xl text-center"
         >
           <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
-            Changelog
+            Product Timeline
           </h1>
           <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
-            Product updates, new features, and improvements.
+            Milestones from the build, in reverse chronological order. Tied to real shipping dates,
+            not vanity version numbers.
           </p>
         </motion.div>
       </div>

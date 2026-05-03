@@ -4,3 +4,4 @@ export * from "./schemas/billing";
 export * from "./schemas/platform";
 export * from "./schemas/support";
 export * from "./schemas/status";
+export * from "./schemas/integrations";

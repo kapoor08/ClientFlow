@@ -32,14 +32,22 @@ const DAY_MS = 86_400_000;
  *
  * Returns oldest-first arrays of length 90 per component. Days with no
  * data render as `unknown` (gray) on the page.
+ *
+ * Optional `endDate`: anchor the window's end date to a specific UTC day
+ * instead of today. Used by the history calendar's prev/next navigation
+ * to fetch older windows. When `endDate` is in the past, today's
+ * raw-probe-result merge is skipped (the rollup is the source of truth
+ * for any non-today day).
  */
 export async function getUptimeBarsByComponent(
   componentIds: string[],
+  endDate?: Date,
 ): Promise<Map<string, UptimeBarDay[]>> {
   const result = new Map<string, UptimeBarDay[]>();
   if (componentIds.length === 0) return result;
 
-  const today = utcDayStart(new Date());
+  const today = utcDayStart(endDate ?? new Date());
+  const isHistoricalWindow = endDate != null && today.getTime() < utcDayStart(new Date()).getTime();
   const windowStart = new Date(today.getTime() - (BAR_DAYS - 1) * DAY_MS);
   const tomorrow = nextDay(today);
 
@@ -63,23 +71,31 @@ export async function getUptimeBarsByComponent(
         and(
           inArray(statusCheckDailyRollups.componentId, componentIds),
           gte(statusCheckDailyRollups.date, windowStart),
-          lt(statusCheckDailyRollups.date, today),
+          // Historical windows (endDate < today): include the rollup for the
+          // window's last day too, since there are no live probes to merge.
+          isHistoricalWindow
+            ? lt(statusCheckDailyRollups.date, tomorrow)
+            : lt(statusCheckDailyRollups.date, today),
         ),
       ),
-    db
-      .select({
-        componentId: statusCheckResults.componentId,
-        success: statusCheckResults.success,
-        latencyMs: statusCheckResults.latencyMs,
-      })
-      .from(statusCheckResults)
-      .where(
-        and(
-          inArray(statusCheckResults.componentId, componentIds),
-          gte(statusCheckResults.checkedAt, today),
-          lt(statusCheckResults.checkedAt, tomorrow),
-        ),
-      ),
+    isHistoricalWindow
+      ? Promise.resolve(
+          [] as Array<{ componentId: string; success: boolean; latencyMs: number | null }>,
+        )
+      : db
+          .select({
+            componentId: statusCheckResults.componentId,
+            success: statusCheckResults.success,
+            latencyMs: statusCheckResults.latencyMs,
+          })
+          .from(statusCheckResults)
+          .where(
+            and(
+              inArray(statusCheckResults.componentId, componentIds),
+              gte(statusCheckResults.checkedAt, today),
+              lt(statusCheckResults.checkedAt, tomorrow),
+            ),
+          ),
     // Maintenance windows that overlap *today* per component.
     db
       .select({
@@ -127,8 +143,9 @@ export async function getUptimeBarsByComponent(
   for (const componentId of componentIds) {
     const bars: UptimeBarDay[] = days.map((day) => {
       const dayMs = day.getTime();
-      // Today's bar: compute live from raw probes
-      if (dayMs === today.getTime()) {
+      // Today's bar (live merge of raw probes) - skipped when we're rendering
+      // a historical window where rollups already cover the last day.
+      if (!isHistoricalWindow && dayMs === today.getTime()) {
         const results = todayByComponent.get(componentId) ?? [];
         const inMaintenance = todayInMaintenance(componentId);
         if (results.length === 0 && !inMaintenance) {

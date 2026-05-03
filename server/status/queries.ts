@@ -125,6 +125,97 @@ export async function listRecentResolvedIncidents(): Promise<PublicIncidentSumma
   return enrichIncidents(rows);
 }
 
+/**
+ * Month-grouped incident history for the historical /history page. Returns
+ * the last `months` UTC months, newest first. Empty months are included so
+ * the timeline shows month headers even on quiet stretches (the page
+ * renders "No incidents reported for this month" placeholder).
+ *
+ * Includes both resolved AND active incidents - this is the chronological
+ * archive view, not the "what's happening now" banner view, so duplication
+ * isn't a concern here.
+ */
+export async function listIncidentsByMonth(
+  months: number,
+): Promise<Array<{ year: number; month: number; incidents: PublicIncidentSummary[] }>> {
+  const now = new Date();
+  const windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+
+  const rows = await db
+    .select()
+    .from(statusIncidents)
+    .where(gte(statusIncidents.startedAt, windowStart))
+    .orderBy(desc(statusIncidents.startedAt));
+
+  const enriched = await enrichIncidents(rows);
+
+  // Bucket incidents by their startedAt year+month.
+  const byMonth = new Map<string, PublicIncidentSummary[]>();
+  for (const inc of enriched) {
+    const key = `${inc.startedAt.getUTCFullYear()}-${inc.startedAt.getUTCMonth()}`;
+    const arr = byMonth.get(key) ?? [];
+    arr.push(inc);
+    byMonth.set(key, arr);
+  }
+
+  // Build the contiguous month window (newest first → oldest last).
+  const result: Array<{ year: number; month: number; incidents: PublicIncidentSummary[] }> = [];
+  for (let i = 0; i < months; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const year = d.getUTCFullYear();
+    const month = d.getUTCMonth();
+    result.push({ year, month, incidents: byMonth.get(`${year}-${month}`) ?? [] });
+  }
+  return result;
+}
+
+/**
+ * Day-grouped incident history for the public status page's "Past Incidents"
+ * section. Returns the last `days` UTC days, oldest day last (so callers can
+ * render today first), with each day mapped to the incidents that started on
+ * it. Days with no incidents map to an empty array - callers render "No
+ * incidents reported" rather than skipping.
+ *
+ * Filters to resolved incidents only - active incidents have their own
+ * banner at the top of the page and would otherwise show up twice.
+ */
+export async function listIncidentsByDay(
+  days: number,
+): Promise<Array<{ date: Date; incidents: PublicIncidentSummary[] }>> {
+  const DAY_MS = 86_400_000;
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  const windowStart = new Date(todayUtc.getTime() - (days - 1) * DAY_MS);
+
+  const rows = await db
+    .select()
+    .from(statusIncidents)
+    .where(and(isNotNull(statusIncidents.resolvedAt), gte(statusIncidents.startedAt, windowStart)))
+    .orderBy(desc(statusIncidents.startedAt));
+
+  const enriched = await enrichIncidents(rows);
+
+  // Bucket incidents by their startedAt UTC day.
+  const byDay = new Map<number, PublicIncidentSummary[]>();
+  for (const inc of enriched) {
+    const dayStart = new Date(inc.startedAt);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const key = dayStart.getTime();
+    const arr = byDay.get(key) ?? [];
+    arr.push(inc);
+    byDay.set(key, arr);
+  }
+
+  // Build the contiguous day window (today first → oldest last) so empty
+  // days still render with a "No incidents reported" placeholder.
+  const result: Array<{ date: Date; incidents: PublicIncidentSummary[] }> = [];
+  for (let i = 0; i < days; i++) {
+    const day = new Date(todayUtc.getTime() - i * DAY_MS);
+    result.push({ date: day, incidents: byDay.get(day.getTime()) ?? [] });
+  }
+  return result;
+}
+
 export async function getIncidentBySlug(slug: string): Promise<PublicIncidentDetail | null> {
   const [row] = await db
     .select()

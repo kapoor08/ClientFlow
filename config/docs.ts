@@ -1,54 +1,46 @@
-import {
-  BookOpen,
-  Code,
-  Server,
-  Shield,
-  Puzzle,
-  Zap,
-  Database,
-} from "lucide-react";
+import { BookOpen, Code, Server, Shield, Activity, Zap, Database } from "lucide-react";
 
 export const sections = [
   {
     icon: Zap,
     title: "Quick Start",
     desc: "Get up and running in under 5 minutes with your first project.",
-    link: "#",
+    link: "/help",
   },
   {
     icon: BookOpen,
     title: "User Guides",
     desc: "Step-by-step guides for clients, projects, tasks, and billing.",
-    link: "#",
+    link: "/help",
   },
   {
     icon: Code,
     title: "API Reference",
-    desc: "RESTful API with comprehensive endpoint documentation.",
+    desc: "REST API for clients, projects, tasks, and invoices. Bearer-token authenticated.",
     link: "/api-docs",
   },
   {
-    icon: Puzzle,
-    title: "Integrations",
-    desc: "Connect Slack, GitHub, Google Workspace, Zapier, and more.",
-    link: "/integrations",
+    icon: Shield,
+    title: "Security & Access",
+    desc: "RBAC setup, two-factor authentication, audit logging, and IP allowlists.",
+    link: "/security",
   },
   {
-    icon: Shield,
-    title: "Security & Compliance",
-    desc: "RBAC setup, SSO configuration, audit logging, and MFA.",
-    link: "/security",
+    icon: Activity,
+    title: "Status & Uptime",
+    desc: "Live component states, incident history, and email subscriptions.",
+    link: "/status",
   },
   {
     icon: Database,
     title: "Data Management",
-    desc: "Import/export, data retention, and backup procedures.",
-    link: "#",
+    desc: "Account-owner data export and deletion from billing settings.",
+    link: "/help",
   },
   {
     icon: Server,
     title: "Architecture",
-    desc: "Multi-tenant design, performance, and scaling guidelines.",
-    link: "#",
+    desc: "Multi-tenant design, plan limits, rate limiting, and the services we run on.",
+    link: "/integrations",
   },
 ];

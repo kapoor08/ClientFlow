@@ -50,7 +50,11 @@ export async function getNotificationsModuleAccessForUser(
 export async function listNotificationsForUser(
   userId: string,
   opts: { limit?: number; unreadOnly?: boolean } = {},
-): Promise<{ access: NotificationModuleAccess | null; items: NotificationItem[]; unreadCount: number }> {
+): Promise<{
+  access: NotificationModuleAccess | null;
+  items: NotificationItem[];
+  unreadCount: number;
+}> {
   const access = await getNotificationsModuleAccessForUser(userId);
   if (!access) return { access: null, items: [], unreadCount: 0 };
 
@@ -118,9 +122,7 @@ export async function markNotificationReadForUser(
 
 // ─── Mark all read ────────────────────────────────────────────────────────────
 
-export async function markAllNotificationsReadForUser(
-  userId: string,
-): Promise<void> {
+export async function markAllNotificationsReadForUser(userId: string): Promise<void> {
   const access = await getNotificationsModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
 
@@ -158,9 +160,7 @@ export async function deleteNotificationForUser(
 
 // ─── Delete all notifications ─────────────────────────────────────────────────
 
-export async function deleteAllNotificationsForUser(
-  userId: string,
-): Promise<void> {
+export async function deleteAllNotificationsForUser(userId: string): Promise<void> {
   const access = await getNotificationsModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
 
@@ -271,12 +271,14 @@ export async function updateNotificationPreferenceForUser(
         notificationPreferences.eventKey,
       ],
       set: {
-        inAppEnabled: patch.inAppEnabled !== undefined
-          ? patch.inAppEnabled
-          : notificationPreferences.inAppEnabled,
-        emailEnabled: patch.emailEnabled !== undefined
-          ? patch.emailEnabled
-          : notificationPreferences.emailEnabled,
+        inAppEnabled:
+          patch.inAppEnabled !== undefined
+            ? patch.inAppEnabled
+            : notificationPreferences.inAppEnabled,
+        emailEnabled:
+          patch.emailEnabled !== undefined
+            ? patch.emailEnabled
+            : notificationPreferences.emailEnabled,
         updatedAt: new Date(),
       },
     });
@@ -311,12 +313,7 @@ export async function deletePushSubscriptionForUser(
 ): Promise<void> {
   await db
     .delete(pushSubscriptions)
-    .where(
-      and(
-        eq(pushSubscriptions.userId, userId),
-        eq(pushSubscriptions.endpoint, endpoint),
-      ),
-    );
+    .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
 }
 
 // ─── Send push to all user devices ───────────────────────────────────────────
@@ -336,9 +333,7 @@ export async function sendPushNotificationsToUser(
       ),
     );
 
-  await Promise.allSettled(
-    subs.map((sub) => sendPushToSubscription(sub, payload)),
-  );
+  await Promise.allSettled(subs.map((sub) => sendPushToSubscription(sub, payload)));
 }
 
 // ─── Create in-app notification ───────────────────────────────────────────────
@@ -379,9 +374,7 @@ export async function getOrgMemberUserIds(
       ),
     );
 
-  return rows
-    .map((r) => r.userId)
-    .filter((id) => id !== excludeUserId);
+  return rows.map((r) => r.userId).filter((id) => id !== excludeUserId);
 }
 
 // ─── Central dispatch ─────────────────────────────────────────────────────────
@@ -472,6 +465,14 @@ export async function dispatchNotification(opts: {
     );
   }
 
+  // Absolute URL for the action link in the email template.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const absoluteActionUrl = opts.url
+    ? opts.url.startsWith("http")
+      ? opts.url
+      : `${appUrl}${opts.url}`
+    : undefined;
+
   // Send email notifications to email-enabled recipients
   if (emailRecipientIds.length > 0) {
     const emailUsers = await db
@@ -479,22 +480,21 @@ export async function dispatchNotification(opts: {
       .from(userTable)
       .where(inArray(userTable.id, emailRecipientIds));
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-    const actionUrl = opts.url
-      ? opts.url.startsWith("http")
-        ? opts.url
-        : `${appUrl}${opts.url}`
-      : undefined;
-
     await Promise.allSettled(
       emailUsers.map((u) =>
         sendGenericNotification(u.email, {
           recipient_name: u.name,
           title: opts.title,
           body: opts.body,
-          action_url: actionUrl,
+          action_url: absoluteActionUrl,
         }),
       ),
     );
   }
+
+  // Slack delivery is intentionally NOT wired into the dispatcher - it lives
+  // in `server/integrations/slack/broadcasts.ts` as a separate "team activity
+  // feed" so every task action posts to the org's Slack channel regardless of
+  // whether it had a personal recipient. See task mutation handlers in
+  // server/tasks.ts and server/task-comments.ts for the call sites.
 }

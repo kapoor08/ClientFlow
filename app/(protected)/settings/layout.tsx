@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Palette, Key, HardDrive, Webhook, ShieldCheck, ShieldUser } from "lucide-react";
+import {
+  Building2,
+  Palette,
+  Key,
+  HardDrive,
+  Webhook,
+  ShieldCheck,
+  ShieldUser,
+  Plug,
+} from "lucide-react";
 import { cn } from "@/utils/cn";
 
 const SETTINGS_NAV = [
@@ -12,28 +21,23 @@ const SETTINGS_NAV = [
   { href: "/settings/api-keys", label: "API Keys", icon: Key, exact: false },
   { href: "/settings/data", label: "Data Export", icon: HardDrive, exact: false },
   { href: "/settings/webhooks", label: "Webhooks", icon: Webhook, exact: false },
+  { href: "/settings/integrations", label: "Integrations", icon: Plug, exact: false },
   { href: "/settings/sso", label: "SSO", icon: ShieldCheck, exact: false },
 ];
 
-export default function SettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <div className="flex gap-8">
       {/* Sidebar nav */}
       <nav className="hidden w-48 shrink-0 md:block">
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="text-muted-foreground mb-2 px-3 text-[11px] font-semibold tracking-wider uppercase">
           Settings
         </p>
         <ul className="space-y-0.5">
           {SETTINGS_NAV.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <li key={item.href}>
                 <Link
@@ -55,11 +59,9 @@ export default function SettingsLayout({
       </nav>
 
       {/* Mobile tab bar */}
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border bg-secondary/50 p-1 md:hidden">
+      <div className="border-border bg-secondary/50 mb-6 flex gap-1 overflow-x-auto rounded-lg border p-1 md:hidden">
         {SETTINGS_NAV.map((item) => {
-          const active = item.exact
-            ? pathname === item.href
-            : pathname.startsWith(item.href);
+          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

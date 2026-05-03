@@ -1,11 +1,4 @@
-import {
-  HeroSection,
-  FeaturesSection,
-  TestimonialsSection,
-  StatsSection,
-  PricingSection,
-  CTASection,
-} from "@/components/homepage";
+import { HeroSection, FeaturesSection, PricingSection, CTASection } from "@/components/homepage";
 import { getPublicPlans } from "@/server/public/plans";
 
 const Landing = async () => {
@@ -14,8 +7,6 @@ const Landing = async () => {
     <>
       <HeroSection />
       <FeaturesSection />
-      <TestimonialsSection />
-      <StatsSection />
       <PricingSection plans={plans} />
       <CTASection />
     </>

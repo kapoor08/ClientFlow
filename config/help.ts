@@ -1,11 +1,4 @@
-import {
-  BookOpen,
-  MessageSquare,
-  Video,
-  FileText,
-  Users,
-  CreditCard,
-} from "lucide-react";
+import { BookOpen, MessageSquare, Bell, FileText, Users, CreditCard } from "lucide-react";
 
 export const categories = [
   {
@@ -23,7 +16,7 @@ export const categories = [
   {
     icon: FileText,
     title: "Projects & Tasks",
-    desc: "Creating projects, task workflows, Kanban boards.",
+    desc: "Creating projects, task workflows, kanban boards.",
     count: 15,
   },
   {
@@ -33,15 +26,15 @@ export const categories = [
     count: 10,
   },
   {
-    icon: Video,
-    title: "Integrations",
-    desc: "Connecting Slack, GitHub, Google Workspace, and more.",
-    count: 9,
+    icon: Bell,
+    title: "Notifications",
+    desc: "Email, in-app, and web push preferences and unsubscribes.",
+    count: 6,
   },
   {
     icon: MessageSquare,
     title: "Account & Security",
-    desc: "SSO, MFA, roles, permissions, audit logs.",
+    desc: "Two-factor auth, roles, permissions, audit logs, IP allowlists.",
     count: 11,
   },
 ];

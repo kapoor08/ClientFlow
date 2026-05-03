@@ -8,6 +8,7 @@ import { getOrganizationSettingsContextForUser } from "@/server/organization-set
 import { dispatchNotification } from "@/server/notifications/data";
 import { onTaskCommentAdded, onTaskMentioned } from "@/server/email/triggers";
 import { enforceCommentLimit } from "@/server/subscription/plan-enforcement";
+import { broadcastTaskActivity } from "@/server/integrations/broadcasts";
 
 export type TaskComment = {
   id: string;
@@ -31,12 +32,30 @@ export type TaskActivityEntry = {
 async function verifyTaskAccess(
   userId: string,
   taskId: string,
-): Promise<{ organizationId: string; assigneeUserId: string | null; title: string; projectId: string | null; refNumber: string | null } | null> {
+): Promise<{
+  organizationId: string;
+  assigneeUserId: string | null;
+  title: string;
+  projectId: string | null;
+  refNumber: string | null;
+  priority: string | null;
+  status: string;
+  dueDate: Date | null;
+} | null> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
 
   const [task] = await db
-    .select({ id: tasks.id, assigneeUserId: tasks.assigneeUserId, title: tasks.title, projectId: tasks.projectId, refNumber: tasks.refNumber })
+    .select({
+      id: tasks.id,
+      assigneeUserId: tasks.assigneeUserId,
+      title: tasks.title,
+      projectId: tasks.projectId,
+      refNumber: tasks.refNumber,
+      priority: tasks.priority,
+      status: tasks.status,
+      dueDate: tasks.dueDate,
+    })
     .from(tasks)
     .where(
       and(
@@ -54,6 +73,9 @@ async function verifyTaskAccess(
     title: task.title,
     projectId: task.projectId ?? null,
     refNumber: task.refNumber ?? null,
+    priority: task.priority ?? null,
+    status: task.status,
+    dueDate: task.dueDate ?? null,
   };
 }
 
@@ -75,9 +97,7 @@ export async function listTaskComments(
     })
     .from(taskComments)
     .leftJoin(user, eq(taskComments.authorUserId, user.id))
-    .where(
-      and(eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)),
-    )
+    .where(and(eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
     .orderBy(asc(taskComments.createdAt));
 
   return rows.map((r) => ({ ...r, authorName: r.authorName ?? null }));
@@ -114,6 +134,27 @@ export async function createTaskComment(
     })
     .catch(console.error);
 
+  // Slack broadcast (team activity feed). Strip HTML and trim to a snippet
+  // since Tiptap stores rich-text markup in `body`.
+  const plainText = body
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const snippet = plainText.length > 200 ? `${plainText.slice(0, 200)}…` : plainText;
+  broadcastTaskActivity({
+    kind: "commented",
+    organizationId: access.organizationId,
+    actorUserId: userId,
+    taskTitle: access.title,
+    taskRef: access.refNumber,
+    projectId: access.projectId,
+    assigneeUserId: access.assigneeUserId,
+    priority: access.priority,
+    status: access.status,
+    dueDate: access.dueDate,
+    commentSnippet: snippet || "(empty comment)",
+  }).catch(console.error);
+
   // Notify task assignee about the new comment (if different from commenter)
   if (access.assigneeUserId && access.assigneeUserId !== userId) {
     dispatchNotification({
@@ -127,62 +168,100 @@ export async function createTaskComment(
   }
 
   // ─── Email triggers ────────────────────────────────────────────────────────
-  const commentSnippet = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+  const commentSnippet = body
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 200);
 
   // Extract mentioned user IDs from Tiptap mention nodes: data-id="<userId>"
   const mentionedIds = Array.from(body.matchAll(/data-id="([^"]+)"/g)).map((m) => m[1]);
 
   const actorId = userId;
   Promise.all([
-    db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, actorId)).limit(1),
+    db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, actorId))
+      .limit(1),
     access.assigneeUserId
-      ? db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, access.assigneeUserId)).limit(1)
+      ? db
+          .select({ name: user.name, email: user.email })
+          .from(user)
+          .where(eq(user.id, access.assigneeUserId))
+          .limit(1)
       : Promise.resolve([null] as const),
     access.projectId
-      ? db.select({ name: projects.name }).from(projects).where(eq(projects.id, access.projectId)).limit(1)
+      ? db
+          .select({ name: projects.name })
+          .from(projects)
+          .where(eq(projects.id, access.projectId))
+          .limit(1)
       : Promise.resolve([null] as const),
     mentionedIds.length > 0
-      ? db.select({ id: user.id, name: user.name, email: user.email }).from(user).where(inArray(user.id, mentionedIds))
+      ? db
+          .select({ id: user.id, name: user.name, email: user.email })
+          .from(user)
+          .where(inArray(user.id, mentionedIds))
       : Promise.resolve([] as { id: string; name: string | null; email: string }[]),
-  ]).then(([actorRows, assigneeRows, projectRows, mentionedUsers]) => {
-    const actor = actorRows[0];
-    if (!actor?.email) return;
+  ])
+    .then(([actorRows, assigneeRows, projectRows, mentionedUsers]) => {
+      const actor = actorRows[0];
+      if (!actor?.email) return;
 
-    const taskRef = { id: taskId, title: access.title, dueDate: null };
-    const projectRef = { id: access.projectId ?? "", name: projectRows?.[0]?.name ?? "Unknown project" };
-    const actorRef = { id: actorId, name: actor.name ?? "A teammate", email: actor.email };
+      const taskRef = { id: taskId, title: access.title, dueDate: null };
+      const projectRef = {
+        id: access.projectId ?? "",
+        name: projectRows?.[0]?.name ?? "Unknown project",
+      };
+      const actorRef = { id: actorId, name: actor.name ?? "A teammate", email: actor.email };
 
-    const promises: Promise<unknown>[] = [];
+      const promises: Promise<unknown>[] = [];
 
-    // Comment notification to assignee
-    if (access.assigneeUserId && access.assigneeUserId !== userId) {
-      const assignee = assigneeRows[0];
-      if (assignee?.email) {
-        promises.push(onTaskCommentAdded({
-          recipients: [{ id: access.assigneeUserId, name: assignee.name ?? "Team member", email: assignee.email }],
-          task: taskRef,
-          project: projectRef,
-          actor: actorRef,
-          commentSnippet,
-        }));
+      // Comment notification to assignee
+      if (access.assigneeUserId && access.assigneeUserId !== userId) {
+        const assignee = assigneeRows[0];
+        if (assignee?.email) {
+          promises.push(
+            onTaskCommentAdded({
+              recipients: [
+                {
+                  id: access.assigneeUserId,
+                  name: assignee.name ?? "Team member",
+                  email: assignee.email,
+                },
+              ],
+              task: taskRef,
+              project: projectRef,
+              actor: actorRef,
+              commentSnippet,
+            }),
+          );
+        }
       }
-    }
 
-    // Mention notifications (excluding the comment author)
-    for (const mentioned of mentionedUsers) {
-      if (mentioned.id !== userId && mentioned.email) {
-        promises.push(onTaskMentioned({
-          mentioned: { id: mentioned.id, name: mentioned.name ?? "Team member", email: mentioned.email },
-          task: taskRef,
-          project: projectRef,
-          actor: actorRef,
-          commentSnippet,
-        }));
+      // Mention notifications (excluding the comment author)
+      for (const mentioned of mentionedUsers) {
+        if (mentioned.id !== userId && mentioned.email) {
+          promises.push(
+            onTaskMentioned({
+              mentioned: {
+                id: mentioned.id,
+                name: mentioned.name ?? "Team member",
+                email: mentioned.email,
+              },
+              task: taskRef,
+              project: projectRef,
+              actor: actorRef,
+              commentSnippet,
+            }),
+          );
+        }
       }
-    }
 
-    return Promise.all(promises);
-  }).catch(console.error);
+      return Promise.all(promises);
+    })
+    .catch(console.error);
 
   return { commentId };
 }
@@ -199,7 +278,13 @@ export async function updateTaskComment(
   const [comment] = await db
     .select({ authorUserId: taskComments.authorUserId })
     .from(taskComments)
-    .where(and(eq(taskComments.id, commentId), eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
+    .where(
+      and(
+        eq(taskComments.id, commentId),
+        eq(taskComments.taskId, taskId),
+        isNull(taskComments.deletedAt),
+      ),
+    )
     .limit(1);
 
   if (!comment) throw new Error("Comment not found.");
@@ -233,7 +318,13 @@ export async function deleteTaskComment(
   const [comment] = await db
     .select({ authorUserId: taskComments.authorUserId })
     .from(taskComments)
-    .where(and(eq(taskComments.id, commentId), eq(taskComments.taskId, taskId), isNull(taskComments.deletedAt)))
+    .where(
+      and(
+        eq(taskComments.id, commentId),
+        eq(taskComments.taskId, taskId),
+        isNull(taskComments.deletedAt),
+      ),
+    )
     .limit(1);
 
   if (!comment) throw new Error("Comment not found.");

@@ -3,7 +3,7 @@ import { CheckCircle2, AlertTriangle, XCircle, Wrench, MinusCircle } from "lucid
 import {
   listActiveComponents,
   listActiveIncidents,
-  listRecentResolvedIncidents,
+  listIncidentsByDay,
   deriveBannerState,
   latestStateUpdate,
   type BannerState,
@@ -11,7 +11,7 @@ import {
   type PublicIncidentSummary,
 } from "@/server/status/queries";
 import { getUptimeBarsByComponent, type UptimeBarDay } from "@/server/status/uptime-bars";
-import { SubscribeForm } from "@/components/status/SubscribeForm";
+import { UptimeBars, type UptimeBarDayClient } from "@/components/status/UptimeBars";
 import type { ComponentState, IncidentImpact, IncidentState } from "@/db/schemas/status";
 
 /**
@@ -24,10 +24,10 @@ import type { ComponentState, IncidentImpact, IncidentState } from "@/db/schemas
 export const revalidate = 60;
 
 export default async function StatusPage() {
-  const [components, activeIncidents, recentIncidents] = await Promise.all([
+  const [components, activeIncidents, pastIncidentsByDay] = await Promise.all([
     listActiveComponents(),
     listActiveIncidents(),
-    listRecentResolvedIncidents(),
+    listIncidentsByDay(14),
   ]);
   const banner = deriveBannerState(components);
   const lastUpdate = latestStateUpdate(components);
@@ -43,10 +43,7 @@ export default async function StatusPage() {
         <IncidentsSection title="Active incidents" incidents={activeIncidents} />
       )}
       <ComponentList components={components} barsByComponent={barsByComponent} />
-      {recentIncidents.length > 0 && (
-        <IncidentsSection title="Recent history" incidents={recentIncidents} subdued />
-      )}
-      <SubscribeForm />
+      <PastIncidentsByDay days={pastIncidentsByDay} />
     </div>
   );
 }
@@ -161,7 +158,7 @@ function ComponentList({
               </div>
               <StatePill state={c.currentState} />
             </div>
-            <UptimeBar bars={barsByComponent.get(c.id) ?? []} />
+            <UptimeBarForComponent bars={barsByComponent.get(c.id) ?? []} />
           </li>
         ))}
       </ul>
@@ -171,7 +168,7 @@ function ComponentList({
 
 // ── Uptime bar (90-day) ────────────────────────────────────────────────────────
 
-function UptimeBar({ bars }: { bars: UptimeBarDay[] }) {
+function UptimeBarForComponent({ bars }: { bars: UptimeBarDay[] }) {
   if (bars.length === 0) return null;
 
   const known = bars.filter((b) => b.totalChecks > 0 && b.uptimeBp != null);
@@ -179,54 +176,119 @@ function UptimeBar({ bars }: { bars: UptimeBarDay[] }) {
     known.length > 0
       ? Math.round(known.reduce((sum, b) => sum + (b.uptimeBp ?? 0), 0) / known.length)
       : null;
+  const avgLabel = avgUptimeBp != null ? `${(avgUptimeBp / 100).toFixed(2)}% uptime` : "No data";
 
+  // Serialize Date → ISO string at the server boundary so the client component
+  // can be a `"use client"` boundary without rehydration issues.
+  const clientBars: UptimeBarDayClient[] = bars.map((b) => ({
+    dateIso: b.date.toISOString(),
+    state: b.state,
+    uptimeBp: b.uptimeBp,
+    totalChecks: b.totalChecks,
+  }));
+
+  return <UptimeBars bars={clientBars} averageUptimeLabel={avgLabel} />;
+}
+
+// ── Past incidents (day-grouped, last 14 days) ────────────────────────────────
+
+function PastIncidentsByDay({
+  days,
+}: {
+  days: Array<{ date: Date; incidents: PublicIncidentSummary[] }>;
+}) {
   return (
-    <div>
-      <div className="text-muted-foreground mb-1.5 flex items-center justify-between text-[10px]">
-        <span>90 days ago</span>
-        <span>{avgUptimeBp != null ? `${(avgUptimeBp / 100).toFixed(2)}% uptime` : "No data"}</span>
-        <span>Today</span>
-      </div>
-      <div className="flex items-center gap-[2px]" role="img" aria-label="90-day uptime history">
-        {bars.map((bar) => (
-          <BarSegment key={bar.date.getTime()} bar={bar} />
+    <section>
+      <h2 className="text-foreground text-lg font-semibold">Past Incidents</h2>
+      <div className="mt-4 space-y-6">
+        {days.map((day) => (
+          <PastIncidentDay key={day.date.getTime()} day={day} />
         ))}
       </div>
+    </section>
+  );
+}
+
+function PastIncidentDay({ day }: { day: { date: Date; incidents: PublicIncidentSummary[] } }) {
+  const isToday = isSameUtcDay(day.date, new Date());
+
+  return (
+    <div className="border-border border-b pb-5 last:border-b-0">
+      <h3 className="text-foreground mb-3 text-sm font-medium">
+        {formatDayHeader(day.date)}
+        {isToday ? (
+          <span className="text-muted-foreground ml-2 text-xs font-normal">(today)</span>
+        ) : null}
+      </h3>
+      {day.incidents.length === 0 ? (
+        <p className="text-muted-foreground text-xs italic">No incidents reported.</p>
+      ) : (
+        <ul className="space-y-3">
+          {day.incidents.map((inc) => (
+            <li key={inc.id}>
+              <Link
+                href={`/incidents/${inc.slug}`}
+                className="hover:border-foreground/30 group block"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-foreground group-hover:text-primary text-sm font-medium transition-colors">
+                    {inc.title}
+                  </h4>
+                  <IncidentStateBadge state={inc.currentState} />
+                  <ImpactBadge impact={inc.impact} />
+                </div>
+                {inc.affectedComponentNames.length > 0 && (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Affecting: {inc.affectedComponentNames.join(", ")}
+                  </p>
+                )}
+                {inc.latestUpdateBody && (
+                  <p className="text-muted-foreground mt-1.5 line-clamp-2 text-sm">
+                    {inc.latestUpdateBody}
+                  </p>
+                )}
+                <p className="text-muted-foreground mt-1.5 text-[11px]">
+                  {formatTimeRange(inc.startedAt, inc.resolvedAt)}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-function BarSegment({ bar }: { bar: UptimeBarDay }) {
-  const conf = BAR_SEGMENT_CONFIG[bar.state];
-  const tooltip =
-    bar.totalChecks === 0
-      ? `${formatDate(bar.date)} — no data`
-      : bar.state === "maintenance"
-        ? `${formatDate(bar.date)} — maintenance`
-        : `${formatDate(bar.date)} — ${((bar.uptimeBp ?? 0) / 100).toFixed(2)}% uptime`;
+function isSameUtcDay(a: Date, b: Date): boolean {
   return (
-    <span
-      className={`h-7 min-w-[3px] flex-1 rounded-[1px] ${conf}`}
-      title={tooltip}
-      aria-label={tooltip}
-    />
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
   );
 }
 
-const BAR_SEGMENT_CONFIG: Record<ComponentState, string> = {
-  operational: "bg-emerald-500",
-  degraded: "bg-amber-500",
-  outage: "bg-red-500",
-  maintenance: "bg-sky-500",
-  unknown: "bg-muted",
-};
-
-function formatDate(date: Date): string {
+function formatDayHeader(date: Date): string {
+  // "May 3, 2026" - matches Atlassian Statuspage convention.
   return date.toLocaleDateString(undefined, {
     year: "numeric",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
+}
+
+function formatTimeRange(startedAt: Date, resolvedAt: Date | null): string {
+  const start = startedAt.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  if (!resolvedAt) return `Started ${start}`;
+  const end = resolvedAt.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+  return `${start} – ${end}`;
 }
 
 // ── Incidents ──────────────────────────────────────────────────────────────────

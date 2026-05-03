@@ -12,32 +12,29 @@ const methodColors: Record<string, string> = {
 
 const ApiDocsPage = () => (
   <>
-    <section className="relative overflow-hidden border-b border-border">
-      <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-      <div
-        className="absolute inset-0"
-        style={{ background: "var(--cf-hero-gradient)" }}
-      />
-      <div className="container relative py-14 md:py-20">
+    <section className="border-border relative overflow-hidden border-b">
+      <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+      <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+      <div className="relative container py-14 md:py-20">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="mx-auto max-w-3xl text-center"
         >
-          <div className="mb-4 inline-flex items-center gap-2 rounded-pill border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-cf-1">
+          <div className="rounded-pill border-border bg-card text-muted-foreground shadow-cf-1 mb-4 inline-flex items-center gap-2 border px-4 py-1.5 text-xs font-medium">
             <Code size={14} className="text-primary" />
             REST API v1
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+          <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
             API Documentation
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-            Build custom integrations with the ClientFlow REST API. Full CRUD
-            operations for all core resources.
+          <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
+            Read clients, projects, tasks, and invoices over a Bearer-token REST API. Generate keys
+            from Settings &rarr; Developer.
           </p>
-          <div className="mt-4 inline-block rounded-lg bg-card border border-border px-4 py-2 font-mono text-sm text-foreground shadow-cf-1">
-            Base URL: https://api.clientflow.io/v1
+          <div className="bg-card border-border text-foreground shadow-cf-1 mt-4 inline-block rounded-lg border px-4 py-2 font-mono text-sm">
+            Base URL: https://www.client-flow.in
           </div>
         </motion.div>
       </div>
@@ -47,14 +44,12 @@ const ApiDocsPage = () => (
       <div className="container">
         <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Endpoints
-            </h2>
+            <h2 className="font-display text-foreground text-lg font-bold">Endpoints</h2>
             <div className="mt-5 space-y-2">
               {endpoints.map((ep) => (
                 <div
                   key={ep.method + ep.path}
-                  className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30"
+                  className="border-border bg-card hover:border-primary/30 flex items-start gap-3 rounded-xl border p-4 transition-all"
                 >
                   <span
                     className={`rounded px-2 py-0.5 font-mono text-[11px] font-bold ${methodColors[ep.method]}`}
@@ -62,12 +57,8 @@ const ApiDocsPage = () => (
                     {ep.method}
                   </span>
                   <div>
-                    <code className="font-mono text-[13px] text-foreground">
-                      {ep.path}
-                    </code>
-                    <p className="mt-0.5 text-[13px] text-muted-foreground">
-                      {ep.desc}
-                    </p>
+                    <code className="text-foreground font-mono text-[13px]">{ep.path}</code>
+                    <p className="text-muted-foreground mt-0.5 text-[13px]">{ep.desc}</p>
                   </div>
                 </div>
               ))}
@@ -75,24 +66,20 @@ const ApiDocsPage = () => (
           </div>
 
           <div>
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Features
-            </h2>
+            <h2 className="font-display text-foreground text-lg font-bold">Features</h2>
             <div className="mt-5 space-y-3">
               {features.map((f) => (
                 <div
                   key={f.title}
-                  className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30"
+                  className="border-border bg-card hover:border-primary/30 rounded-xl border p-4 transition-all"
                 >
                   <div className="flex items-center gap-2">
                     <f.icon size={15} className="text-primary" />
-                    <h3 className="font-display text-[13px] font-semibold text-foreground">
+                    <h3 className="font-display text-foreground text-[13px] font-semibold">
                       {f.title}
                     </h3>
                   </div>
-                  <p className="mt-1 text-[13px] text-muted-foreground">
-                    {f.desc}
-                  </p>
+                  <p className="text-muted-foreground mt-1 text-[13px]">{f.desc}</p>
                 </div>
               ))}
             </div>

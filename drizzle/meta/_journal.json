@@ -197,6 +197,13 @@
       "when": 1777742538189,
       "tag": "0027_brief_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1777804972958,
+      "tag": "0028_fresh_romulus",
+      "breakpoints": true
     }
   ]
 }

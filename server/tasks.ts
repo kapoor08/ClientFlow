@@ -18,6 +18,7 @@ import { dispatchNotification } from "@/server/notifications/data";
 import { onTaskAssigned, onTaskStatusChanged } from "@/server/email/triggers";
 import type { TaskFormValues } from "@/schemas/tasks";
 import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { broadcastTaskActivity } from "@/server/integrations/broadcasts";
 
 export type TaskListItem = {
   id: string;
@@ -79,18 +80,14 @@ export async function listTasksForUser(
     isNull(tasks.deletedAt),
     isNull(tasks.parentTaskId),
     trimmed
-      ? or(
-          ilike(tasks.title, `%${trimmed}%`),
-          ilike(projects.name, `%${trimmed}%`),
-        )
+      ? or(ilike(tasks.title, `%${trimmed}%`), ilike(projects.name, `%${trimmed}%`))
       : undefined,
     status ? eq(tasks.status, status) : undefined,
     priority ? eq(tasks.priority, priority) : undefined,
     projectId ? eq(tasks.projectId, projectId) : undefined,
   );
 
-  const orderBy =
-    order === "asc" ? asc(tasks.createdAt) : desc(tasks.createdAt);
+  const orderBy = order === "asc" ? asc(tasks.createdAt) : desc(tasks.createdAt);
 
   const [totalResult, rows] = await Promise.all([
     db
@@ -112,10 +109,8 @@ export async function listTasksForUser(
         dueDate: tasks.dueDate,
         estimateMinutes: tasks.estimateMinutes,
         estimateSetAt: tasks.estimateSetAt,
-        commentCount:
-          sql<number>`(SELECT COUNT(*) FROM task_comments WHERE task_id = ${tasks.id} AND deleted_at IS NULL)`,
-        attachmentCount:
-          sql<number>`(SELECT COUNT(*) FROM task_attachments WHERE task_id = ${tasks.id})`,
+        commentCount: sql<number>`(SELECT COUNT(*) FROM task_comments WHERE task_id = ${tasks.id} AND deleted_at IS NULL)`,
+        attachmentCount: sql<number>`(SELECT COUNT(*) FROM task_attachments WHERE task_id = ${tasks.id})`,
         assignees: sql<{ userId: string; name: string | null }[]>`(
           SELECT COALESCE(
             json_agg(json_build_object('userId', ta.user_id, 'name', u.name) ORDER BY ta.created_at),
@@ -193,14 +188,16 @@ export async function createTaskForUser(
   }).catch(console.error);
 
   // ─── Task activity log ─────────────────────────────────────────────────────
-  db.insert(taskAuditLogs).values({
-    id: crypto.randomUUID(),
-    organizationId: context.organizationId,
-    taskId,
-    actorUserId: userId,
-    action: "task.created",
-    newValues: { title },
-  }).catch(console.error);
+  db.insert(taskAuditLogs)
+    .values({
+      id: crypto.randomUUID(),
+      organizationId: context.organizationId,
+      taskId,
+      actorUserId: userId,
+      action: "task.created",
+      newValues: { title },
+    })
+    .catch(console.error);
 
   // ─── Webhook dispatch ─────────────────────────────────────────────────────
   dispatchWebhookEvent(context.organizationId, "task.created", {
@@ -209,6 +206,20 @@ export async function createTaskForUser(
     status: input.status,
     priority: input.priority,
     projectId: input.projectId ?? null,
+  }).catch(console.error);
+
+  // ─── Slack broadcast (team activity feed) ──────────────────────────────────
+  broadcastTaskActivity({
+    kind: "created",
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    taskTitle: title,
+    taskRef: refNumber,
+    projectId: input.projectId,
+    assigneeUserId: input.assigneeUserId,
+    priority: input.priority,
+    status: input.status,
+    dueDate: input.dueDate,
   }).catch(console.error);
 
   // ─── Notify assignee ───────────────────────────────────────────────────────
@@ -224,22 +235,40 @@ export async function createTaskForUser(
 
     // Email trigger
     Promise.all([
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, input.assigneeUserId)).limit(1),
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, input.assigneeUserId))
+        .limit(1),
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1),
       input.projectId
-        ? db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1)
+        ? db
+            .select({ name: projects.name })
+            .from(projects)
+            .where(eq(projects.id, input.projectId))
+            .limit(1)
         : Promise.resolve([null] as const),
-    ]).then(([assigneeRows, actorRows, projectRows]) => {
-      const assignee = assigneeRows[0];
-      const actor = actorRows[0];
-      if (!assignee?.email || !actor?.email) return;
-      return onTaskAssigned({
-        assignee: { id: input.assigneeUserId!, name: assignee.name ?? "Team member", email: assignee.email },
-        task: { id: taskId, title, dueDate: input.dueDate },
-        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
-        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
-      });
-    }).catch(console.error);
+    ])
+      .then(([assigneeRows, actorRows, projectRows]) => {
+        const assignee = assigneeRows[0];
+        const actor = actorRows[0];
+        if (!assignee?.email || !actor?.email) return;
+        return onTaskAssigned({
+          assignee: {
+            id: input.assigneeUserId!,
+            name: assignee.name ?? "Team member",
+            email: assignee.email,
+          },
+          task: { id: taskId, title, dueDate: input.dueDate },
+          project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+          actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+        });
+      })
+      .catch(console.error);
   }
 
   return { taskId };
@@ -300,9 +329,7 @@ export async function updateTaskForUser(
       assigneeUserId: input.assigneeUserId,
       dueDate: input.dueDate,
       estimateMinutes: input.estimateMinutes,
-      estimateSetAt: estimateChanged
-        ? (input.estimateMinutes ? new Date() : null)
-        : undefined,
+      estimateSetAt: estimateChanged ? (input.estimateMinutes ? new Date() : null) : undefined,
       columnId: input.columnId ?? null,
       tags: input.tags ?? [],
       completedAt: input.status === "done" ? new Date() : null,
@@ -341,20 +368,24 @@ export async function updateTaskForUser(
 
   // Priority
   if (existing.priority !== input.priority) {
-    entries.push(entry(
-      "priority.changed",
-      { label: existing.priority ?? "None" },
-      { label: input.priority ?? "None" },
-    ));
+    entries.push(
+      entry(
+        "priority.changed",
+        { label: existing.priority ?? "None" },
+        { label: input.priority ?? "None" },
+      ),
+    );
   }
 
   // Status
   if (existing.status !== input.status) {
-    entries.push(entry(
-      "status.changed",
-      { label: formatStatusLabel(existing.status) },
-      { label: formatStatusLabel(input.status) },
-    ));
+    entries.push(
+      entry(
+        "status.changed",
+        { label: formatStatusLabel(existing.status) },
+        { label: formatStatusLabel(input.status) },
+      ),
+    );
   }
 
   // Assignee
@@ -369,11 +400,13 @@ export async function updateTaskForUser(
         .limit(1);
       newAssigneeName = newUser?.name ?? null;
     }
-    entries.push(entry(
-      "assignee.changed",
-      { userId: existing.assigneeUserId, name: existing.assigneeName },
-      { userId: input.assigneeUserId, name: newAssigneeName },
-    ));
+    entries.push(
+      entry(
+        "assignee.changed",
+        { userId: existing.assigneeUserId, name: existing.assigneeName },
+        { userId: input.assigneeUserId, name: newAssigneeName },
+      ),
+    );
   }
 
   // Column
@@ -387,44 +420,51 @@ export async function updateTaskForUser(
         .limit(1);
       newColumnName = col?.name ?? null;
     }
-    entries.push(entry(
-      "column.moved",
-      { columnId: existing.columnId, name: existing.columnName },
-      { columnId: input.columnId ?? null, name: newColumnName },
-    ));
+    entries.push(
+      entry(
+        "column.moved",
+        { columnId: existing.columnId, name: existing.columnName },
+        { columnId: input.columnId ?? null, name: newColumnName },
+      ),
+    );
   }
 
   // Due date
   const oldDue = existing.dueDate?.toISOString().slice(0, 10) ?? null;
-  const newDue = input.dueDate instanceof Date
-    ? input.dueDate.toISOString().slice(0, 10)
-    : (input.dueDate ? new Date(input.dueDate as unknown as string).toISOString().slice(0, 10) : null);
+  const newDue =
+    input.dueDate instanceof Date
+      ? input.dueDate.toISOString().slice(0, 10)
+      : input.dueDate
+        ? new Date(input.dueDate as unknown as string).toISOString().slice(0, 10)
+        : null;
   if (oldDue !== newDue) {
-    entries.push(entry(
-      "dueDate.changed",
-      { label: oldDue ? formatDateShort(oldDue) : "None" },
-      { label: newDue ? formatDateShort(newDue) : "None" },
-    ));
+    entries.push(
+      entry(
+        "dueDate.changed",
+        { label: oldDue ? formatDateShort(oldDue) : "None" },
+        { label: newDue ? formatDateShort(newDue) : "None" },
+      ),
+    );
   }
 
   // Estimate
   if ((existing.estimateMinutes ?? null) !== (input.estimateMinutes ?? null)) {
-    entries.push(entry(
-      "estimate.changed",
-      { minutes: existing.estimateMinutes ?? null },
-      { minutes: input.estimateMinutes ?? null },
-    ));
+    entries.push(
+      entry(
+        "estimate.changed",
+        { minutes: existing.estimateMinutes ?? null },
+        { minutes: input.estimateMinutes ?? null },
+      ),
+    );
   }
 
   // Description
   const oldDesc = existing.description?.trim() || null;
   const newDesc = input.description?.trim() || null;
   if (oldDesc !== newDesc) {
-    entries.push(entry(
-      "description.changed",
-      { hadContent: !!oldDesc },
-      { hadContent: !!newDesc },
-    ));
+    entries.push(
+      entry("description.changed", { hadContent: !!oldDesc }, { hadContent: !!newDesc }),
+    );
   }
 
   // Tags
@@ -433,16 +473,29 @@ export async function updateTaskForUser(
   if (JSON.stringify(oldTags) !== JSON.stringify(newTags)) {
     const added = newTags.filter((t) => !oldTags.includes(t));
     const removed = oldTags.filter((t) => !newTags.includes(t));
-    entries.push(entry(
-      "tags.changed",
-      { tags: oldTags, removed },
-      { tags: newTags, added },
-    ));
+    entries.push(entry("tags.changed", { tags: oldTags, removed }, { tags: newTags, added }));
   }
 
   // ─── Write activity log entries ────────────────────────────────────────────
   if (entries.length > 0) {
     db.insert(taskAuditLogs).values(entries).catch(console.error);
+  }
+
+  // ─── Slack broadcast (only if something actually changed) ──────────────────
+  if (entries.length > 0) {
+    broadcastTaskActivity({
+      kind: "updated",
+      organizationId: context.organizationId,
+      actorUserId: userId,
+      taskTitle: input.title.trim(),
+      taskRef: existing.refNumber,
+      projectId: input.projectId,
+      assigneeUserId: input.assigneeUserId,
+      priority: input.priority,
+      status: input.status,
+      dueDate: input.dueDate,
+      changes: entries.map((e) => formatChangeLabel(e.action, e.newValues)),
+    }).catch(console.error);
   }
 
   // ─── Notifications ─────────────────────────────────────────────────────────
@@ -462,11 +515,7 @@ export async function updateTaskForUser(
 
   // Notify assignee of status change
   const assigneeToNotify = input.assigneeUserId ?? existing.assigneeUserId;
-  if (
-    existing.status !== input.status &&
-    assigneeToNotify &&
-    assigneeToNotify !== userId
-  ) {
+  if (existing.status !== input.status && assigneeToNotify && assigneeToNotify !== userId) {
     dispatchNotification({
       organizationId: context.organizationId,
       recipientUserIds: [assigneeToNotify],
@@ -480,40 +529,78 @@ export async function updateTaskForUser(
   // ─── Email triggers ────────────────────────────────────────────────────────
   if (assigneeChanged && input.assigneeUserId && input.assigneeUserId !== userId) {
     Promise.all([
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, input.assigneeUserId)).limit(1),
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
-      db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1),
-    ]).then(([assigneeRows, actorRows, projectRows]) => {
-      const assignee = assigneeRows[0];
-      const actor = actorRows[0];
-      if (!assignee?.email || !actor?.email) return;
-      return onTaskAssigned({
-        assignee: { id: input.assigneeUserId!, name: assignee.name ?? "Team member", email: assignee.email },
-        task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
-        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
-        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
-      });
-    }).catch(console.error);
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, input.assigneeUserId))
+        .limit(1),
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1),
+      db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, input.projectId))
+        .limit(1),
+    ])
+      .then(([assigneeRows, actorRows, projectRows]) => {
+        const assignee = assigneeRows[0];
+        const actor = actorRows[0];
+        if (!assignee?.email || !actor?.email) return;
+        return onTaskAssigned({
+          assignee: {
+            id: input.assigneeUserId!,
+            name: assignee.name ?? "Team member",
+            email: assignee.email,
+          },
+          task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
+          project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+          actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+        });
+      })
+      .catch(console.error);
   }
 
   if (existing.status !== input.status && assigneeToNotify && assigneeToNotify !== userId) {
     Promise.all([
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, assigneeToNotify)).limit(1),
-      db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
-      db.select({ name: projects.name }).from(projects).where(eq(projects.id, input.projectId)).limit(1),
-    ]).then(([recipientRows, actorRows, projectRows]) => {
-      const recipient = recipientRows[0];
-      const actor = actorRows[0];
-      if (!recipient?.email || !actor?.email) return;
-      return onTaskStatusChanged({
-        recipients: [{ id: assigneeToNotify!, name: recipient.name ?? "Team member", email: recipient.email }],
-        task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
-        project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
-        actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
-        fromStatus: formatStatusLabel(existing.status),
-        toStatus: formatStatusLabel(input.status),
-      });
-    }).catch(console.error);
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, assigneeToNotify))
+        .limit(1),
+      db
+        .select({ name: user.name, email: user.email })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1),
+      db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, input.projectId))
+        .limit(1),
+    ])
+      .then(([recipientRows, actorRows, projectRows]) => {
+        const recipient = recipientRows[0];
+        const actor = actorRows[0];
+        if (!recipient?.email || !actor?.email) return;
+        return onTaskStatusChanged({
+          recipients: [
+            {
+              id: assigneeToNotify!,
+              name: recipient.name ?? "Team member",
+              email: recipient.email,
+            },
+          ],
+          task: { id: taskId, title: taskTitle, dueDate: input.dueDate },
+          project: { id: input.projectId, name: projectRows?.[0]?.name ?? "Unknown project" },
+          actor: { id: userId, name: actor.name ?? "A teammate", email: actor.email },
+          fromStatus: formatStatusLabel(existing.status),
+          toStatus: formatStatusLabel(input.status),
+        });
+      })
+      .catch(console.error);
   }
 
   // ─── Global audit log ──────────────────────────────────────────────────────
@@ -558,15 +645,17 @@ export async function updateTaskForUser(
   return { taskId };
 }
 
-export async function deleteTaskForUser(
-  userId: string,
-  taskId: string,
-): Promise<void> {
+export async function deleteTaskForUser(userId: string, taskId: string): Promise<void> {
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) throw new Error("No active organization found.");
 
   const [existing] = await db
-    .select({ id: tasks.id, title: tasks.title })
+    .select({
+      id: tasks.id,
+      title: tasks.title,
+      refNumber: tasks.refNumber,
+      projectId: tasks.projectId,
+    })
     .from(tasks)
     .where(
       and(
@@ -591,6 +680,15 @@ export async function deleteTaskForUser(
     entityType: "task",
     entityId: taskId,
     metadata: { name: existing.title },
+  }).catch(console.error);
+
+  broadcastTaskActivity({
+    kind: "deleted",
+    organizationId: context.organizationId,
+    actorUserId: userId,
+    taskTitle: existing.title,
+    taskRef: existing.refNumber,
+    projectId: existing.projectId,
   }).catch(console.error);
 }
 
@@ -624,10 +722,7 @@ export async function reorderTasksInColumnForUser(
   // Persist new positions
   await Promise.all(
     filtered.map((id, index) =>
-      db
-        .update(tasks)
-        .set({ position: index, updatedAt: new Date() })
-        .where(eq(tasks.id, id)),
+      db.update(tasks).set({ position: index, updatedAt: new Date() }).where(eq(tasks.id, id)),
     ),
   );
 }
@@ -643,6 +738,13 @@ export async function moveTaskColumnForUser(
   const [existing] = await db
     .select({
       id: tasks.id,
+      title: tasks.title,
+      refNumber: tasks.refNumber,
+      projectId: tasks.projectId,
+      assigneeUserId: tasks.assigneeUserId,
+      priority: tasks.priority,
+      status: tasks.status,
+      dueDate: tasks.dueDate,
       columnId: tasks.columnId,
       columnName: taskBoardColumns.name,
     })
@@ -679,7 +781,9 @@ export async function moveTaskColumnForUser(
 
     if (targetCol) {
       newColumnName = targetCol.name;
-      newStatus = targetCol.columnType ? (COLUMN_TYPE_TO_STATUS[targetCol.columnType] ?? null) : null;
+      newStatus = targetCol.columnType
+        ? (COLUMN_TYPE_TO_STATUS[targetCol.columnType] ?? null)
+        : null;
     }
   }
 
@@ -687,7 +791,9 @@ export async function moveTaskColumnForUser(
     .update(tasks)
     .set({
       columnId,
-      ...(newStatus ? { status: newStatus, completedAt: newStatus === "done" ? new Date() : null } : {}),
+      ...(newStatus
+        ? { status: newStatus, completedAt: newStatus === "done" ? new Date() : null }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(tasks.id, taskId));
@@ -714,6 +820,21 @@ export async function moveTaskColumnForUser(
       entityId: taskId,
       metadata: { from: existing.columnName, to: newColumnName },
     }).catch(console.error);
+
+    broadcastTaskActivity({
+      kind: "moved",
+      organizationId: context.organizationId,
+      actorUserId: userId,
+      taskTitle: existing.title,
+      taskRef: existing.refNumber,
+      projectId: existing.projectId,
+      assigneeUserId: existing.assigneeUserId,
+      priority: existing.priority,
+      status: newStatus ?? existing.status,
+      dueDate: existing.dueDate,
+      fromColumn: existing.columnName,
+      toColumn: newColumnName,
+    }).catch(console.error);
   }
 }
 
@@ -735,4 +856,38 @@ function formatDateShort(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/**
+ * Convert an audit-log diff entry into a human-readable label for the Slack
+ * "Changes:" summary line.
+ */
+function formatChangeLabel(action: string, newValues: Record<string, unknown> | null): string {
+  const v = newValues ?? {};
+  switch (action) {
+    case "title.changed":
+      return "title";
+    case "priority.changed":
+      return `priority → ${(v as { label?: string }).label ?? "?"}`;
+    case "status.changed":
+      return `status → ${(v as { label?: string }).label ?? "?"}`;
+    case "assignee.changed": {
+      const name = (v as { name?: string | null }).name;
+      return name ? `assignee → ${name}` : "assignee removed";
+    }
+    case "column.moved":
+      return `column → ${(v as { name?: string | null }).name ?? "Backlog"}`;
+    case "dueDate.changed":
+      return `due date → ${(v as { label?: string }).label ?? "?"}`;
+    case "estimate.changed":
+      return "estimate";
+    case "description.changed":
+      return "description";
+    case "tags.changed": {
+      const added = (v as { added?: string[] }).added ?? [];
+      return added.length ? `tags +${added.join(", +")}` : "tags";
+    }
+    default:
+      return action;
+  }
 }

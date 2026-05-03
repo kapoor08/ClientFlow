@@ -24,6 +24,7 @@
     "db:seed:platform-admin": "node ./scripts/seed-platform-admin.mjs",
     "db:seed:status-components": "node ./scripts/seed-status-components.mjs",
     "status:generate-monitoring-key": "node ./scripts/generate-status-monitoring-key.mjs",
+    "db:baseline-migrations": "node ./scripts/baseline-drizzle-migrations.mjs",
     "stripe:backfill-plans": "node ./scripts/backfill-stripe-plans.mjs",
     "emails:generate": "node ./scripts/generate-email-html.mjs",
     "test": "vitest run",

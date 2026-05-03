@@ -15,7 +15,6 @@ export const footerColumns = [
       { label: "Help Center", href: "/help" },
       { label: "Documentation", href: "/docs" },
       { label: "API Docs", href: "/api-docs" },
-      { label: "Blog", href: "/blog" },
       { label: "Contact", href: "/contact" },
     ],
   },
@@ -23,9 +22,6 @@ export const footerColumns = [
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Careers", href: "/careers" },
-      { label: "Partners", href: "/partners" },
-      { label: "Press", href: "/press" },
       { label: "Security", href: "/security" },
     ],
   },

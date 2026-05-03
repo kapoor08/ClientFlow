@@ -3,8 +3,8 @@ import Link from "next/link";
 import { useMotionStagger } from "@/hooks/use-home-motion";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { CheckCircle2, Shield } from "lucide-react";
-import { certifications, practices } from "@/config/security";
+import { Shield } from "lucide-react";
+import { dataHandling, practices } from "@/config/security";
 
 const SecurityPage = () => {
   const motionStagger = useMotionStagger({
@@ -15,31 +15,26 @@ const SecurityPage = () => {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--cf-hero-gradient)" }}
-        />
-        <div className="container relative py-14 md:py-20">
+      <section className="border-border relative overflow-hidden border-b">
+        <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+        <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+        <div className="relative container py-14 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-3xl text-center"
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-pill border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-cf-1">
+            <div className="rounded-pill border-border bg-card text-muted-foreground shadow-cf-1 mb-4 inline-flex items-center gap-2 border px-4 py-1.5 text-xs font-medium">
               <Shield size={14} className="text-primary" />
-              Enterprise-grade security
+              Security at ClientFlow
             </div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-              Your data is our{" "}
-              <span className="text-primary text-glow">top priority</span>
+            <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Built with <span className="text-primary text-glow">security in mind</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-              ClientFlow is built with security-first architecture. We protect
-              your agency&apos; data with industry-leading practices and
-              certifications.
+            <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
+              ClientFlow is engineered with strict tenant isolation, audited access controls, and
+              modern transport security. Below is the honest list of what ships today.
             </p>
           </motion.div>
         </div>
@@ -47,44 +42,10 @@ const SecurityPage = () => {
 
       <section className="py-12 md:py-16">
         <div className="container">
-          <h2 className="font-display text-xl font-bold text-foreground text-center">
-            Certifications & Compliance
-          </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            Independent verification of our security commitments.
-          </p>
-          <motion.div
-            variants={motionStagger.container}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            {certifications.map((c) => (
-              <motion.div
-                key={c.label}
-                variants={motionStagger.item}
-                className="rounded-xl border border-border bg-card p-5 text-center transition-all hover:border-primary/30 hover:shadow-cf-2"
-              >
-                <CheckCircle2 size={24} className="mx-auto text-primary" />
-                <h3 className="mt-2.5 font-display text-sm font-semibold text-foreground">
-                  {c.label}
-                </h3>
-                <p className="mt-1.5 text-[13px] text-muted-foreground">
-                  {c.desc}
-                </p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="border-t border-border bg-card py-12 md:py-16">
-        <div className="container">
-          <h2 className="font-display text-xl font-bold text-foreground text-center">
+          <h2 className="font-display text-foreground text-center text-xl font-bold">
             Security Practices
           </h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-center text-sm">
             How we keep your data safe every day.
           </p>
           <motion.div
@@ -98,37 +59,50 @@ const SecurityPage = () => {
               <motion.div
                 key={p.title}
                 variants={motionStagger.item}
-                className="rounded-xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-cf-2"
+                className="border-border bg-card hover:border-primary/30 hover:shadow-cf-2 rounded-xl border p-5 transition-all"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                <div className="bg-primary/8 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
                   <p.icon size={18} />
                 </div>
-                <h3 className="mt-3 font-display text-sm font-semibold text-foreground">
+                <h3 className="font-display text-foreground mt-3 text-sm font-semibold">
                   {p.title}
                 </h3>
-                <p className="mt-1.5 text-[13px] text-muted-foreground">
-                  {p.desc}
-                </p>
+                <p className="text-muted-foreground mt-1.5 text-[13px]">{p.desc}</p>
               </motion.div>
             ))}
           </motion.div>
         </div>
       </section>
 
+      <section className="border-border bg-card border-t py-12 md:py-16">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="font-display text-foreground text-center text-xl font-bold">
+            Data Handling
+          </h2>
+          <p className="text-muted-foreground mt-2 text-center text-sm">
+            Where your data lives, who touches it, and how you stay in control.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {dataHandling.map((d) => (
+              <div key={d.label} className="border-border bg-background rounded-xl border p-5">
+                <h3 className="font-display text-foreground text-sm font-semibold">{d.label}</h3>
+                <p className="text-muted-foreground mt-1.5 text-[13px]">{d.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-12 md:py-16">
         <div className="container mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-xl font-bold text-foreground">
-            Report a Vulnerability
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We welcome responsible security research. If you discover a
-            vulnerability, please report it through our disclosure program.
+          <h2 className="font-display text-foreground text-xl font-bold">Report a Vulnerability</h2>
+          <p className="text-muted-foreground mt-2 text-sm">
+            We welcome responsible security research. If you discover a vulnerability, please report
+            it through our disclosure program.
           </p>
           <div className="mt-5 flex justify-center gap-3">
             <Button size="sm" asChild>
-              <Link href="/legal/responsible-disclosure">
-                Disclosure Program
-              </Link>
+              <Link href="/legal/responsible-disclosure">Disclosure Program</Link>
             </Button>
             <Button size="sm" variant="outline" asChild>
               <Link href="/contact">Contact Security Team</Link>

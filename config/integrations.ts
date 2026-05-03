@@ -1,67 +1,88 @@
+/**
+ * "Built on" content for /integrations.
+ *
+ * ClientFlow does not yet expose first-party app integrations (Slack, Teams,
+ * GitHub, Zapier are on the roadmap). This page instead lists the production
+ * services the platform runs on so prospective customers know what powers
+ * billing, email, file storage, observability, etc.
+ */
 export const categories = [
+  {
+    name: "Infrastructure",
+    integrations: [
+      {
+        name: "Neon Postgres",
+        desc: "Primary database. Serverless Postgres with branching, point-in-time recovery, and strict tenant isolation.",
+      },
+      {
+        name: "Vercel",
+        desc: "Next.js App Router hosting with edge middleware, ISR, and zero-config preview deployments.",
+      },
+      {
+        name: "Cloudflare",
+        desc: "DNS, Turnstile bot protection on public forms, and edge-level abuse controls.",
+      },
+    ],
+  },
+  {
+    name: "Billing & Payments",
+    integrations: [
+      {
+        name: "Stripe",
+        desc: "Subscriptions, invoices, customer portal, dunning, refunds, and webhook-driven plan updates.",
+      },
+    ],
+  },
   {
     name: "Communication",
     integrations: [
       {
-        name: "Slack",
-        desc: "Get real-time notifications and updates in your Slack channels.",
+        name: "Resend",
+        desc: "Transactional email delivery with bounce, complaint, and unsubscribe webhook handling.",
       },
       {
-        name: "Microsoft Teams",
-        desc: "Push task updates and project alerts to Teams channels.",
-      },
-      {
-        name: "Gmail / Outlook",
-        desc: "Sync emails to client records and project timelines.",
+        name: "Web Push",
+        desc: "Native browser push notifications via the standards-based Web Push protocol.",
       },
     ],
   },
   {
-    name: "Development & Design",
+    name: "Files & Media",
     integrations: [
       {
-        name: "GitHub",
-        desc: "Link commits and PRs to projects and tasks automatically.",
-      },
-      {
-        name: "GitLab",
-        desc: "Track development progress alongside project milestones.",
-      },
-      {
-        name: "Figma",
-        desc: "Embed design files and sync approval workflows.",
+        name: "Cloudinary",
+        desc: "Signed uploads, CDN delivery, and on-the-fly image transforms for project files and avatars.",
       },
     ],
   },
   {
-    name: "Productivity",
+    name: "Reliability & Observability",
     integrations: [
       {
-        name: "Google Workspace",
-        desc: "Connect Drive, Calendar, and Docs to your projects.",
+        name: "Sentry",
+        desc: "Error monitoring, performance tracing, and release tracking across the full stack.",
       },
       {
-        name: "Notion",
-        desc: "Sync pages and databases with ClientFlow projects.",
+        name: "Upstash Redis",
+        desc: "Sliding-window rate limiting, ephemeral caches, and idempotency keys.",
       },
       {
-        name: "Zapier",
-        desc: "Automate workflows with 5,000+ apps via Zapier.",
+        name: "Inngest",
+        desc: "Durable background jobs for billing reconciliation, dunning reminders, and analytics rollups.",
+      },
+      {
+        name: "PostHog",
+        desc: "Product analytics and feature-flag instrumentation.",
       },
     ],
   },
   {
-    name: "Finance",
+    name: "Authentication",
     integrations: [
       {
-        name: "Stripe",
-        desc: "Power billing, subscriptions, and invoice management.",
+        name: "Better Auth",
+        desc: "Session-based auth with TOTP two-factor, Google OAuth, and email verification flows.",
       },
-      {
-        name: "QuickBooks",
-        desc: "Sync invoices and payment data to QuickBooks.",
-      },
-      { name: "Xero", desc: "Automate accounting reconciliation with Xero." },
     ],
   },
 ];
