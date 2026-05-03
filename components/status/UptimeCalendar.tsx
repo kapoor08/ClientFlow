@@ -75,9 +75,16 @@ export function UptimeCalendar({ components }: Props) {
     const key: CacheKey = `${selected.id}|${endDateIso}`;
     if (cache.has(key)) return;
 
+    // The API accepts only YYYY-MM-DD - send just the date portion.
+    // Sending the full ISO timestamp here was a silent bug: the API's
+    // `${raw}T00:00:00.000Z` concatenation produced an invalid string,
+    // fell back to today, and the calendar appeared frozen on the
+    // most-recent window.
+    const endDatePart = endDateIso.slice(0, 10);
+
     let cancelled = false;
     setIsLoading(true);
-    fetch(`/api/uptime?componentId=${encodeURIComponent(selected.id)}&endDate=${endDateIso}`)
+    fetch(`/api/uptime?componentId=${encodeURIComponent(selected.id)}&endDate=${endDatePart}`)
       .then((res) => res.json())
       .then((body) => {
         if (cancelled) return;

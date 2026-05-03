@@ -25,11 +25,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "component not found" }, { status: 404 });
   }
 
-  // Parse endDate. Accepts YYYY-MM-DD; everything else falls back to today.
+  // Parse endDate. Accepts either `YYYY-MM-DD` or a full ISO timestamp -
+  // both get normalized to a UTC day-start. Anything unparseable is
+  // ignored and the query falls back to "today".
   let endDate: Date | undefined;
   const rawEnd = req.nextUrl.searchParams.get("endDate");
   if (rawEnd) {
-    const parsed = new Date(`${rawEnd}T00:00:00.000Z`);
+    const datePart = rawEnd.slice(0, 10); // YYYY-MM-DD prefix from either format
+    const parsed = new Date(`${datePart}T00:00:00.000Z`);
     if (!isNaN(parsed.getTime())) endDate = parsed;
   }
 
