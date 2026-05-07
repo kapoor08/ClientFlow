@@ -19,3 +19,15 @@ export const FUNNEL_EVENTS = {
 } as const;
 
 export type FunnelEvent = (typeof FUNNEL_EVENTS)[keyof typeof FUNNEL_EVENTS];
+
+/**
+ * Desktop adoption funnel. Lets us measure whether the in-app banner and
+ * marketing page actually drive installs, and which OS converts best.
+ */
+export const DESKTOP_EVENTS = {
+  bannerShown: "desktop_banner_shown",
+  bannerDismissed: "desktop_banner_dismissed",
+  downloadClicked: "desktop_download_clicked",
+} as const;
+
+export type DesktopEvent = (typeof DESKTOP_EVENTS)[keyof typeof DESKTOP_EVENTS];

@@ -7,6 +7,7 @@ export const footerColumns = [
       { label: "Integrations", href: "/integrations" },
       { label: "Changelog", href: "/changelog" },
       { label: "Status", href: "/status" },
+      { label: "Desktop App", href: "/desktop" },
     ],
   },
   {

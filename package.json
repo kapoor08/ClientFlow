@@ -2,13 +2,15 @@
   "name": "clientflow",
   "version": "0.1.0",
   "private": true,
+  "main": "desktop/dist/desktop/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "vercel-build": "node ./scripts/vercel-build.mjs",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run desktop:typecheck",
+    "desktop:typecheck": "tsc -p desktop/tsconfig.json --noEmit",
     "auth:generate": "npx @better-auth/cli@latest generate --config ./server/auth/auth.ts --output ./db/auth-schema.ts --yes",
     "auth:secret": "npx @better-auth/cli@latest secret",
     "db:generate": "drizzle-kit generate",
@@ -35,7 +37,14 @@
     "bundle:budget": "node ./scripts/bundle-budget.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "desktop:build": "tsc -p desktop/tsconfig.json",
+    "desktop:start": "npm run desktop:build && electron desktop/dist/desktop/main.js",
+    "desktop:dev": "npm run desktop:build && cross-env ELECTRON_ENV=development electron desktop/dist/desktop/main.js",
+    "desktop:package": "npm run desktop:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config desktop/electron-builder.yml",
+    "desktop:package:win": "npm run desktop:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config desktop/electron-builder.yml --win",
+    "desktop:package:mac": "npm run desktop:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config desktop/electron-builder.yml --mac",
+    "desktop:package:linux": "npm run desktop:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config desktop/electron-builder.yml --linux"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -125,6 +134,8 @@
     "@vitejs/plugin-react": "^6.0.1",
     "axe-core": "^4.10.2",
     "cross-env": "^7.0.3",
+    "electron": "^36.0.0",
+    "electron-builder": "^26.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "husky": "^9.1.7",

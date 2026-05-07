@@ -48,3 +48,7 @@ next-env.d.ts
 /.claude
 # Sentry Config File
 .env.sentry-build-plugin
+
+# desktop (Electron) build output
+/desktop/dist
+/desktop/dist-installer

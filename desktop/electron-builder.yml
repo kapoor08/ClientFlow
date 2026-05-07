@@ -1,0 +1,51 @@
+appId: com.clientflow.desktop
+productName: ClientFlow
+
+# Paths are relative to the project root (where package.json lives).
+directories:
+  output: desktop/dist-installer
+
+# Slim files allowlist. The main process is a thin Electron shell that imports
+# only `electron` and Node built-ins - none of the root package.json
+# `dependencies` (Sentry, Drizzle, Stripe, Recharts, ...) ship in the binary.
+# Excluding node_modules drops the installer from hundreds of MB to the
+# Electron baseline (~150-200 MB).
+files:
+  - desktop/dist/**/*
+  - desktop/assets/**/*
+  - package.json
+  - "!node_modules/**/*"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+
+protocols:
+  name: ClientFlow
+  schemes:
+    - clientflow
+
+# Deterministic, version-less filenames so the marketing page can link to
+# /releases/latest/download/<filename> without renaming after every build.
+mac:
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: desktop/assets/icon.icns
+  artifactName: ClientFlow.${ext}
+
+win:
+  target: nsis
+  icon: desktop/assets/icon.ico
+  signAndEditExecutable: false
+  artifactName: ClientFlow-Setup.${ext}
+
+linux:
+  target: AppImage
+  icon: desktop/assets/icon.png
+  artifactName: ClientFlow.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

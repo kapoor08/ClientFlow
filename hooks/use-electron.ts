@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-interface ElectronAPI {
-  platform: "darwin" | "win32" | "linux";
-  isDesktop: true;
-  openExternal: (url: string) => Promise<void>;
-  startDesktopLogin: () => Promise<void>;
-}
+import type { ElectronAPI } from "@/shared/electron-api";
 
 declare global {
   interface Window {

@@ -4,13 +4,11 @@ import { getUserInitials } from "@/core/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { TrialBanner } from "@/components/layout/app/TrialBanner";
+import { DesktopAppBanner } from "@/components/desktop";
 import { GlobalSearch } from "@/components/layout/search/GlobalSearch";
 import AppSidebar from "./AppSidebar";
 import { OrgSwitcher, type OrgOption } from "./OrgSwitcher";
-import type {
-  RolePermissionsConfig,
-  MemberPermissionOverrides,
-} from "@/config/role-permissions";
+import type { RolePermissionsConfig, MemberPermissionOverrides } from "@/config/role-permissions";
 import { hexToHslString, isHexDark, generateBrandPalette } from "@/utils/color";
 
 type AppShellProps = {
@@ -69,59 +67,56 @@ const AppShell = ({
 
   return (
     <>
-      {brandStyle && (
-        <style dangerouslySetInnerHTML={{ __html: brandStyle }} />
-      )}
-    <div className="flex min-h-screen bg-background">
-      {isClient ? (
-        <AppSidebar
-          mode="portal"
-          logoUrl={logoUrl}
-          brandColor={brandColor}
-          orgName={orgName}
-          rolePermissions={rolePermissions}
-          memberPermissionOverrides={memberPermissionOverrides}
-        />
-      ) : (
-        <AppSidebar
-          mode="admin"
-          planCode={planCode}
-          roleKey={roleKey}
-          logoUrl={logoUrl}
-          orgName={orgName}
-          brandColor={brandColor}
-          rolePermissions={rolePermissions}
-          memberPermissionOverrides={memberPermissionOverrides}
-        />
-      )}
-      <div className="flex flex-1 flex-col min-w-0">
-        {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-lg">
-          <div className="flex items-center gap-3">
-            {orgs && orgs.length > 1 && activeOrgId && (
-              <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
-            )}
-            <GlobalSearch />
-          </div>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-            <div className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium text-foreground">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                {getUserInitials(user.name, user.email)}
-              </div>
-              <div className="hidden text-left sm:block">
-                <p className="leading-none">{user.name || "ClientFlow User"}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {user.email}
-                </p>
-              </div>
-              <SignOutButton />
+      {brandStyle && <style dangerouslySetInnerHTML={{ __html: brandStyle }} />}
+      <div className="bg-background flex min-h-screen">
+        {isClient ? (
+          <AppSidebar
+            mode="portal"
+            logoUrl={logoUrl}
+            brandColor={brandColor}
+            orgName={orgName}
+            rolePermissions={rolePermissions}
+            memberPermissionOverrides={memberPermissionOverrides}
+          />
+        ) : (
+          <AppSidebar
+            mode="admin"
+            planCode={planCode}
+            roleKey={roleKey}
+            logoUrl={logoUrl}
+            orgName={orgName}
+            brandColor={brandColor}
+            rolePermissions={rolePermissions}
+            memberPermissionOverrides={memberPermissionOverrides}
+          />
+        )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {daysLeftInTrial !== null && <TrialBanner daysLeft={daysLeftInTrial} />}
+          <DesktopAppBanner />
+          <header className="border-border bg-card/80 sticky top-0 z-40 flex h-16 items-center justify-between border-b px-6 backdrop-blur-lg">
+            <div className="flex items-center gap-3">
+              {orgs && orgs.length > 1 && activeOrgId && (
+                <OrgSwitcher orgs={orgs} activeOrgId={activeOrgId} />
+              )}
+              <GlobalSearch />
             </div>
-          </div>
-        </header>
-        <main className="flex-1 p-6">{children}</main>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <div className="text-foreground flex items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium">
+                <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold">
+                  {getUserInitials(user.name, user.email)}
+                </div>
+                <div className="hidden text-left sm:block">
+                  <p className="leading-none">{user.name || "ClientFlow User"}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">{user.email}</p>
+                </div>
+                <SignOutButton />
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 p-6">{children}</main>
+        </div>
       </div>
-    </div>
     </>
   );
 };
