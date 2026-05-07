@@ -9,6 +9,7 @@ import { db } from "@/server/db/client";
 import { signInLockout, lockoutKey } from "@/server/rate-limit";
 import { validatePassword } from "@/lib/password-policy";
 import { verifyTurnstileToken, isTurnstileConfigured } from "@/server/security/turnstile";
+import { desktopExchangePlugin } from "@/server/auth/desktop-exchange-plugin";
 
 const baseURL =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -205,6 +206,7 @@ export const auth = betterAuth({
         }
       },
     }),
+    desktopExchangePlugin(),
   ],
   socialProviders:
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

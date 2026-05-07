@@ -56,7 +56,7 @@ const PublicHeader = ({ viewer = null }: PublicHeaderProps) => {
           <Image
             src="/app-logo.png"
             alt="ClientFlow"
-            width={130}
+            width={110}
             height={28}
             className="h-auto w-auto dark:hidden"
             priority

@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Loader2, RefreshCcw } from "lucide-react";
 import {
   Dialog,
@@ -12,15 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ControlledInput, ControlledSelect } from "@/components/form";
 import { toast } from "sonner";
 import { refundInvoiceAction } from "@/server/actions/admin/billing";
 
@@ -41,6 +37,33 @@ type Props = {
   orgName: string;
 };
 
+const REASON_OPTIONS = [
+  { value: "requested_by_customer", label: "Requested by customer" },
+  { value: "duplicate", label: "Duplicate charge" },
+  { value: "fraudulent", label: "Fraudulent" },
+] as const;
+
+type ReasonValue = (typeof REASON_OPTIONS)[number]["value"];
+
+const refundFormSchema = z.object({
+  invoiceId: z.string().min(1, "Select an invoice to refund."),
+  // Empty string means "full refund"; otherwise must be a positive number.
+  amountDollars: z
+    .string()
+    .refine((v) => v.trim() === "" || (Number.isFinite(Number(v)) && Number(v) > 0), {
+      message: "Enter a valid refund amount.",
+    }),
+  reason: z.enum(["requested_by_customer", "duplicate", "fraudulent"]),
+});
+
+type RefundFormValues = z.infer<typeof refundFormSchema>;
+
+const DEFAULT_VALUES: RefundFormValues = {
+  invoiceId: "",
+  amountDollars: "",
+  reason: "requested_by_customer",
+};
+
 function formatCents(cents: number, currency: string | null) {
   return (cents / 100).toLocaleString("en-US", {
     style: "currency",
@@ -53,11 +76,20 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
   const [isPending, startTransition] = useTransition();
   const [invoices, setInvoices] = useState<RefundableInvoice[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [amountDollars, setAmountDollars] = useState<string>("");
-  const [reason, setReason] = useState<"requested_by_customer" | "duplicate" | "fraudulent">(
-    "requested_by_customer",
-  );
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<RefundFormValues>({
+    resolver: zodResolver(refundFormSchema),
+    defaultValues: DEFAULT_VALUES,
+    mode: "onSubmit",
+  });
+
+  const selectedId = useWatch({ control, name: "invoiceId" });
 
   useEffect(() => {
     // Resets dialog state on close + fetches refundable invoices on open.
@@ -66,8 +98,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
     /* eslint-disable react-hooks/set-state-in-effect */
     if (!open) {
       setInvoices([]);
-      setSelectedId(null);
-      setAmountDollars("");
+      reset(DEFAULT_VALUES);
       return;
     }
 
@@ -81,28 +112,17 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
       .catch(() => toast.error("Failed to load refundable invoices."))
       .finally(() => setLoading(false));
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, subscriptionId]);
+  }, [open, subscriptionId, reset]);
 
   const selected = invoices.find((i) => i.id === selectedId) ?? null;
 
-  function handleSubmit() {
-    if (!selected) {
-      toast.error("Select an invoice to refund.");
-      return;
-    }
-
-    const fullAmountCents = selected.amountPaidCents;
-    const trimmed = amountDollars.trim();
+  function onSubmit(values: RefundFormValues) {
+    if (!selected) return; // schema guards this, but TS still needs it
+    const trimmed = values.amountDollars.trim();
     let amountCents: number | undefined;
-
     if (trimmed.length > 0) {
-      const parsed = Number(trimmed);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        toast.error("Enter a valid refund amount.");
-        return;
-      }
-      amountCents = Math.round(parsed * 100);
-      if (amountCents > fullAmountCents) {
+      amountCents = Math.round(Number(trimmed) * 100);
+      if (amountCents > selected.amountPaidCents) {
         toast.error("Refund amount cannot exceed the invoice total.");
         return;
       }
@@ -112,7 +132,7 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
       const result = await refundInvoiceAction({
         invoiceId: selected.id,
         amountCents,
-        reason,
+        reason: values.reason as ReasonValue,
       });
       if (result.error) {
         toast.error(result.error);
@@ -146,16 +166,18 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
             No paid, Stripe-synced invoices on this subscription.
           </div>
         ) : (
-          <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Invoice</Label>
+              <Label className={errors.invoiceId ? "text-destructive" : ""}>Invoice</Label>
               <div className="rounded-card border-border max-h-60 space-y-1.5 overflow-y-auto border p-1.5">
                 {invoices.map((inv) => (
                   <button
                     key={inv.id}
                     type="button"
-                    onClick={() => setSelectedId(inv.id)}
-                    className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                    onClick={() =>
+                      setValue("invoiceId", inv.id, { shouldValidate: true, shouldDirty: true })
+                    }
+                    className={`flex w-full cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                       selectedId === inv.id
                         ? "border-primary bg-primary/5"
                         : "hover:bg-secondary/50 border-transparent"
@@ -186,67 +208,74 @@ export function RefundInvoiceDialog({ open, onOpenChange, subscriptionId, orgNam
                   </button>
                 ))}
               </div>
+              {errors.invoiceId && (
+                <p className="text-sm text-red-500">{errors.invoiceId.message}</p>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="refund-amount">Amount (optional)</Label>
-              <Input
-                id="refund-amount"
-                type="number"
-                step="0.01"
-                placeholder={
-                  selected
-                    ? `Full (${formatCents(selected.amountPaidCents, selected.currencyCode)})`
-                    : "Full refund"
-                }
-                value={amountDollars}
-                onChange={(e) => setAmountDollars(e.target.value)}
-              />
-              <p className="text-muted-foreground text-xs">
-                Leave blank to refund the full amount. Enter a smaller amount for a partial refund.
-              </p>
-            </div>
+            <ControlledInput
+              control={control}
+              name="amountDollars"
+              label="Amount (optional)"
+              type="number"
+              step="0.01"
+              placeholder={
+                selected
+                  ? `Full (${formatCents(selected.amountPaidCents, selected.currencyCode)})`
+                  : "Full refund"
+              }
+              description="Leave blank to refund the full amount. Enter a smaller amount for a partial refund."
+              error={errors.amountDollars}
+            />
 
-            <div className="space-y-1.5">
-              <Label>Reason</Label>
-              <Select value={reason} onValueChange={(v) => setReason(v as typeof reason)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="requested_by_customer">Requested by customer</SelectItem>
-                  <SelectItem value="duplicate">Duplicate charge</SelectItem>
-                  <SelectItem value="fraudulent">Fraudulent</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+            <ControlledSelect
+              control={control}
+              name="reason"
+              label="Reason"
+              options={REASON_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              error={errors.reason}
+            />
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                disabled={isPending}
+                className="cursor-pointer"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isPending || loading}
+                className="cursor-pointer"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 size={14} className="mr-1.5 animate-spin" /> Refunding…
+                  </>
+                ) : (
+                  "Refund"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         )}
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleSubmit}
-            disabled={isPending || loading || !selected}
-          >
-            {isPending ? (
-              <>
-                <Loader2 size={14} className="mr-1.5 animate-spin" /> Refunding…
-              </>
-            ) : (
-              "Refund"
-            )}
-          </Button>
-        </DialogFooter>
+        {invoices.length === 0 && !loading && (
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="cursor-pointer"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

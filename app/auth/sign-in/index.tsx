@@ -37,6 +37,7 @@ const SignIn = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [totpCode, setTotpCode] = useState("");
+  const [desktopHandoff, setDesktopHandoff] = useState(false);
 
   const verifyTotp = useMutation({
     mutationFn: () => verifyTwoFactorCode(totpCode),
@@ -111,6 +112,20 @@ const SignIn = () => {
 
   async function handleGoogleSignIn() {
     setApiError(null);
+
+    // Inside the Electron shell, Google blocks OAuth in embedded user agents.
+    // Hand off to the system browser via the preload bridge - the desktop
+    // app receives the completed session through a clientflow:// deep link.
+    if (typeof window !== "undefined" && window.electronAPI?.startDesktopLogin) {
+      try {
+        await window.electronAPI.startDesktopLogin();
+        setDesktopHandoff(true);
+      } catch (err) {
+        setApiError(getAuthErrorMessage(err, "Unable to open your browser for sign-in."));
+      }
+      return;
+    }
+
     try {
       await googleSignIn.mutateAsync(redirectTo);
     } catch (err) {
@@ -178,6 +193,18 @@ const SignIn = () => {
       <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
         {reason === "session_expired" && (
           <AuthNotice tone="info" message="Your session has expired. Please sign in again." />
+        )}
+        {reason === "desktop_handoff_expired" && (
+          <AuthNotice
+            tone="info"
+            message="Your previous desktop sign-in expired. Please try again."
+          />
+        )}
+        {desktopHandoff && (
+          <AuthNotice
+            tone="info"
+            message="We've opened your browser to finish signing in with Google. Return here once it's done - the desktop app will sign you in automatically."
+          />
         )}
         {apiError && <AuthNotice tone="error" message={apiError} />}
 

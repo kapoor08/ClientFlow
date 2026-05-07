@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 
 interface ElectronAPI {
   platform: "darwin" | "win32" | "linux";
+  isDesktop: true;
   openExternal: (url: string) => Promise<void>;
+  startDesktopLogin: () => Promise<void>;
 }
 
 declare global {

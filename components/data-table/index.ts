@@ -1,4 +1,5 @@
 export { DataTable } from "./DataTable";
+export { LocalDataTable, type LocalFilterConfig } from "./LocalDataTable";
 export { RowActions } from "./RowActions";
 export type { RowActionsProps } from "./RowActions";
 export type { ColumnDef, SortDirection } from "./types";

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -29,11 +28,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { TipLink, TooltipProvider } from "@/components/data-table/RowActions";
 import { AdminUserActions } from "./AdminUserActions";
-import {
-  bulkRevokeUserSessionsAction,
-  bulkDeleteUsersAction,
-} from "@/server/actions/admin/users";
+import { bulkRevokeUserSessionsAction, bulkDeleteUsersAction } from "@/server/actions/admin/users";
 import type { AdminUserRow } from "@/server/admin/users";
 import type { PaginationMeta } from "@/utils/pagination";
 
@@ -42,9 +39,7 @@ const VERIFIED_OPTIONS = [
   { value: "false", label: "Unverified" },
 ];
 
-const ADMIN_OPTIONS = [
-  { value: "true", label: "Platform admins only" },
-];
+const ADMIN_OPTIONS = [{ value: "true", label: "Platform admins only" }];
 
 function buildColumns(
   selected: Set<string>,
@@ -78,14 +73,10 @@ function buildColumns(
       header: "Actions",
       headerClassName: "w-16",
       cell: (u) => (
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/admin/users/${u.id}`}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            title="View profile"
-          >
-            <ExternalLink size={13} />
-          </Link>
+        <div className="flex items-center gap-0.5">
+          <TipLink href={`/admin/users/${u.id}`} label="View profile">
+            <ExternalLink size={14} />
+          </TipLink>
           <AdminUserActions userId={u.id} userName={u.name} />
         </div>
       ),
@@ -98,20 +89,28 @@ function buildColumns(
         <div className="flex items-center gap-2.5">
           {u.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={u.image} alt={u.name} className="h-7 w-7 rounded-full object-cover shrink-0" />
+            <img
+              src={u.image}
+              alt={u.name}
+              className="h-7 w-7 shrink-0 rounded-full object-cover"
+            />
           ) : (
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-primary">
+            <div className="bg-brand-100 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
               {u.name.slice(0, 2).toUpperCase()}
             </div>
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="font-medium text-foreground truncate">{u.name}</p>
+              <p className="text-foreground truncate font-medium">{u.name}</p>
               {u.isPlatformAdmin && (
-                <ShieldCheck size={12} className="text-danger shrink-0" aria-label="Platform Admin" />
+                <ShieldCheck
+                  size={12}
+                  className="text-danger shrink-0"
+                  aria-label="Platform Admin"
+                />
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+            <p className="text-muted-foreground truncate text-xs">{u.email}</p>
           </div>
         </div>
       ),
@@ -127,7 +126,10 @@ function buildColumns(
       header: "Verified",
       hideOnTablet: true,
       cell: (u) => (
-        <MailCheck size={14} className={u.emailVerified ? "text-success" : "text-muted-foreground/40"} />
+        <MailCheck
+          size={14}
+          className={u.emailVerified ? "text-success" : "text-muted-foreground/40"}
+        />
       ),
     },
     {
@@ -135,7 +137,10 @@ function buildColumns(
       header: "MFA",
       hideOnTablet: true,
       cell: (u) => (
-        <KeyRound size={14} className={u.twoFactorEnabled ? "text-success" : "text-muted-foreground/40"} />
+        <KeyRound
+          size={14}
+          className={u.twoFactorEnabled ? "text-success" : "text-muted-foreground/40"}
+        />
       ),
     },
     {
@@ -144,7 +149,7 @@ function buildColumns(
       sortable: true,
       hideOnMobile: true,
       cell: (u) => (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {formatDistanceToNow(new Date(u.createdAt), { addSuffix: true })}
         </span>
       ),
@@ -237,15 +242,15 @@ export function UsersTable({ data, pagination }: Props) {
   const columns = buildColumns(selected, toggleRow, allChecked, someChecked, toggleAll);
 
   return (
-    <>
+    <TooltipProvider>
       {selected.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2.5">
+        <div className="rounded-card border-primary/30 bg-primary/5 mb-3 flex flex-wrap items-center justify-between gap-3 border px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-foreground">{selected.size}</span>
+            <span className="text-foreground font-semibold">{selected.size}</span>
             <span className="text-muted-foreground">selected</span>
             <button
               onClick={clearSelection}
-              className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              className="text-muted-foreground hover:text-foreground ml-2 inline-flex cursor-pointer items-center gap-1 text-xs"
             >
               <X size={11} /> Clear
             </button>
@@ -256,7 +261,7 @@ export function UsersTable({ data, pagination }: Props) {
               size="sm"
               onClick={handleBulkRevokeSessions}
               disabled={isBulkPending}
-              className="gap-1.5 cursor-pointer border-warning/40 text-warning hover:bg-warning/10"
+              className="border-warning/40 text-warning hover:bg-warning/10 cursor-pointer gap-1.5"
             >
               {isBulkPending ? (
                 <Loader2 size={13} className="animate-spin" />
@@ -270,7 +275,7 @@ export function UsersTable({ data, pagination }: Props) {
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
               disabled={isBulkPending}
-              className="gap-1.5 cursor-pointer border-danger/40 text-danger hover:bg-danger/10"
+              className="border-danger/40 text-danger hover:bg-danger/10 cursor-pointer gap-1.5"
             >
               <Trash2 size={13} />
               Delete
@@ -316,8 +321,8 @@ export function UsersTable({ data, pagination }: Props) {
               Delete {selected.size} user{selected.size === 1 ? "" : "s"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Their accounts and all memberships will be permanently deleted. Your own account
-              will be skipped if selected. This action cannot be undone.
+              Their accounts and all memberships will be permanently deleted. Your own account will
+              be skipped if selected. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -325,7 +330,7 @@ export function UsersTable({ data, pagination }: Props) {
             <AlertDialogAction
               onClick={handleBulkDeleteConfirm}
               disabled={isBulkPending}
-              className="bg-danger text-white hover:bg-danger/90"
+              className="bg-danger hover:bg-danger/90 text-white"
             >
               {isBulkPending ? (
                 <>
@@ -338,6 +343,6 @@ export function UsersTable({ data, pagination }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }

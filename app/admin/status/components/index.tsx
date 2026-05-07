@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LocalDataTable, type ColumnDef } from "@/components/data-table";
 import { ComponentFormDialog, ComponentActions } from "@/components/admin/status";
 import type { AdminStatusComponent } from "@/server/admin/status-components";
 import type { ComponentState, ProbeConfig } from "@/db/schemas/status";
@@ -17,6 +18,16 @@ const STATE_BADGE: Record<ComponentState, string> = {
   unknown: "bg-muted text-muted-foreground",
 };
 
+const STATE_OPTIONS = (Object.keys(STATE_BADGE) as ComponentState[]).map((s) => ({
+  value: s,
+  label: s.charAt(0).toUpperCase() + s.slice(1),
+}));
+
+const ACTIVE_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
 function describeProbe(config: ProbeConfig): string {
   if (config.kind === "http") {
     return `HTTP ${config.method} ${config.url} → ${config.expectedStatus}`;
@@ -29,6 +40,67 @@ function describeProbe(config: ProbeConfig): string {
 
 export default function AdminStatusComponentsPage({ components }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Move up/down depends on the row's position in the *full* ordered list,
+  // not the paginated slice - capture that mapping once.
+  const positionById = useMemo(() => {
+    const m = new Map<string, { isFirst: boolean; isLast: boolean }>();
+    components.forEach((c, i) => {
+      m.set(c.id, { isFirst: i === 0, isLast: i === components.length - 1 });
+    });
+    return m;
+  }, [components]);
+
+  const columns: ColumnDef<AdminStatusComponent>[] = [
+    {
+      key: "actions",
+      header: "Actions",
+      headerClassName: "w-0",
+      className: "text-right",
+      cell: (c) => {
+        const pos = positionById.get(c.id) ?? { isFirst: false, isLast: false };
+        return <ComponentActions component={c} isFirst={pos.isFirst} isLast={pos.isLast} />;
+      },
+    },
+    {
+      key: "name",
+      header: "Name",
+      sortable: true,
+      cell: (c) => (
+        <div>
+          <p className="text-foreground font-medium">
+            {c.name}{" "}
+            {!c.isActive && (
+              <span className="bg-secondary text-muted-foreground ml-1 rounded-full px-1.5 py-0.5 text-[10px]">
+                inactive
+              </span>
+            )}
+          </p>
+          <p className="text-muted-foreground font-mono text-xs">{c.slug}</p>
+        </div>
+      ),
+    },
+    {
+      key: "probe",
+      header: "Probe",
+      hideOnTablet: true,
+      cell: (c) => (
+        <p className="text-muted-foreground font-mono text-xs">{describeProbe(c.probeConfig)}</p>
+      ),
+    },
+    {
+      key: "currentState",
+      header: "Current state",
+      sortable: true,
+      cell: (c) => (
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATE_BADGE[c.currentState]}`}
+        >
+          {c.currentState}
+        </span>
+      ),
+    },
+  ];
 
   return (
     <div>
@@ -46,68 +118,33 @@ export default function AdminStatusComponentsPage({ components }: Props) {
         </Button>
       </div>
 
-      {components.length === 0 ? (
-        <div className="border-border bg-card rounded-xl border p-10 text-center">
-          <p className="text-muted-foreground text-sm">
-            No status components yet. Create one to start probing it.
-          </p>
-        </div>
-      ) : (
-        <div className="border-border bg-card overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-border bg-secondary/50 border-b">
-                <th className="text-muted-foreground px-4 py-3 text-left text-xs font-semibold">
-                  Name
-                </th>
-                <th className="text-muted-foreground hidden px-4 py-3 text-left text-xs font-semibold md:table-cell">
-                  Probe
-                </th>
-                <th className="text-muted-foreground px-4 py-3 text-left text-xs font-semibold">
-                  Current state
-                </th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {components.map((c, i) => (
-                <tr key={c.id} className="border-border border-b last:border-b-0">
-                  <td className="px-4 py-3">
-                    <p className="text-foreground font-medium">
-                      {c.name}{" "}
-                      {!c.isActive && (
-                        <span className="bg-secondary text-muted-foreground ml-1 rounded-full px-1.5 py-0.5 text-[10px]">
-                          inactive
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-muted-foreground font-mono text-xs">{c.slug}</p>
-                  </td>
-                  <td className="hidden px-4 py-3 md:table-cell">
-                    <p className="text-muted-foreground font-mono text-xs">
-                      {describeProbe(c.probeConfig)}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATE_BADGE[c.currentState]}`}
-                    >
-                      {c.currentState}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <ComponentActions
-                      component={c}
-                      isFirst={i === 0}
-                      isLast={i === components.length - 1}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <LocalDataTable
+        data={components}
+        columns={columns}
+        getRowKey={(c) => c.id}
+        searchPlaceholder="Search by name or slug…"
+        searchAccessor={(c) => `${c.name} ${c.slug}`}
+        sortAccessors={{
+          name: (c) => c.name,
+          currentState: (c) => c.currentState,
+        }}
+        filters={[
+          {
+            key: "state",
+            label: "State",
+            options: STATE_OPTIONS,
+            match: (c, v) => c.currentState === v,
+          },
+          {
+            key: "active",
+            label: "Active",
+            options: ACTIVE_OPTIONS,
+            match: (c, v) => (v === "active" ? c.isActive : !c.isActive),
+          },
+        ]}
+        emptyTitle="No status components yet."
+        emptyDescription="Create one to start probing it."
+      />
 
       <ComponentFormDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>

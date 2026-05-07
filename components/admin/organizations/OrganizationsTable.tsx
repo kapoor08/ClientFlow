@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -22,12 +21,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AdminOrgActions } from "./AdminOrgActions";
-import {
-  bulkSuspendOrgsAction,
-  bulkRestoreOrgsAction,
-} from "@/server/actions/admin/organizations";
+import { bulkSuspendOrgsAction, bulkRestoreOrgsAction } from "@/server/actions/admin/organizations";
 import type { AdminOrgRow } from "@/server/admin/organizations";
 import type { PaginationMeta } from "@/utils/pagination";
+import { TipLink, TooltipProvider } from "@/components/data-table/RowActions";
 
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-secondary text-muted-foreground",
@@ -74,15 +71,16 @@ function buildColumns(
       header: "Actions",
       headerClassName: "w-16",
       cell: (org) => (
-        <div className="flex items-center gap-1">
-          <Link
-            href={`/admin/organizations/${org.id}`}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            title="View details"
-          >
-            <ExternalLink size={13} />
-          </Link>
-          <AdminOrgActions orgId={org.id} orgName={org.name} isActive={org.isActive} status={org.status} />
+        <div className="flex items-center gap-0.5">
+          <TipLink href={`/admin/organizations/${org.id}`} label="View details">
+            <ExternalLink size={14} />
+          </TipLink>
+          <AdminOrgActions
+            orgId={org.id}
+            orgName={org.name}
+            isActive={org.isActive}
+            status={org.status}
+          />
         </div>
       ),
     },
@@ -101,12 +99,12 @@ function buildColumns(
       sortable: true,
       cell: (org) => (
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100">
+          <div className="bg-brand-100 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
             <Building2 size={13} className="text-primary" />
           </div>
           <div>
-            <p className="font-medium text-foreground">{org.name}</p>
-            <p className="text-[10px] text-muted-foreground font-mono">{org.slug}</p>
+            <p className="text-foreground font-medium">{org.name}</p>
+            <p className="text-muted-foreground font-mono text-[10px]">{org.slug}</p>
           </div>
         </div>
       ),
@@ -140,7 +138,7 @@ function buildColumns(
       sortable: true,
       hideOnMobile: true,
       cell: (org) => (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {formatDistanceToNow(new Date(org.createdAt), { addSuffix: true })}
         </span>
       ),
@@ -153,7 +151,7 @@ function buildColumns(
         org.subscriptionStatus ? (
           <StatusBadge status={org.subscriptionStatus} />
         ) : (
-          <span className="text-xs text-muted-foreground">-</span>
+          <span className="text-muted-foreground text-xs">-</span>
         ),
     },
   ];
@@ -246,15 +244,15 @@ export function OrganizationsTable({ data, pagination }: Props) {
   const columns = buildColumns(selected, toggleRow, allChecked, someChecked, toggleAll);
 
   return (
-    <>
+    <TooltipProvider>
       {selected.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-card border border-primary/30 bg-primary/5 px-4 py-2.5">
+        <div className="rounded-card border-primary/30 bg-primary/5 mb-3 flex flex-wrap items-center justify-between gap-3 border px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-semibold text-foreground">{selected.size}</span>
+            <span className="text-foreground font-semibold">{selected.size}</span>
             <span className="text-muted-foreground">selected</span>
             <button
               onClick={clearSelection}
-              className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+              className="text-muted-foreground hover:text-foreground ml-2 inline-flex cursor-pointer items-center gap-1 text-xs"
             >
               <X size={11} /> Clear
             </button>
@@ -265,7 +263,7 @@ export function OrganizationsTable({ data, pagination }: Props) {
               size="sm"
               onClick={handleBulkRestore}
               disabled={isBulkPending}
-              className="gap-1.5 cursor-pointer"
+              className="cursor-pointer gap-1.5"
             >
               {isBulkPending ? <Loader2 size={13} className="animate-spin" /> : <Power size={13} />}
               Restore
@@ -275,7 +273,7 @@ export function OrganizationsTable({ data, pagination }: Props) {
               size="sm"
               onClick={() => setSuspendDialogOpen(true)}
               disabled={isBulkPending}
-              className="gap-1.5 cursor-pointer border-warning/40 text-warning hover:bg-warning/10"
+              className="border-warning/40 text-warning hover:bg-warning/10 cursor-pointer gap-1.5"
             >
               <PowerOff size={13} />
               Suspend
@@ -317,7 +315,9 @@ export function OrganizationsTable({ data, pagination }: Props) {
       <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Suspend {selected.size} organization{selected.size === 1 ? "" : "s"}?</DialogTitle>
+            <DialogTitle>
+              Suspend {selected.size} organization{selected.size === 1 ? "" : "s"}?
+            </DialogTitle>
             <DialogDescription>
               All members of the selected organizations will lose access immediately. They will see
               a suspension notice until you restore the org.
@@ -333,7 +333,7 @@ export function OrganizationsTable({ data, pagination }: Props) {
               onChange={(e) => setSuspendReason(e.target.value)}
               rows={3}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Logged against every org in the platform audit trail.
             </p>
           </div>
@@ -362,6 +362,6 @@ export function OrganizationsTable({ data, pagination }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   );
 }
