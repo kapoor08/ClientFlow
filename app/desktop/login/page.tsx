@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/utils/auth-client";
 
 const NONCE_PATTERN = /^[a-f0-9]{16,128}$/;
 
 export default function DesktopLoginPage() {
+  return (
+    <Suspense fallback={<DesktopLoginFallback />}>
+      <DesktopLoginInner />
+    </Suspense>
+  );
+}
+
+function DesktopLoginFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center px-6">
+      <p className="text-muted-foreground text-sm">Redirecting to Google…</p>
+    </div>
+  );
+}
+
+function DesktopLoginInner() {
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 

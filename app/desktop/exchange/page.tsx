@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/;
@@ -12,6 +12,22 @@ const NONCE_PATTERN = /^[a-f0-9]{16,128}$/;
  * a session cookie scoped to Electron's session, then routes to the dashboard.
  */
 export default function DesktopExchangePage() {
+  return (
+    <Suspense fallback={<DesktopExchangeFallback />}>
+      <DesktopExchangeInner />
+    </Suspense>
+  );
+}
+
+function DesktopExchangeFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center px-6">
+      <p className="text-muted-foreground text-sm">Signing you in…</p>
+    </div>
+  );
+}
+
+function DesktopExchangeInner() {
   const params = useSearchParams();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/;
@@ -13,6 +13,22 @@ const NONCE_PATTERN = /^[a-f0-9]{16,128}$/;
  * case the OS blocks the implicit protocol launch.
  */
 export default function DesktopReturnPage() {
+  return (
+    <Suspense fallback={<DesktopReturnFallback />}>
+      <DesktopReturnInner />
+    </Suspense>
+  );
+}
+
+function DesktopReturnFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-6">
+      <p className="text-muted-foreground text-sm">Returning to ClientFlow…</p>
+    </main>
+  );
+}
+
+function DesktopReturnInner() {
   const params = useSearchParams();
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [invalid, setInvalid] = useState(false);
