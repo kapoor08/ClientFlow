@@ -30,6 +30,7 @@ export const twoFactorTable = pgTable("two_factor", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
+  verified: boolean("verified").default(true).notNull(),
 });
 
 export const session = pgTable(

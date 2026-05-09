@@ -52,3 +52,5 @@ next-env.d.ts
 # desktop (Electron) build output
 /desktop/dist
 /desktop/dist-installer
+temp_auto_push.bat
+temp_interactive_push.bat
