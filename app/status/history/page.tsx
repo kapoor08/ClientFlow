@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { listActiveComponents, listIncidentsByMonth } from "@/server/status/queries";
+import {
+  listActiveComponents,
+  listIncidentsByMonth,
+  type PublicComponent,
+  type PublicIncidentSummary,
+} from "@/server/status/queries";
 import { getUptimeBarsByComponent, type UptimeBarDay } from "@/server/status/uptime-bars";
 import { HistoryTabs } from "@/components/status/HistoryTabs";
 import type { UptimeBarDayClient } from "@/components/status/UptimeBars";
@@ -23,10 +28,20 @@ export const revalidate = 60;
 const HISTORY_MONTHS = 6;
 
 export default async function HistoryPage() {
-  const [components, monthlyIncidents] = await Promise.all([
-    listActiveComponents(),
-    listIncidentsByMonth(HISTORY_MONTHS),
-  ]);
+  // The DB is not reachable during `next build` in some environments (e.g. CI).
+  // Fall back to empty state so prerendering succeeds; ISR regenerates with real
+  // data once the database is reachable.
+  let components: PublicComponent[] = [];
+  let monthlyIncidents: Array<{ year: number; month: number; incidents: PublicIncidentSummary[] }> =
+    [];
+  try {
+    [components, monthlyIncidents] = await Promise.all([
+      listActiveComponents(),
+      listIncidentsByMonth(HISTORY_MONTHS),
+    ]);
+  } catch {
+    // keep empty fallbacks
+  }
 
   const barsByComponent: Map<string, UptimeBarDay[]> =
     components.length > 0 ? await getUptimeBarsByComponent(components.map((c) => c.id)) : new Map();

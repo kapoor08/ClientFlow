@@ -24,11 +24,21 @@ import type { ComponentState, IncidentImpact, IncidentState } from "@/db/schemas
 export const revalidate = 60;
 
 export default async function StatusPage() {
-  const [components, activeIncidents, pastIncidentsByDay] = await Promise.all([
-    listActiveComponents(),
-    listActiveIncidents(),
-    listIncidentsByDay(14),
-  ]);
+  // The DB is not reachable during `next build` in some environments (e.g. CI).
+  // Fall back to empty state so prerendering succeeds; ISR regenerates with real
+  // data once the database is reachable.
+  let components: PublicComponent[] = [];
+  let activeIncidents: PublicIncidentSummary[] = [];
+  let pastIncidentsByDay: Array<{ date: Date; incidents: PublicIncidentSummary[] }> = [];
+  try {
+    [components, activeIncidents, pastIncidentsByDay] = await Promise.all([
+      listActiveComponents(),
+      listActiveIncidents(),
+      listIncidentsByDay(14),
+    ]);
+  } catch {
+    // keep empty fallbacks
+  }
   const banner = deriveBannerState(components);
   const lastUpdate = latestStateUpdate(components);
   const barsByComponent =

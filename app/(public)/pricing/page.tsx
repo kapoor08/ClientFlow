@@ -1,6 +1,6 @@
 import { buildMetadata } from "@/lib/seo";
 import { softwareApplicationSchema } from "@/lib/jsonLd";
-import { getPublicPlans } from "@/server/public/plans";
+import { getPublicPlans, type PublicPlan } from "@/server/public/plans";
 import PricingPage from ".";
 
 // ISR - pricing rarely changes more than once a day; serve from cache and
@@ -15,7 +15,15 @@ export const metadata = buildMetadata({
 });
 
 export default async function Page() {
-  const plans = await getPublicPlans();
+  // DB may be unreachable during `next build` (e.g. CI). Fall back to no plans
+  // so prerendering succeeds; ISR regenerates with real data once the database
+  // is reachable.
+  let plans: PublicPlan[] = [];
+  try {
+    plans = await getPublicPlans();
+  } catch {
+    plans = [];
+  }
 
   const pricedPlans = plans
     .map((p) => p.monthlyPriceCents)

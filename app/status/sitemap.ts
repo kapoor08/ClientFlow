@@ -4,6 +4,11 @@ import { statusIncidents } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { getStatusBaseUrl } from "@/server/status/urls";
 
+// Rendered on-demand: the query below hits the database, which is not
+// reachable during `next build` (e.g. CI). Keeping this out of static
+// generation prevents build-time prerender failures.
+export const dynamic = "force-dynamic";
+
 /**
  * Sitemap for the status subdomain.
  *
