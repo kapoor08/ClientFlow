@@ -31,7 +31,9 @@ export async function acceptInviteAction(token: string) {
   }
 
   if (acceptError || !result) {
-    redirect(`/invite/${token}?error=${encodeURIComponent(acceptError ?? "Could not accept invitation.")}`);
+    redirect(
+      `/invite/${token}?error=${encodeURIComponent(acceptError ?? "Could not accept invitation.")}`,
+    );
   }
 
   // Switch active org context to the newly joined org

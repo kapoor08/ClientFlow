@@ -81,10 +81,8 @@ export default function WebhooksPage() {
     <div>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">
-            Webhooks
-          </h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="font-display text-foreground text-2xl font-semibold">Webhooks</h1>
+          <p className="text-muted-foreground text-sm">
             Send real-time event notifications to your endpoints.
           </p>
         </div>
@@ -101,7 +99,7 @@ export default function WebhooksPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-card border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="rounded-card border-danger/20 bg-danger/5 text-danger mb-4 border px-4 py-3 text-sm">
           {error}
         </div>
       )}
@@ -109,11 +107,8 @@ export default function WebhooksPage() {
       <div className="space-y-3">
         {isLoading ? (
           Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-card border border-border bg-card p-5 shadow-cf-1"
-            >
-              <div className="h-3 w-48 animate-pulse rounded bg-secondary" />
+            <div key={i} className="rounded-card border-border bg-card shadow-cf-1 border p-5">
+              <div className="bg-secondary h-3 w-48 animate-pulse rounded" />
             </div>
           ))
         ) : webhooks.length === 0 ? (

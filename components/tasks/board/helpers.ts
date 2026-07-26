@@ -1,9 +1,6 @@
 // Maps a task status to whether it belongs under a column of the given type.
 
-export function statusMatchesColumnType(
-  status: string,
-  columnType: string | null,
-): boolean {
+export function statusMatchesColumnType(status: string, columnType: string | null): boolean {
   if (!columnType) return false;
   const map: Record<string, string[]> = {
     todo: ["todo", "backlog"],

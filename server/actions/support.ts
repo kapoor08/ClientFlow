@@ -32,9 +32,7 @@ export async function createTicketAction(
   }
 }
 
-export async function replyToTicketAction(
-  values: unknown,
-): Promise<{ error?: string }> {
+export async function replyToTicketAction(values: unknown): Promise<{ error?: string }> {
   const ctx = await getPortalContext();
   if (!ctx) return { error: "Unauthorized" };
 

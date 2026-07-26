@@ -5,11 +5,7 @@ import { db } from "@/server/db/client";
 import { contactSubmissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { guardAdmin } from "@/server/auth/admin-guard";
-import {
-  addTicketMessage,
-  assignTicket,
-  updateTicketStatus,
-} from "@/server/support";
+import { addTicketMessage, assignTicket, updateTicketStatus } from "@/server/support";
 import {
   adminReplySchema,
   assignTicketSchema,
@@ -17,9 +13,7 @@ import {
   updateTicketStatusSchema,
 } from "@/schemas/admin/support";
 
-export async function adminReplyAction(
-  values: unknown,
-): Promise<{ error?: string }> {
+export async function adminReplyAction(values: unknown): Promise<{ error?: string }> {
   const admin = await guardAdmin();
   if (!admin) return { error: "Forbidden" };
 
@@ -37,9 +31,7 @@ export async function adminReplyAction(
   }
 }
 
-export async function updateTicketStatusAction(
-  values: unknown,
-): Promise<{ error?: string }> {
+export async function updateTicketStatusAction(values: unknown): Promise<{ error?: string }> {
   const admin = await guardAdmin();
   if (!admin) return { error: "Forbidden" };
 
@@ -58,9 +50,7 @@ export async function updateTicketStatusAction(
   }
 }
 
-export async function assignTicketAction(
-  values: unknown,
-): Promise<{ error?: string }> {
+export async function assignTicketAction(values: unknown): Promise<{ error?: string }> {
   const admin = await guardAdmin();
   if (!admin) return { error: "Forbidden" };
 
@@ -78,9 +68,7 @@ export async function assignTicketAction(
   }
 }
 
-export async function processContactSubmissionAction(
-  values: unknown,
-): Promise<{ error?: string }> {
+export async function processContactSubmissionAction(values: unknown): Promise<{ error?: string }> {
   const admin = await guardAdmin();
   if (!admin) return { error: "Forbidden" };
 

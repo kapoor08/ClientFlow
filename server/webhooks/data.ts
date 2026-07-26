@@ -105,7 +105,12 @@ export async function updateWebhookForUser(
   const [existing] = await db
     .select({ id: outboundWebhooks.id, name: outboundWebhooks.name })
     .from(outboundWebhooks)
-    .where(and(eq(outboundWebhooks.id, webhookId), eq(outboundWebhooks.organizationId, ctx.organizationId)))
+    .where(
+      and(
+        eq(outboundWebhooks.id, webhookId),
+        eq(outboundWebhooks.organizationId, ctx.organizationId),
+      ),
+    )
     .limit(1);
 
   if (!existing) throw new Error("Webhook not found.");
@@ -133,7 +138,12 @@ export async function deleteWebhookForUser(userId: string, webhookId: string): P
   const [existing] = await db
     .select({ id: outboundWebhooks.id, name: outboundWebhooks.name, url: outboundWebhooks.url })
     .from(outboundWebhooks)
-    .where(and(eq(outboundWebhooks.id, webhookId), eq(outboundWebhooks.organizationId, ctx.organizationId)))
+    .where(
+      and(
+        eq(outboundWebhooks.id, webhookId),
+        eq(outboundWebhooks.organizationId, ctx.organizationId),
+      ),
+    )
     .limit(1);
 
   if (!existing) throw new Error("Webhook not found.");

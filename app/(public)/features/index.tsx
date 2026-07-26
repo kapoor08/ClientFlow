@@ -15,26 +15,21 @@ const FeaturesPage = () => {
   });
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--cf-hero-gradient)" }}
-        />
-        <div className="container relative py-14 md:py-20">
+      <section className="border-border relative overflow-hidden border-b">
+        <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+        <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+        <div className="relative container py-14 md:py-20">
           <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-2xl text-center"
           >
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-              Powerful features for{" "}
-              <span className="text-primary text-glow">modern agencies</span>
+            <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Powerful features for <span className="text-primary text-glow">modern agencies</span>
             </h1>
-            <p className="mt-4 text-base text-muted-foreground">
-              Every module is designed for operational speed, role clarity, and
-              scalability.
+            <p className="text-muted-foreground mt-4 text-base">
+              Every module is designed for operational speed, role clarity, and scalability.
             </p>
           </Motion.div>
         </div>
@@ -53,18 +48,14 @@ const FeaturesPage = () => {
               <Motion.div
                 key={f.title}
                 variants={motionStagger.item}
-                className="flex gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-cf-2"
+                className="border-border bg-card hover:border-primary/30 hover:shadow-cf-2 flex gap-4 rounded-xl border p-5 transition-all"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                <div className="bg-primary/8 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
                   <f.icon size={18} />
                 </div>
                 <div>
-                  <h3 className="font-display text-sm font-semibold text-foreground">
-                    {f.title}
-                  </h3>
-                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                    {f.desc}
-                  </p>
+                  <h3 className="font-display text-foreground text-sm font-semibold">{f.title}</h3>
+                  <p className="text-muted-foreground mt-1 text-[13px] leading-relaxed">{f.desc}</p>
                 </div>
               </Motion.div>
             ))}

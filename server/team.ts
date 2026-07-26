@@ -195,7 +195,8 @@ export async function updateMemberPermissionOverridesForUser(
 ): Promise<void> {
   const access = await getTeamAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
-  if (!access.canManage) throw new Error("You do not have permission to manage member permissions.");
+  if (!access.canManage)
+    throw new Error("You do not have permission to manage member permissions.");
 
   const existing = await db
     .select({ id: organizationMemberships.id, userId: organizationMemberships.userId })

@@ -17,10 +17,9 @@ const TEST_LAST = "Test";
 async function submitAndSettle(page: Page, click: () => Promise<void>) {
   await Promise.all([
     page
-      .waitForResponse(
-        (r) => r.url().includes("/api/auth/") && r.request().method() === "POST",
-        { timeout: 15_000 },
-      )
+      .waitForResponse((r) => r.url().includes("/api/auth/") && r.request().method() === "POST", {
+        timeout: 15_000,
+      })
       .catch(() => null),
     click(),
   ]);
@@ -41,9 +40,7 @@ export default async function globalSetup(_config: FullConfig) {
     await page.goto("/auth/sign-in");
     await page.getByLabel(/email/i).fill(TEST_EMAIL);
     await page.getByLabel(/password/i).fill(TEST_PASSWORD);
-    await submitAndSettle(page, () =>
-      page.getByRole("button", { name: /sign in/i }).click(),
-    );
+    await submitAndSettle(page, () => page.getByRole("button", { name: /sign in/i }).click());
   }
 
   // ── Step 1: ensure the test user exists ──────────────────────────────────
@@ -80,10 +77,7 @@ export default async function globalSetup(_config: FullConfig) {
         name: /continue|next|finish|complete|get started|go to dashboard/i,
       });
       if (await btn.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        await Promise.all([
-          page.waitForLoadState("networkidle").catch(() => {}),
-          btn.click(),
-        ]);
+        await Promise.all([page.waitForLoadState("networkidle").catch(() => {}), btn.click()]);
       } else {
         break;
       }

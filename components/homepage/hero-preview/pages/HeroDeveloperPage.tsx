@@ -25,7 +25,12 @@ const ERROR_CODES = [
 const ENDPOINTS = [
   { method: "GET", path: "/api/api-keys", label: "List API keys", color: "bg-emerald-500" },
   { method: "POST", path: "/api/api-keys", label: "Create API key", color: "bg-blue-500" },
-  { method: "PATCH", path: "/api/api-keys/{keyId}", label: "Revoke API key", color: "bg-amber-500" },
+  {
+    method: "PATCH",
+    path: "/api/api-keys/{keyId}",
+    label: "Revoke API key",
+    color: "bg-amber-500",
+  },
   { method: "DELETE", path: "/api/api-keys/{keyId}", label: "Delete API key", color: "bg-red-500" },
 ];
 
@@ -39,17 +44,21 @@ export function HeroDeveloperPage() {
           animate={{ opacity: 1, x: 0 }}
           className="w-24 shrink-0"
         >
-          <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Reference</p>
+          <p className="text-muted-foreground/50 mb-1 px-1 text-[10px] font-bold tracking-widest uppercase">
+            Reference
+          </p>
           <div className="space-y-px">
             {API_SECTIONS.map(({ label, count, active }) => (
               <div
                 key={label}
                 className={`flex items-center justify-between rounded-md px-2 py-1.5 text-[11px] font-medium ${
-                  active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground"
+                  active
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 {label}
-                <span className="text-[9px] text-muted-foreground/50">{count}</span>
+                <span className="text-muted-foreground/50 text-[9px]">{count}</span>
               </div>
             ))}
           </div>
@@ -60,29 +69,35 @@ export function HeroDeveloperPage() {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex-1 min-w-0"
+          className="min-w-0 flex-1"
         >
-          <div className="flex items-center gap-1 mb-0.5">
+          <div className="mb-0.5 flex items-center gap-1">
             <Code2 size={11} className="text-primary" />
-            <h2 className="text-base font-bold font-display text-foreground">API Reference</h2>
+            <h2 className="font-display text-foreground text-base font-bold">API Reference</h2>
           </div>
-          <p className="mb-3 text-[11px] text-muted-foreground">The ClientFlow REST API lets you manage your workspace programmatically.</p>
+          <p className="text-muted-foreground mb-3 text-[11px]">
+            The ClientFlow REST API lets you manage your workspace programmatically.
+          </p>
 
           {/* Auth card */}
-          <div className="mb-2 rounded-lg border border-border bg-card p-2.5">
-            <div className="flex items-center gap-1 mb-1">
+          <div className="border-border bg-card mb-2 rounded-lg border p-2.5">
+            <div className="mb-1 flex items-center gap-1">
               <Key size={8} className="text-muted-foreground" />
-              <span className="text-xs font-bold text-foreground">Authentication</span>
+              <span className="text-foreground text-xs font-bold">Authentication</span>
             </div>
-            <p className="mb-1.5 text-[10px] text-muted-foreground">Include your API key in the Authorization header as a Bearer token.</p>
-            <div className="rounded-md bg-secondary px-2 py-1 text-[10px] font-mono text-foreground">
+            <p className="text-muted-foreground mb-1.5 text-[10px]">
+              Include your API key in the Authorization header as a Bearer token.
+            </p>
+            <div className="bg-secondary text-foreground rounded-md px-2 py-1 font-mono text-[10px]">
               Authorization: Bearer cf_your_api_key_here
             </div>
-            <p className="mt-1 text-[9px] text-muted-foreground">Base URL: http://localhost:3000</p>
-            <div className="mt-1.5 rounded-md bg-foreground/5 p-2">
-              <p className="text-[9px] font-bold uppercase text-muted-foreground mb-0.5">Example Request</p>
-              <pre className="text-[9px] font-mono text-foreground leading-relaxed">
-{`curl -X GET "http://localhost:3000/api/clients" \\
+            <p className="text-muted-foreground mt-1 text-[9px]">Base URL: http://localhost:3000</p>
+            <div className="bg-foreground/5 mt-1.5 rounded-md p-2">
+              <p className="text-muted-foreground mb-0.5 text-[9px] font-bold uppercase">
+                Example Request
+              </p>
+              <pre className="text-foreground font-mono text-[9px] leading-relaxed">
+                {`curl -X GET "http://localhost:3000/api/clients" \\
   -H "Authorization: Bearer cf_your_api_key_here" \\
   -H "Content-Type: application/json"`}
               </pre>
@@ -90,32 +105,44 @@ export function HeroDeveloperPage() {
           </div>
 
           {/* Error Codes */}
-          <div className="mb-2 rounded-lg border border-border bg-card p-2.5">
-            <div className="flex items-center gap-1 mb-1.5">
+          <div className="border-border bg-card mb-2 rounded-lg border p-2.5">
+            <div className="mb-1.5 flex items-center gap-1">
               <AlertCircle size={8} className="text-muted-foreground" />
-              <span className="text-xs font-bold text-foreground">Error Codes</span>
+              <span className="text-foreground text-xs font-bold">Error Codes</span>
             </div>
             <div className="space-y-0">
               {ERROR_CODES.map((e) => (
-                <div key={e.code} className="flex items-baseline gap-2 border-b border-border py-1 last:border-0">
-                  <span className="w-6 text-[10px] font-mono font-bold text-foreground">{e.code}</span>
-                  <span className="w-20 text-[10px] font-medium text-foreground">{e.label}</span>
-                  <span className="text-[9px] text-muted-foreground">{e.desc}</span>
+                <div
+                  key={e.code}
+                  className="border-border flex items-baseline gap-2 border-b py-1 last:border-0"
+                >
+                  <span className="text-foreground w-6 font-mono text-[10px] font-bold">
+                    {e.code}
+                  </span>
+                  <span className="text-foreground w-20 text-[10px] font-medium">{e.label}</span>
+                  <span className="text-muted-foreground text-[9px]">{e.desc}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Endpoints */}
-          <h3 className="mb-1 text-xs font-bold text-foreground">Authentication</h3>
+          <h3 className="text-foreground mb-1 text-xs font-bold">Authentication</h3>
           <div className="space-y-1">
             {ENDPOINTS.map((ep) => (
-              <div key={ep.path + ep.method} className="flex items-center justify-between rounded-lg border border-border bg-card px-2.5 py-1.5">
+              <div
+                key={ep.path + ep.method}
+                className="border-border bg-card flex items-center justify-between rounded-lg border px-2.5 py-1.5"
+              >
                 <div className="flex items-center gap-1.5">
-                  <span className={`rounded px-1 py-px text-[9px] font-bold text-white ${ep.color}`}>{ep.method}</span>
-                  <span className="text-[11px] font-mono text-foreground">{ep.path}</span>
+                  <span
+                    className={`rounded px-1 py-px text-[9px] font-bold text-white ${ep.color}`}
+                  >
+                    {ep.method}
+                  </span>
+                  <span className="text-foreground font-mono text-[11px]">{ep.path}</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{ep.label}</span>
+                <span className="text-muted-foreground text-[10px]">{ep.label}</span>
               </div>
             ))}
           </div>

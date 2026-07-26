@@ -37,15 +37,13 @@ export function ImpactBadge({ impact }: { impact: IncidentImpact }) {
   );
 }
 
-const TIMELINE_NODE_CONFIG: Record<
-  IncidentState,
-  { dotClass: string; icon: typeof CheckCircle2 }
-> = {
-  investigating: { dotClass: "bg-amber-500", icon: Search },
-  identified: { dotClass: "bg-orange-500", icon: Eye },
-  monitoring: { dotClass: "bg-sky-500", icon: Wrench },
-  resolved: { dotClass: "bg-emerald-500", icon: CheckCircle2 },
-};
+const TIMELINE_NODE_CONFIG: Record<IncidentState, { dotClass: string; icon: typeof CheckCircle2 }> =
+  {
+    investigating: { dotClass: "bg-amber-500", icon: Search },
+    identified: { dotClass: "bg-orange-500", icon: Eye },
+    monitoring: { dotClass: "bg-sky-500", icon: Wrench },
+    resolved: { dotClass: "bg-emerald-500", icon: CheckCircle2 },
+  };
 
 export function TimelineNode({
   state,

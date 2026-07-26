@@ -13,33 +13,14 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
+import { SortableContext, horizontalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { cn } from "@/utils/cn";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useTasks,
-  useMoveTask,
-  useReorderTasks,
-  useDeleteTask,
-} from "@/core/tasks/useCase";
-import {
-  useBoardColumns,
-  useDeleteColumn,
-  useReorderColumns,
-} from "@/core/task-columns/useCase";
-import type {
-  TaskListItem,
-  TaskListResponse,
-} from "@/core/tasks/entity";
-import type {
-  BoardColumn,
-  BoardColumnsResponse,
-} from "@/core/task-columns/entity";
+import { useTasks, useMoveTask, useReorderTasks, useDeleteTask } from "@/core/tasks/useCase";
+import { useBoardColumns, useDeleteColumn, useReorderColumns } from "@/core/task-columns/useCase";
+import type { TaskListItem, TaskListResponse } from "@/core/tasks/entity";
+import type { BoardColumn, BoardColumnsResponse } from "@/core/task-columns/entity";
 import { TaskCalendarView } from "@/components/tasks/TaskCalendarView";
 import {
   EditColumnDialog,
@@ -67,7 +48,6 @@ import {
 
 // ─── Page Props ────────────────────────────────────────────────────────────────
 
-
 type TasksPageProps = {
   initialData?: TaskListResponse;
   initialColumns?: BoardColumnsResponse;
@@ -76,18 +56,10 @@ type TasksPageProps = {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
-const TasksPage = ({
-  initialData,
-  initialColumns,
-  currentUserId,
-}: TasksPageProps) => {
+const TasksPage = ({ initialData, initialColumns, currentUserId }: TasksPageProps) => {
   const dndId = useId();
-  const [localColumns, setLocalColumns] = useState<BoardColumn[]>(
-    initialColumns?.columns ?? [],
-  );
-  const [localTasks, setLocalTasks] = useState<TaskListItem[]>(
-    initialData?.tasks ?? [],
-  );
+  const [localColumns, setLocalColumns] = useState<BoardColumn[]>(initialColumns?.columns ?? []);
+  const [localTasks, setLocalTasks] = useState<TaskListItem[]>(initialData?.tasks ?? []);
   const [search, setSearch] = useState("");
   const [assignedToMe, setAssignedToMe] = useState(false);
   const [filters, setFilters] = useState<ExtendedFilters>({});
@@ -95,9 +67,7 @@ const TasksPage = ({
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [createColumnOpen, setCreateColumnOpen] = useState(false);
   const [editColumn, setEditColumn] = useState<BoardColumn | null>(null);
-  const [createForColumn, setCreateForColumn] = useState<BoardColumn | null>(
-    null,
-  );
+  const [createForColumn, setCreateForColumn] = useState<BoardColumn | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<"task" | "column" | null>(null);
   const dragStartColumnId = useRef<string | null>(null);
@@ -113,9 +83,8 @@ const TasksPage = ({
 
   // Resolve URL ref (refNumber or db id) → actual db id for the detail sheet
   const selectedTaskId = selectedTaskRef
-    ? (localTasks.find(
-        (t) => t.refNumber === selectedTaskRef || t.id === selectedTaskRef,
-      )?.id ?? selectedTaskRef)
+    ? (localTasks.find((t) => t.refNumber === selectedTaskRef || t.id === selectedTaskRef)?.id ??
+      selectedTaskRef)
     : null;
 
   const { data: columnsData } = useBoardColumns(initialColumns);
@@ -142,9 +111,7 @@ const TasksPage = ({
 
   // ─── DnD ────────────────────────────────────────────────────────────────────
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   function handleDragStart(event: DragStartEvent) {
     const { id, data } = event.active;
@@ -152,8 +119,7 @@ const TasksPage = ({
     setActiveType(data.current?.type ?? null);
     if (data.current?.type === "task") {
       const task = data.current.task as TaskListItem;
-      dragStartColumnId.current =
-        task.columnId ?? getTaskColumnId(task, localColumns);
+      dragStartColumnId.current = task.columnId ?? getTaskColumnId(task, localColumns);
     } else {
       dragStartColumnId.current = null;
     }
@@ -187,9 +153,7 @@ const TasksPage = ({
 
     // Optimistic update
     setLocalTasks((prev) =>
-      prev.map((t) =>
-        t.id === activeTask.id ? { ...t, columnId: targetColumnId } : t,
-      ),
+      prev.map((t) => (t.id === activeTask.id ? { ...t, columnId: targetColumnId } : t)),
     );
   }
 
@@ -217,19 +181,13 @@ const TasksPage = ({
         targetColumnId = getTaskColumnId(overTask, localColumns);
       }
 
-      if (
-        targetColumnId !== null &&
-        targetColumnId !== dragStartColumnId.current
-      ) {
+      if (targetColumnId !== null && targetColumnId !== dragStartColumnId.current) {
         // Cross-column move - persist to backend
         moveTaskMutation.mutate({
           taskId: activeTask.id,
           columnId: targetColumnId,
         });
-      } else if (
-        overData?.type === "task" &&
-        String(active.id) !== String(over.id)
-      ) {
+      } else if (overData?.type === "task" && String(active.id) !== String(over.id)) {
         // Same-column reorder - commit new order locally and persist to backend
         const reorderColumnId = dragStartColumnId.current;
         setLocalTasks((prev) => {
@@ -241,9 +199,7 @@ const TasksPage = ({
           // Persist the new in-column order. Only tasks with a real columnId
           // (not the synthetic status fallback) can be reordered.
           if (reorderColumnId) {
-            const orderedIds = next
-              .filter((t) => t.columnId === reorderColumnId)
-              .map((t) => t.id);
+            const orderedIds = next.filter((t) => t.columnId === reorderColumnId).map((t) => t.id);
             if (orderedIds.length > 0) {
               reorderTasksMutation.mutate({
                 columnId: reorderColumnId,
@@ -273,15 +229,10 @@ const TasksPage = ({
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  function getTaskColumnId(
-    task: TaskListItem,
-    columns: BoardColumn[],
-  ): string | null {
+  function getTaskColumnId(task: TaskListItem, columns: BoardColumn[]): string | null {
     if (task.columnId) return task.columnId;
     // fallback: map task status to column type
-    const matched = columns.find((c) =>
-      statusMatchesColumnType(task.status, c.columnType),
-    );
+    const matched = columns.find((c) => statusMatchesColumnType(task.status, c.columnType));
     return matched?.id ?? null;
   }
 
@@ -345,13 +296,9 @@ const TasksPage = ({
   // ─── Active dragged item ─────────────────────────────────────────────────────
 
   const activeTask =
-    activeType === "task"
-      ? (localTasks.find((t) => t.id === activeId) ?? null)
-      : null;
+    activeType === "task" ? (localTasks.find((t) => t.id === activeId) ?? null) : null;
   const activeColumn =
-    activeType === "column"
-      ? (localColumns.find((c) => c.id === activeId) ?? null)
-      : null;
+    activeType === "column" ? (localColumns.find((c) => c.id === activeId) ?? null) : null;
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -383,19 +330,19 @@ const TasksPage = ({
       title="My Tasks"
       description={`${localColumns.length} columns · ${localTasks.length} tasks`}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-48 max-w-64">
+          <div className="relative max-w-64 min-w-48 flex-1">
             <Search
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+              className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
             />
             <Input
               placeholder="Search tasks…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-8 text-sm bg-white"
+              className="h-8 bg-white pl-9 text-sm"
             />
           </div>
 
@@ -403,7 +350,7 @@ const TasksPage = ({
             type="button"
             onClick={() => setAssignedToMe((v) => !v)}
             className={cn(
-              "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer bg-white",
+              "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border bg-white px-3 text-xs transition-colors",
               assignedToMe
                 ? "border-primary bg-primary/10 text-primary font-medium"
                 : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
@@ -417,8 +364,13 @@ const TasksPage = ({
             type="button"
             onClick={() => setFiltersOpen(true)}
             className={cn(
-              "flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs transition-colors cursor-pointer bg-white",
-              filters.priority || filters.projectId || (filters.assigneeUserIds?.length ?? 0) > 0 || (filters.statuses?.length ?? 0) > 0 || !!(filters.dueDateRange?.from || filters.dueDateRange?.to) || (filters.tags?.length ?? 0) > 0
+              "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border bg-white px-3 text-xs transition-colors",
+              filters.priority ||
+                filters.projectId ||
+                (filters.assigneeUserIds?.length ?? 0) > 0 ||
+                (filters.statuses?.length ?? 0) > 0 ||
+                !!(filters.dueDateRange?.from || filters.dueDateRange?.to) ||
+                (filters.tags?.length ?? 0) > 0
                 ? "border-primary bg-primary/10 text-primary font-medium"
                 : "border-border text-muted-foreground hover:border-foreground hover:text-foreground",
             )}
@@ -438,7 +390,7 @@ const TasksPage = ({
                 setCreateForColumn(null);
                 setCreateDialogOpen(true);
               }}
-              className="flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors"
             >
               <Plus size={13} />
               New Task
@@ -446,12 +398,12 @@ const TasksPage = ({
           )}
 
           {/* View toggle */}
-          <div className="flex h-8 items-center rounded-md border border-border bg-card p-0.5 gap-0.5">
+          <div className="border-border bg-card flex h-8 items-center gap-0.5 rounded-md border p-0.5">
             <button
               type="button"
               onClick={() => setView("board")}
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                "flex h-7 w-7 cursor-pointer items-center justify-center rounded transition-colors",
                 view === "board"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -464,7 +416,7 @@ const TasksPage = ({
               type="button"
               onClick={() => setView("list")}
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                "flex h-7 w-7 cursor-pointer items-center justify-center rounded transition-colors",
                 view === "list"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -477,7 +429,7 @@ const TasksPage = ({
               type="button"
               onClick={() => setView("calendar")}
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded transition-colors cursor-pointer",
+                "flex h-7 w-7 cursor-pointer items-center justify-center rounded transition-colors",
                 view === "calendar"
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -494,38 +446,28 @@ const TasksPage = ({
           <div className="flex gap-4 overflow-x-auto pb-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="w-72 shrink-0 space-y-2">
-                <Skeleton className="h-10 w-full rounded-card" />
+                <Skeleton className="rounded-card h-10 w-full" />
                 {[1, 2].map((j) => (
-                  <Skeleton key={j} className="h-24 w-full rounded-card" />
+                  <Skeleton key={j} className="rounded-card h-24 w-full" />
                 ))}
               </div>
             ))}
           </div>
         ) : view === "list" ? (
-          <div
-            className="scrollbar-thin overflow-y-auto"
-            style={{ height: "calc(100vh - 15rem)" }}
-          >
+          <div className="scrollbar-thin overflow-y-auto" style={{ height: "calc(100vh - 15rem)" }}>
             <TaskListView
               tasks={filteredTasks}
               currentUserId={currentUserId}
-              onTaskClick={(task) =>
-                setSelectedTaskRef(task.refNumber ?? task.id)
-              }
+              onTaskClick={(task) => setSelectedTaskRef(task.refNumber ?? task.id)}
               onDeleteTask={handleDeleteTask}
               onMoveToProject={handleMoveToProject}
             />
           </div>
         ) : view === "calendar" ? (
-          <div
-            className="scrollbar-thin overflow-y-auto"
-            style={{ height: "calc(100vh - 15rem)" }}
-          >
+          <div className="scrollbar-thin overflow-y-auto" style={{ height: "calc(100vh - 15rem)" }}>
             <TaskCalendarView
               tasks={filteredTasks}
-              onTaskClick={(task) =>
-                setSelectedTaskRef(task.refNumber ?? task.id)
-              }
+              onTaskClick={(task) => setSelectedTaskRef(task.refNumber ?? task.id)}
             />
           </div>
         ) : (
@@ -553,9 +495,7 @@ const TasksPage = ({
                     onAddTask={handleAddTask}
                     onEditColumn={handleEditColumn}
                     onDeleteColumn={handleDeleteColumn}
-                    onTaskClick={(task) =>
-                      setSelectedTaskRef(task.refNumber ?? task.id)
-                    }
+                    onTaskClick={(task) => setSelectedTaskRef(task.refNumber ?? task.id)}
                     onDeleteTask={handleDeleteTask}
                     onMoveToProject={handleMoveToProject}
                   />
@@ -566,7 +506,7 @@ const TasksPage = ({
               <button
                 type="button"
                 onClick={() => setCreateColumnOpen(true)}
-                className="self-start flex h-fit w-72 shrink-0 items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-6 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="rounded-card border-border text-muted-foreground hover:border-foreground hover:text-foreground flex h-fit w-72 shrink-0 cursor-pointer items-center justify-center gap-2 self-start border-2 border-dashed py-6 text-sm transition-colors"
               >
                 <Plus size={16} />
                 Add Column
@@ -671,11 +611,7 @@ const TasksPage = ({
           }}
         />
 
-        <MoveToProjectDialog
-          open={!!moveTask}
-          task={moveTask}
-          onClose={() => setMoveTask(null)}
-        />
+        <MoveToProjectDialog open={!!moveTask} task={moveTask} onClose={() => setMoveTask(null)} />
       </div>
     </ListPageLayout>
   );

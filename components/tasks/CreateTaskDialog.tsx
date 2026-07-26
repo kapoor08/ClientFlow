@@ -5,12 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/utils/cn";
 import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,11 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DatePicker } from "@/components/form";
 import { useCreateTask } from "@/core/tasks/useCase";
 import { http } from "@/core/infrastructure";
@@ -72,8 +63,7 @@ export function CreateTaskDialog({
 
   const { data: projectsData } = useQuery({
     queryKey: ["projects-create-task-list"],
-    queryFn: () =>
-      http<{ projects: ProjectOption[] }>("/api/projects?pageSize=100"),
+    queryFn: () => http<{ projects: ProjectOption[] }>("/api/projects?pageSize=100"),
     enabled: open,
     staleTime: 60 * 1000,
   });
@@ -152,9 +142,7 @@ export function CreateTaskDialog({
   const columnColor = defaultColumnColor ?? DEFAULT_COLUMN_COLOR;
   const columnName = defaultColumnName ?? "To Do";
 
-  const selectedPriorityOpt = PRIORITY_OPTIONS.find(
-    (o) => o.value === priority,
-  );
+  const selectedPriorityOpt = PRIORITY_OPTIONS.find((o) => o.value === priority);
   const assigneeInitials = assigneeName
     ? assigneeName
         .split(" ")
@@ -171,7 +159,7 @@ export function CreateTaskDialog({
           <div className="flex items-center gap-3">
             <DialogTitle>Create a new task</DialogTitle>
             <span
-              className="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-white"
+              className="rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide text-white uppercase"
               style={{ backgroundColor: columnColor }}
             >
               {columnName}
@@ -196,7 +184,7 @@ export function CreateTaskDialog({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add a description (optional)…"
             rows={4}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           />
 
           {/* Footer row */}
@@ -213,11 +201,7 @@ export function CreateTaskDialog({
                 className="bg-white p-2"
               >
                 {projects.map((p) => (
-                  <SelectItem
-                    key={p.id}
-                    value={p.id}
-                    className="cursor-pointer text-xs"
-                  >
+                  <SelectItem key={p.id} value={p.id} className="cursor-pointer text-xs">
                     {p.name}
                   </SelectItem>
                 ))}
@@ -230,14 +214,12 @@ export function CreateTaskDialog({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
-                    assigneeUserId
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground",
+                    "border-border hover:bg-secondary flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors",
+                    assigneeUserId ? "text-foreground font-medium" : "text-muted-foreground",
                   )}
                 >
                   {assigneeInitials ? (
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                    <div className="bg-brand-100 text-primary flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-semibold">
                       {assigneeInitials}
                     </div>
                   ) : (
@@ -259,7 +241,7 @@ export function CreateTaskDialog({
                   onChange={(e) => setMemberSearch(e.target.value)}
                   className="mb-2 h-7 text-xs"
                 />
-                <div className="max-h-48 overflow-y-auto space-y-0.5">
+                <div className="max-h-48 space-y-0.5 overflow-y-auto">
                   {/* Unassign option */}
                   {assigneeUserId && (
                     <button
@@ -269,7 +251,7 @@ export function CreateTaskDialog({
                         setAssigneeName(null);
                         setAssigneeOpen(false);
                       }}
-                      className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
+                      className="text-muted-foreground hover:bg-secondary flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
                     >
                       <User size={14} /> Unassign
                     </button>
@@ -297,14 +279,12 @@ export function CreateTaskDialog({
                             : "hover:bg-secondary/50 text-muted-foreground",
                         )}
                       >
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                        <div className="bg-brand-100 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
                           {initials}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-foreground">{m.name}</p>
-                          <p className="truncate text-muted-foreground">
-                            {m.email}
-                          </p>
+                          <p className="text-foreground truncate">{m.name}</p>
+                          <p className="text-muted-foreground truncate">{m.email}</p>
                         </div>
                       </button>
                     );
@@ -315,11 +295,7 @@ export function CreateTaskDialog({
 
             {/* Due Date */}
             <div className="w-44">
-              <DatePicker
-                value={dueDate}
-                onChange={setDueDate}
-                placeholder="Due date"
-              />
+              <DatePicker value={dueDate} onChange={setDueDate} placeholder="Due date" />
             </div>
 
             {/* Priority */}
@@ -328,10 +304,8 @@ export function CreateTaskDialog({
                 <button
                   type="button"
                   className={cn(
-                    "flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-secondary",
-                    priority
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground",
+                    "border-border hover:bg-secondary flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs transition-colors",
+                    priority ? "text-foreground font-medium" : "text-muted-foreground",
                   )}
                 >
                   {selectedPriorityOpt ? (
@@ -340,7 +314,7 @@ export function CreateTaskDialog({
                       style={{ backgroundColor: selectedPriorityOpt.color }}
                     />
                   ) : (
-                    <span className="h-2 w-2 rounded-full border border-muted-foreground" />
+                    <span className="border-muted-foreground h-2 w-2 rounded-full border" />
                   )}
                   <span>{selectedPriorityOpt?.label ?? "Priority"}</span>
                   <ChevronDown size={12} className="text-muted-foreground" />
@@ -359,9 +333,9 @@ export function CreateTaskDialog({
                       setPriority(null);
                       setPriorityOpen(false);
                     }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary"
+                    className="text-muted-foreground hover:bg-secondary flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
                   >
-                    <span className="h-2 w-2 rounded-full border border-muted-foreground" />
+                    <span className="border-muted-foreground h-2 w-2 rounded-full border" />
                     None
                   </button>
                 )}
@@ -380,10 +354,7 @@ export function CreateTaskDialog({
                         : "hover:bg-secondary/50 text-muted-foreground",
                     )}
                   >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: opt.color }}
-                    />
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: opt.color }} />
                     {opt.label}
                   </button>
                 ))}

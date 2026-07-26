@@ -14,25 +14,20 @@ import {
   type ColumnDef,
   type FilterGroupConfig,
 } from "@/components/data-table";
-import {
-  useRevokeInvitation,
-  useResendInvitation,
-} from "@/core/invitations/useCase";
+import { useRevokeInvitation, useResendInvitation } from "@/core/invitations/useCase";
 import type { InvitationListItem } from "@/core/invitations/entity";
 import { INVITATION_STATUS_OPTIONS } from "@/schemas/invitations";
 import type { PaginationMeta } from "@/utils/pagination";
 
 // ─── Status / role config ─────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; className: string; Icon: React.ElementType }
-> = {
-  pending: { label: "Pending", className: "bg-warning/10 text-warning", Icon: Clock },
-  accepted: { label: "Accepted", className: "bg-success/10 text-success", Icon: CheckCircle2 },
-  expired: { label: "Expired", className: "bg-neutral-300/50 text-neutral-500", Icon: TimerOff },
-  revoked: { label: "Revoked", className: "bg-danger/10 text-danger", Icon: Ban },
-};
+const STATUS_CONFIG: Record<string, { label: string; className: string; Icon: React.ElementType }> =
+  {
+    pending: { label: "Pending", className: "bg-warning/10 text-warning", Icon: Clock },
+    accepted: { label: "Accepted", className: "bg-success/10 text-success", Icon: CheckCircle2 },
+    expired: { label: "Expired", className: "bg-neutral-300/50 text-neutral-500", Icon: TimerOff },
+    revoked: { label: "Revoked", className: "bg-danger/10 text-danger", Icon: Ban },
+  };
 
 const ROLE_BADGE_CLASS: Record<string, string> = {
   owner: "bg-brand-100 text-primary",
@@ -75,13 +70,11 @@ function buildColumns(
       cell: (inv) => (
         <div>
           <div className="flex items-center gap-2">
-            <Mail size={13} className="shrink-0 text-muted-foreground" />
-            <span className="text-sm font-medium text-foreground">{inv.email}</span>
+            <Mail size={13} className="text-muted-foreground shrink-0" />
+            <span className="text-foreground text-sm font-medium">{inv.email}</span>
           </div>
           {inv.invitedByName && (
-            <p className="mt-0.5 pl-5 text-xs text-muted-foreground">
-              by {inv.invitedByName}
-            </p>
+            <p className="text-muted-foreground mt-0.5 pl-5 text-xs">by {inv.invitedByName}</p>
           )}
         </div>
       ),
@@ -91,7 +84,7 @@ function buildColumns(
       header: "Role",
       cell: (inv) => (
         <span
-          className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${ROLE_BADGE_CLASS[inv.roleKey] ?? ROLE_BADGE_CLASS.member}`}
+          className={`rounded-pill inline-flex items-center px-2 py-0.5 text-xs font-medium capitalize ${ROLE_BADGE_CLASS[inv.roleKey] ?? ROLE_BADGE_CLASS.member}`}
         >
           {inv.roleName}
         </span>
@@ -105,7 +98,7 @@ function buildColumns(
         const StatusIcon = cfg.Icon;
         return (
           <span
-            className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-xs font-medium ${cfg.className}`}
+            className={`rounded-pill inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium ${cfg.className}`}
           >
             <StatusIcon size={10} />
             {cfg.label}
@@ -119,7 +112,7 @@ function buildColumns(
       sortable: true,
       hideOnMobile: true,
       cell: (inv) => (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {formatDistanceToNow(new Date(inv.createdAt), { addSuffix: true })}
         </span>
       ),
@@ -137,7 +130,7 @@ function buildColumns(
             : inv.status === "expired"
               ? `Expired ${formatDistanceToNow(expiresAt, { addSuffix: true })}`
               : "-";
-        return <span className="text-xs text-muted-foreground">{label}</span>;
+        return <span className="text-muted-foreground text-xs">{label}</span>;
       },
     },
   ];
@@ -150,10 +143,7 @@ type InvitationsTableProps = {
   pagination: PaginationMeta;
 };
 
-export function InvitationsTable({
-  initialInvitations,
-  pagination,
-}: InvitationsTableProps) {
+export function InvitationsTable({ initialInvitations, pagination }: InvitationsTableProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -180,9 +170,7 @@ export function InvitationsTable({
           router.refresh();
         },
         onError: (err) =>
-          toast.error(
-            err instanceof Error ? err.message : "Failed to revoke invitation.",
-          ),
+          toast.error(err instanceof Error ? err.message : "Failed to revoke invitation."),
         onSettled: () => setRevokingId(null),
       },
     );
@@ -198,9 +186,7 @@ export function InvitationsTable({
           router.refresh();
         },
         onError: (err) =>
-          toast.error(
-            err instanceof Error ? err.message : "Failed to resend invitation.",
-          ),
+          toast.error(err instanceof Error ? err.message : "Failed to resend invitation."),
         onSettled: () => setResendingId(null),
       },
     );

@@ -5,7 +5,7 @@ const DPAPage = () => {
   const { title, lastUpdated, sections } = dpaContent;
   return (
     <>
-      <section className="border-b border-border bg-card">
+      <section className="border-border bg-card border-b">
         <div className="container py-12 md:py-16">
           <Motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -13,12 +13,8 @@ const DPAPage = () => {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-3xl"
           >
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">
-              {title}
-            </h1>
-            <p className="mt-1.5 text-[13px] text-muted-foreground">
-              Last updated: {lastUpdated}
-            </p>
+            <h1 className="font-display text-foreground text-2xl font-bold md:text-3xl">{title}</h1>
+            <p className="text-muted-foreground mt-1.5 text-[13px]">Last updated: {lastUpdated}</p>
           </Motion.div>
         </div>
       </section>
@@ -27,10 +23,10 @@ const DPAPage = () => {
           <div className="space-y-6">
             {sections.map((s, i) => (
               <div key={i}>
-                <h2 className="font-display text-base font-semibold text-foreground">
+                <h2 className="font-display text-foreground text-base font-semibold">
                   {s.heading}
                 </h2>
-                <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground whitespace-pre-line">
+                <p className="text-muted-foreground mt-2 text-[13px] leading-relaxed whitespace-pre-line">
                   {s.content}
                 </p>
               </div>

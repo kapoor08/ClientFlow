@@ -28,7 +28,9 @@ export function Timeline({ updates }: { updates: AdminIncidentDetail["updates"] 
           <li key={u.id} className="space-y-1 px-5 py-4">
             <div className="flex items-center gap-2 text-xs">
               <StateBadge state={u.stateAtPost} />
-              <span className="text-muted-foreground">{new Date(u.createdAt).toLocaleString()}</span>
+              <span className="text-muted-foreground">
+                {new Date(u.createdAt).toLocaleString()}
+              </span>
             </div>
             <p className="text-foreground text-sm whitespace-pre-wrap">{u.body}</p>
           </li>

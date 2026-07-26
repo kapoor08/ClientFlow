@@ -4,11 +4,7 @@ import { format } from "date-fns";
 import { Clock } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/utils/cn";
 
@@ -30,10 +26,7 @@ export function TimePicker({
   const hours = Array.from({ length: 12 }, (_, i) => i + 1);
   const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
 
-  const handleTimeChange = (
-    type: "hour" | "minute" | "ampm",
-    timeValue: string,
-  ) => {
+  const handleTimeChange = (type: "hour" | "minute" | "ampm", timeValue: string) => {
     const newDate = value ? new Date(value) : new Date();
 
     if (type === "hour") {
@@ -78,12 +71,8 @@ export function TimePicker({
                 <Button
                   key={hour}
                   size="icon"
-                  variant={
-                    value && (value.getHours() % 12 || 12) === hour
-                      ? "default"
-                      : "ghost"
-                  }
-                  className="w-full shrink-0 aspect-square"
+                  variant={value && (value.getHours() % 12 || 12) === hour ? "default" : "ghost"}
+                  className="aspect-square w-full shrink-0"
                   onClick={() => handleTimeChange("hour", hour.toString())}
                 >
                   {hour}
@@ -99,10 +88,8 @@ export function TimePicker({
                 <Button
                   key={minute}
                   size="icon"
-                  variant={
-                    value && value.getMinutes() === minute ? "default" : "ghost"
-                  }
-                  className="w-full shrink-0 aspect-square"
+                  variant={value && value.getMinutes() === minute ? "default" : "ghost"}
+                  className="aspect-square w-full shrink-0"
                   onClick={() => handleTimeChange("minute", minute.toString())}
                 >
                   {minute.toString().padStart(2, "0")}
@@ -125,7 +112,7 @@ export function TimePicker({
                       ? "default"
                       : "ghost"
                   }
-                  className="w-full shrink-0 aspect-square"
+                  className="aspect-square w-full shrink-0"
                   onClick={() => handleTimeChange("ampm", ampm)}
                 >
                   {ampm}

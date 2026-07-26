@@ -5,11 +5,7 @@ import { auditLogs } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
-import {
-  buildPaginationMeta,
-  paginationOffset,
-  type PaginationMeta,
-} from "@/utils/pagination";
+import { buildPaginationMeta, paginationOffset, type PaginationMeta } from "@/utils/pagination";
 
 export type ActivityEntry = {
   id: string;
@@ -43,14 +39,7 @@ export async function listActivityForUser(
   // Only owner and admin can view activity logs
   if (context.roleKey !== "owner" && context.roleKey !== "admin") return null;
 
-  const {
-    query = "",
-    entityType,
-    dateFrom,
-    dateTo,
-    page = 1,
-    pageSize = 10,
-  } = options;
+  const { query = "", entityType, dateFrom, dateTo, page = 1, pageSize = 10 } = options;
 
   const trimmed = query.trim();
 

@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,10 +15,7 @@ import {
 } from "@/components/ui/select";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { useCreateColumn, useUpdateColumn } from "@/core/task-columns/useCase";
-import {
-  COLUMN_TYPE_OPTIONS,
-  type BoardColumn,
-} from "@/core/task-columns/entity";
+import { COLUMN_TYPE_OPTIONS, type BoardColumn } from "@/core/task-columns/entity";
 
 type EditColumnDialogProps = {
   open: boolean;
@@ -32,12 +24,7 @@ type EditColumnDialogProps = {
   column?: BoardColumn;
 };
 
-export function EditColumnDialog({
-  open,
-  onClose,
-  mode,
-  column,
-}: EditColumnDialogProps) {
+export function EditColumnDialog({ open, onClose, mode, column }: EditColumnDialogProps) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(DEFAULT_COLUMN_COLOR);
   const [columnType, setColumnType] = useState<string>("none");
@@ -121,15 +108,13 @@ export function EditColumnDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {mode === "create" ? "New Column" : "Edit Column"}
-          </DialogTitle>
+          <DialogTitle>{mode === "create" ? "New Column" : "Edit Column"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-2 space-y-5">
           {/* Column Title */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-foreground text-sm font-medium">
               Column Title <span className="text-danger">*</span>
             </label>
             <Input
@@ -142,27 +127,19 @@ export function EditColumnDialog({
 
           {/* Color + Column Type */}
           <div className="flex items-end gap-4">
-            <div className="space-y-1.5 min-w-0">
-              <label className="text-sm font-medium text-foreground">
-                Color
-              </label>
+            <div className="min-w-0 space-y-1.5">
+              <label className="text-foreground text-sm font-medium">Color</label>
               <ColorPicker value={color} onChange={setColor} />
             </div>
             <div className="shrink-0">
-              <label className="text-sm font-medium text-foreground">
-                Column Type
-              </label>
+              <label className="text-foreground text-sm font-medium">Column Type</label>
               <Select value={columnType} onValueChange={setColumnType}>
-                <SelectTrigger className="cursor-pointer w-36">
+                <SelectTrigger className="w-36 cursor-pointer">
                   <SelectValue placeholder="Select type…" />
                 </SelectTrigger>
                 <SelectContent position="popper" side="bottom" align="start">
                   {COLUMN_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem
-                      key={opt.value}
-                      value={opt.value}
-                      className="cursor-pointer"
-                    >
+                    <SelectItem key={opt.value} value={opt.value} className="cursor-pointer">
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -173,37 +150,25 @@ export function EditColumnDialog({
 
           {/* Description */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">
-              Description{" "}
-              <span className="text-muted-foreground font-normal">
-                (optional)
-              </span>
+            <label className="text-foreground text-sm font-medium">
+              Description <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this column…"
               rows={2}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full resize-none rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             />
           </div>
 
           {/* Footer */}
           <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              className="cursor-pointer"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" className="cursor-pointer" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending} className="cursor-pointer">
-              {isPending
-                ? "Saving…"
-                : mode === "create"
-                  ? "Create Column"
-                  : "Save Changes"}
+              {isPending ? "Saving…" : mode === "create" ? "Create Column" : "Save Changes"}
             </Button>
           </div>
         </form>

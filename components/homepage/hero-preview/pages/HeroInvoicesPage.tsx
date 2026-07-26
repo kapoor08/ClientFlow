@@ -6,7 +6,16 @@ import { PageHeader, SearchFiltersBar, Pagination } from "../shared";
 import { STATUS_STYLES, STATUS_LABELS } from "../data";
 
 const INVOICES = [
-  { number: "INV-00001", sub: "ClientFlow", client: "Lakshay Kapoor", amount: "$120.00", status: "paid", tag: "Manual", due: "Apr 2, 2026", created: "Apr 2, 2026" },
+  {
+    number: "INV-00001",
+    sub: "ClientFlow",
+    client: "Lakshay Kapoor",
+    amount: "$120.00",
+    status: "paid",
+    tag: "Manual",
+    due: "Apr 2, 2026",
+    created: "Apr 2, 2026",
+  },
 ];
 
 const row = {
@@ -17,15 +26,24 @@ const row = {
 export function HeroInvoicesPage() {
   return (
     <div className="hero-preview-scrollbar flex-1 overflow-y-auto p-5">
-      <PageHeader title="Invoices" description="Manage and track client invoices" actionLabel="New Invoice" />
+      <PageHeader
+        title="Invoices"
+        description="Manage and track client invoices"
+        actionLabel="New Invoice"
+      />
       <SearchFiltersBar placeholder="Search invoices..." showDates showFilters />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="border-border bg-card overflow-hidden rounded-lg border">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-secondary/50">
+            <tr className="border-border bg-secondary/50 border-b">
               {["Invoice", "Client", "Amount", "Status", "Due Date", "Created", ""].map((h, i) => (
-                <th key={i} className="px-4 py-2.5 text-left text-[10px] font-semibold text-muted-foreground">{h}</th>
+                <th
+                  key={i}
+                  className="text-muted-foreground px-4 py-2.5 text-left text-[10px] font-semibold"
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -37,28 +55,34 @@ export function HeroInvoicesPage() {
                 variants={row}
                 initial="hidden"
                 animate="show"
-                className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
+                className="border-border hover:bg-secondary/30 border-b transition-colors last:border-0"
               >
                 <td className="px-4 py-2.5">
-                  <div className="text-[11px] font-semibold text-foreground font-mono">{inv.number}</div>
-                  <div className="text-[9px] text-muted-foreground">{inv.sub}</div>
+                  <div className="text-foreground font-mono text-[11px] font-semibold">
+                    {inv.number}
+                  </div>
+                  <div className="text-muted-foreground text-[9px]">{inv.sub}</div>
                 </td>
-                <td className="px-4 py-2.5 text-[11px] text-muted-foreground">{inv.client}</td>
-                <td className="px-4 py-2.5 text-[11px] font-medium text-foreground">{inv.amount}</td>
+                <td className="text-muted-foreground px-4 py-2.5 text-[11px]">{inv.client}</td>
+                <td className="text-foreground px-4 py-2.5 text-[11px] font-medium">
+                  {inv.amount}
+                </td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-1">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-medium ${STATUS_STYLES[inv.status]}`}>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-medium ${STATUS_STYLES[inv.status]}`}
+                    >
                       {STATUS_LABELS[inv.status]}
                     </span>
                     {inv.tag && (
-                      <span className="inline-flex rounded-full bg-secondary px-2 py-0.5 text-[9px] font-medium text-muted-foreground">
+                      <span className="bg-secondary text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-[9px] font-medium">
                         {inv.tag}
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.due}</td>
-                <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.created}</td>
+                <td className="text-muted-foreground px-4 py-2.5 text-[10px]">{inv.due}</td>
+                <td className="text-muted-foreground px-4 py-2.5 text-[10px]">{inv.created}</td>
                 <td className="px-4 py-2.5">
                   <MoreHorizontal size={10} className="text-muted-foreground/40" />
                 </td>

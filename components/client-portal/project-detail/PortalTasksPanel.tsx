@@ -14,26 +14,26 @@ export function PortalTasksPanel({ tasks }: { tasks: PortalTask[] }) {
     <div className="lg:col-span-3">
       <div className="mb-4 flex items-center gap-2">
         <CheckSquare size={16} className="text-muted-foreground" />
-        <h2 className="font-display text-base font-semibold text-foreground">Tasks</h2>
-        <span className="ml-auto text-xs text-muted-foreground">
+        <h2 className="font-display text-foreground text-base font-semibold">Tasks</h2>
+        <span className="text-muted-foreground ml-auto text-xs">
           {openTasks.length} open · {doneTasks.length} done
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
+      <div className="rounded-card border-border bg-card shadow-cf-1 overflow-hidden border">
         {tasks.length === 0 ? (
-          <p className="px-5 py-10 text-center text-sm text-muted-foreground">No tasks yet.</p>
+          <p className="text-muted-foreground px-5 py-10 text-center text-sm">No tasks yet.</p>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+              <tr className="border-border bg-secondary/50 border-b">
+                <th className="text-muted-foreground px-4 py-3 text-left text-xs font-semibold">
                   Task
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
+                <th className="text-muted-foreground px-4 py-3 text-left text-xs font-semibold">
                   Status
                 </th>
-                <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
+                <th className="text-muted-foreground hidden px-4 py-3 text-left text-xs font-semibold md:table-cell">
                   Due
                 </th>
               </tr>
@@ -42,19 +42,19 @@ export function PortalTasksPanel({ tasks }: { tasks: PortalTask[] }) {
               {tasks.map((task) => (
                 <tr
                   key={task.id}
-                  className="border-b border-border last:border-0 hover:bg-secondary/30"
+                  className="border-border hover:bg-secondary/30 border-b last:border-0"
                 >
-                  <td className="px-4 py-3 font-medium text-foreground">{task.title}</td>
+                  <td className="text-foreground px-4 py-3 font-medium">{task.title}</td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[task.status] ?? "bg-secondary text-muted-foreground"}`}
+                      className={`rounded-pill inline-flex items-center px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[task.status] ?? "bg-secondary text-muted-foreground"}`}
                     >
                       {STATUS_LABELS[task.status] ?? task.status}
                     </span>
                   </td>
                   <td className="hidden px-4 py-3 md:table-cell">
                     {task.dueDate ? (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="text-muted-foreground flex items-center gap-1 text-xs">
                         <Clock size={11} />
                         {new Date(task.dueDate).toLocaleDateString("en-US", {
                           month: "short",
@@ -62,7 +62,7 @@ export function PortalTasksPanel({ tasks }: { tasks: PortalTask[] }) {
                         })}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
+                      <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </td>
                 </tr>

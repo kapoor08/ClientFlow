@@ -51,11 +51,7 @@ export function CommentBody({
       }
     }
 
-    function showCard(
-      member: MemberOption | null,
-      label: string,
-      rect: DOMRect,
-    ) {
+    function showCard(member: MemberOption | null, label: string, rect: DOMRect) {
       removeCard();
 
       const name = member?.name ?? label;
@@ -99,10 +95,7 @@ export function CommentBody({
 
     mentions.forEach((el) => {
       const id = el.getAttribute("data-id");
-      const rawLabel =
-        el.getAttribute("data-label") ??
-        el.textContent?.replace(/^@/, "") ??
-        "";
+      const rawLabel = el.getAttribute("data-label") ?? el.textContent?.replace(/^@/, "") ?? "";
       const member = members.find((m) => m.userId === id) ?? null;
 
       const enter = () => {
@@ -126,10 +119,6 @@ export function CommentBody({
   }, [html, members]);
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
   );
 }

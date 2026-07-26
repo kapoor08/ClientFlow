@@ -37,7 +37,12 @@ async function deliverOne(
   try {
     hostname = new URL(hook.url).hostname;
   } catch {
-    return { status: "permanent_fail", attempts: 0, responseStatus: null, error: "Invalid webhook URL" };
+    return {
+      status: "permanent_fail",
+      attempts: 0,
+      responseStatus: null,
+      error: "Invalid webhook URL",
+    };
   }
   try {
     await assertOutboundHostAllowed(hostname);

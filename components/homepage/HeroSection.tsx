@@ -11,27 +11,24 @@ const HeroSection = () => {
   const motionFx = useHomeMotion();
 
   return (
-    <section className="relative overflow-hidden hero-light">
-      <div className="absolute inset-0 hero-mesh" />
-      <div className="absolute inset-0 hero-grid" />
+    <section className="hero-light relative overflow-hidden">
+      <div className="hero-mesh absolute inset-0" />
+      <div className="hero-grid absolute inset-0" />
 
-      <div className="container relative z-10 pt-20 pb-10 md:pt-28 md:pb-16 lg:pt-20 lg:pb-20">
-        <Motion.div
-          {...motionFx.hero.container}
-          className="mx-auto max-w-4xl text-center"
-        >
+      <div className="relative z-10 container pt-20 pb-10 md:pt-28 md:pb-16 lg:pt-20 lg:pb-20">
+        <Motion.div {...motionFx.hero.container} className="mx-auto max-w-4xl text-center">
           <Motion.div
             {...motionFx.hero.badge}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-brand-100 px-4 py-1.5 text-[13px] font-medium text-brand-700 backdrop-blur-sm"
+            className="border-primary/20 bg-brand-100 text-brand-700 mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[13px] font-medium backdrop-blur-sm"
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/15">
+            <span className="bg-accent/15 flex h-5 w-5 items-center justify-center rounded-full">
               <Zap size={11} className="text-accent" />
             </span>
             Built for agencies that move fast
             <ChevronRight size={14} className="text-brand-300" />
           </Motion.div>
 
-          <h1 className="font-display text-[2.5rem] font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-[4.25rem]">
+          <h1 className="font-display text-foreground text-[2.5rem] leading-[1.1] font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-[4.25rem]">
             Manage clients, projects
             <br className="hidden sm:block" />& billing in{" "}
             <span className="bg-linear-to-r from-[hsl(207,85%,38%)] via-[hsl(195,80%,38%)] to-[hsl(170,76%,41%)] bg-clip-text text-transparent">
@@ -41,21 +38,17 @@ const HeroSection = () => {
 
           <Motion.p
             {...motionFx.hero.lead}
-            className="mx-auto mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground md:text-base"
+            className="text-muted-foreground mx-auto mt-6 max-w-lg text-[15px] leading-relaxed md:text-base"
           >
-            ClientFlow is the all-in-one SaaS platform for agencies and
-            service-based teams. Stop juggling tools - start delivering results.
+            ClientFlow is the all-in-one SaaS platform for agencies and service-based teams. Stop
+            juggling tools - start delivering results.
           </Motion.p>
 
           <Motion.div
             {...motionFx.hero.actions}
             className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
           >
-            <Button
-              size="lg"
-              asChild
-              className="btn-hero-primary rounded-full px-7"
-            >
+            <Button size="lg" asChild className="btn-hero-primary rounded-full px-7">
               <Link href="/auth/sign-up">
                 Start Free Trial <ArrowRight size={16} className="ml-2" />
               </Link>
@@ -70,18 +63,12 @@ const HeroSection = () => {
             </Button>
           </Motion.div>
 
-          <Motion.p
-            {...motionFx.hero.meta}
-            className="mt-5 text-[12px] text-muted-foreground/70"
-          >
+          <Motion.p {...motionFx.hero.meta} className="text-muted-foreground/70 mt-5 text-[12px]">
             No credit card required · 14-day free trial · Cancel anytime
           </Motion.p>
         </Motion.div>
 
-        <Motion.div
-          {...motionFx.hero.mockup}
-          className="mx-auto mt-12 max-w-full"
-        >
+        <Motion.div {...motionFx.hero.mockup} className="mx-auto mt-12 max-w-full">
           <HeroPreview />
         </Motion.div>
       </div>

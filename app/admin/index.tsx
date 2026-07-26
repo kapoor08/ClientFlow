@@ -36,9 +36,7 @@ export default function AdminDashboardPage({ stats }: { stats: Stats }) {
   const mrrFormatted = currency(stats.mrrCents);
   const arrFormatted = currency(stats.mrrCents * 12);
   const arpu =
-    stats.activeSubscriptions > 0
-      ? currency(stats.mrrCents / stats.activeSubscriptions)
-      : "-";
+    stats.activeSubscriptions > 0 ? currency(stats.mrrCents / stats.activeSubscriptions) : "-";
 
   const totalNewOrgs30d = stats.growthData.reduce((s, d) => s + d.count, 0);
 

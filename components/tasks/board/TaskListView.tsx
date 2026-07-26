@@ -17,27 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TimeEstimateInput } from "@/components/form";
 import { useUpdateTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
 import { useTeamMembers } from "@/core/team/useCase";
-import {
-  formatDueShort,
-  PRIORITY_BADGE,
-  STATUS_BADGE,
-} from "@/core/tasks/entity";
+import { formatDueShort, PRIORITY_BADGE, STATUS_BADGE } from "@/core/tasks/entity";
 import type { TaskListItem } from "@/core/tasks/entity";
 import {
   TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
@@ -101,8 +88,8 @@ export function TaskListView({
       assignees.length > 0
         ? assignees.map((a) => a.userId)
         : task.assigneeUserId
-        ? [task.assigneeUserId]
-        : [];
+          ? [task.assigneeUserId]
+          : [];
     const next = add
       ? [...current.filter((id) => id !== userId), userId]
       : current.filter((id) => id !== userId);
@@ -122,16 +109,13 @@ export function TaskListView({
       projectId: task.projectId,
       title: task.title,
       status: overrides.status ?? task.status,
-      priority: "priority" in overrides ? (overrides.priority ?? undefined) : (task.priority ?? undefined),
+      priority:
+        "priority" in overrides ? (overrides.priority ?? undefined) : (task.priority ?? undefined),
       assigneeUserId: task.assigneeUserId ?? undefined,
       dueDate:
-        "dueDate" in overrides
-          ? (overrides.dueDate ?? undefined)
-          : (task.dueDate ?? undefined),
+        "dueDate" in overrides ? (overrides.dueDate ?? undefined) : (task.dueDate ?? undefined),
       estimateMinutes:
-        "estimateMinutes" in overrides
-          ? overrides.estimateMinutes
-          : task.estimateMinutes,
+        "estimateMinutes" in overrides ? overrides.estimateMinutes : task.estimateMinutes,
       columnId: task.columnId ?? undefined,
     };
   }
@@ -160,32 +144,46 @@ export function TaskListView({
 
   if (tasks.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-card border border-dashed border-border py-16">
-        <p className="text-sm text-muted-foreground">No tasks found</p>
+      <div className="rounded-card border-border flex items-center justify-center border border-dashed py-16">
+        <p className="text-muted-foreground text-sm">No tasks found</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-card border border-border bg-card overflow-hidden">
+    <div className="rounded-card border-border bg-card overflow-hidden border">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-border bg-muted/30 hover:bg-muted/30">
-            <TableHead className="px-2 py-2.5 w-[88px]" />
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Task</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Project</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Status</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Priority</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Assignee</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Due</TableHead>
-            <TableHead className="px-4 py-2.5 text-xs font-medium text-muted-foreground">Estimate</TableHead>
+          <TableRow className="border-border bg-muted/30 hover:bg-muted/30 border-b">
+            <TableHead className="w-[88px] px-2 py-2.5" />
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Task
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Project
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Status
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Priority
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Assignee
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Due
+            </TableHead>
+            <TableHead className="text-muted-foreground px-4 py-2.5 text-xs font-medium">
+              Estimate
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.map((task) => (
             <TableRow
               key={task.id}
-              className="group border-b border-border/60 last:border-0 hover:bg-secondary/40 transition-colors"
+              className="group border-border/60 hover:bg-secondary/40 border-b transition-colors last:border-0"
             >
               {/* Actions */}
               <TableCell className="px-2 py-3">
@@ -195,8 +193,11 @@ export function TaskListView({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); onTaskClick(task); }}
-                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTaskClick(task);
+                          }}
+                          className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
                         >
                           <Pencil size={12} />
                         </button>
@@ -207,8 +208,11 @@ export function TaskListView({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); onMoveToProject(task); }}
-                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onMoveToProject(task);
+                          }}
+                          className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
                         >
                           <FolderInput size={12} />
                         </button>
@@ -219,8 +223,11 @@ export function TaskListView({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
-                          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-danger/10 hover:text-danger transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteTask(task);
+                          }}
+                          className="text-muted-foreground hover:bg-danger/10 hover:text-danger flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -232,7 +239,7 @@ export function TaskListView({
               </TableCell>
 
               {/* Title */}
-              <TableCell className="px-4 py-3 max-w-72">
+              <TableCell className="max-w-72 px-4 py-3">
                 <button
                   type="button"
                   onClick={() => onTaskClick(task)}
@@ -240,13 +247,13 @@ export function TaskListView({
                   onMouseLeave={handleNameHoverOut}
                   className="block w-full text-left"
                 >
-                  <p className="cursor-pointer truncate font-medium text-foreground hover:text-primary transition-colors">
+                  <p className="text-foreground hover:text-primary cursor-pointer truncate font-medium transition-colors">
                     {task.title}
                   </p>
                 </button>
                 {task.refNumber && (
                   <p
-                    className="text-xs text-muted-foreground cursor-pointer hover:text-primary transition-colors"
+                    className="text-muted-foreground hover:text-primary cursor-pointer text-xs transition-colors"
                     onMouseEnter={() => handleNameHoverIn(task)}
                     onMouseLeave={handleNameHoverOut}
                     onClick={() => onTaskClick(task)}
@@ -257,7 +264,7 @@ export function TaskListView({
               </TableCell>
 
               {/* Project */}
-              <TableCell className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+              <TableCell className="text-muted-foreground px-4 py-3 text-xs whitespace-nowrap">
                 {task.projectName ?? "-"}
               </TableCell>
 
@@ -269,16 +276,26 @@ export function TaskListView({
                 <Select value={task.status} onValueChange={(v) => handleStatusChange(task, v)}>
                   <SelectTrigger
                     className={cn(
-                      "h-auto w-fit gap-1 rounded-pill border-0 px-2 py-0.5 text-xs font-medium shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer hover:opacity-80",
+                      "rounded-pill h-auto w-fit cursor-pointer gap-1 border-0 px-2 py-0.5 text-xs font-medium shadow-none hover:opacity-80 focus:ring-0 focus:ring-offset-0",
                       STATUS_BADGE[task.status] ?? "bg-secondary text-muted-foreground",
                     )}
                   >
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="bg-white">
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    sideOffset={4}
+                    className="bg-white"
+                  >
                     {STATUS_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value} className="cursor-pointer text-xs">
-                        <span className={cn("inline-flex rounded-pill px-2 py-0.5 text-xs font-medium", STATUS_BADGE[o.value] ?? "bg-secondary text-muted-foreground")}>
+                        <span
+                          className={cn(
+                            "rounded-pill inline-flex px-2 py-0.5 text-xs font-medium",
+                            STATUS_BADGE[o.value] ?? "bg-secondary text-muted-foreground",
+                          )}
+                        >
                           {o.label}
                         </span>
                       </SelectItem>
@@ -298,7 +315,7 @@ export function TaskListView({
                 >
                   <SelectTrigger
                     className={cn(
-                      "h-auto w-fit gap-1 rounded-pill border-0 px-2 py-0.5 text-xs font-medium shadow-none focus:ring-0 focus:ring-offset-0 cursor-pointer hover:opacity-80 capitalize",
+                      "rounded-pill h-auto w-fit cursor-pointer gap-1 border-0 px-2 py-0.5 text-xs font-medium capitalize shadow-none hover:opacity-80 focus:ring-0 focus:ring-offset-0",
                       task.priority
                         ? (PRIORITY_BADGE[task.priority] ?? "bg-secondary text-muted-foreground")
                         : "bg-secondary text-muted-foreground",
@@ -306,15 +323,25 @@ export function TaskListView({
                   >
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" sideOffset={4} className="bg-white">
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    sideOffset={4}
+                    className="bg-white"
+                  >
                     <SelectItem value="none" className="cursor-pointer text-xs">
-                      <span className="inline-flex rounded-pill px-2 py-0.5 text-xs font-medium bg-secondary text-muted-foreground">
+                      <span className="rounded-pill bg-secondary text-muted-foreground inline-flex px-2 py-0.5 text-xs font-medium">
                         None
                       </span>
                     </SelectItem>
                     {PRIORITY_OPTIONS.map((o) => (
                       <SelectItem key={o.value} value={o.value} className="cursor-pointer text-xs">
-                        <span className={cn("inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize", PRIORITY_BADGE[o.value] ?? "bg-secondary text-muted-foreground")}>
+                        <span
+                          className={cn(
+                            "rounded-pill inline-flex px-2 py-0.5 text-xs font-medium capitalize",
+                            PRIORITY_BADGE[o.value] ?? "bg-secondary text-muted-foreground",
+                          )}
+                        >
                           {o.label}
                         </span>
                       </SelectItem>
@@ -324,24 +351,28 @@ export function TaskListView({
               </TableCell>
 
               {/* Assignees - multi-select avatar group */}
-              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                <Popover onOpenChange={(open) => { if (!open) setMemberSearch(""); }}>
+              <TableCell
+                className="px-4 py-3 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Popover
+                  onOpenChange={(open) => {
+                    if (!open) setMemberSearch("");
+                  }}
+                >
                   <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center gap-1 cursor-pointer"
-                    >
+                    <button type="button" className="flex cursor-pointer items-center gap-1">
                       {(() => {
                         // Fall back to legacy single-assignee field when junction table is empty
                         const effectiveAssignees =
                           (task.assignees ?? []).length > 0
                             ? task.assignees
                             : task.assigneeUserId
-                            ? [{ userId: task.assigneeUserId, name: task.assigneeName }]
-                            : [];
+                              ? [{ userId: task.assigneeUserId, name: task.assigneeName }]
+                              : [];
                         if (effectiveAssignees.length === 0) {
                           return (
-                            <div className="flex items-center gap-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors">
+                            <div className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 transition-colors">
                               <UserPlus size={13} />
                               <span className="text-xs">Assign</span>
                             </div>
@@ -350,26 +381,26 @@ export function TaskListView({
                         return (
                           <div className="flex -space-x-1.5">
                             {effectiveAssignees.slice(0, 3).map((a) => (
-                            <TooltipProvider key={a.userId} delayDuration={300}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className={cn(
-                                      "flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-semibold border-2 border-card",
-                                      a.userId === currentUserId
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-brand-100 text-primary",
-                                    )}
-                                  >
-                                    {getInitials(a.name)}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>{a.name ?? "Unknown"}</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ))}
+                              <TooltipProvider key={a.userId} delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div
+                                      className={cn(
+                                        "border-card flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-semibold",
+                                        a.userId === currentUserId
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-brand-100 text-primary",
+                                      )}
+                                    >
+                                      {getInitials(a.name)}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{a.name ?? "Unknown"}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
                             {effectiveAssignees.length > 3 && (
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[9px] font-medium text-muted-foreground border-2 border-card">
+                              <div className="bg-secondary text-muted-foreground border-card flex h-6 w-6 items-center justify-center rounded-full border-2 text-[9px] font-medium">
                                 +{effectiveAssignees.length - 3}
                               </div>
                             )}
@@ -378,21 +409,26 @@ export function TaskListView({
                       })()}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-64 bg-white p-2" align="start" side="bottom" sideOffset={4}>
+                  <PopoverContent
+                    className="w-64 bg-white p-2"
+                    align="start"
+                    side="bottom"
+                    sideOffset={4}
+                  >
                     <Input
                       placeholder="Search members…"
                       value={memberSearch}
                       onChange={(e) => setMemberSearch(e.target.value)}
                       className="mb-2 h-7 text-xs"
                     />
-                    <div className="max-h-48 overflow-y-auto space-y-0.5">
+                    <div className="max-h-48 space-y-0.5 overflow-y-auto">
                       {filteredMembers.map((m) => {
                         const effectiveIds =
                           (task.assignees ?? []).length > 0
                             ? (task.assignees ?? []).map((a) => a.userId)
                             : task.assigneeUserId
-                            ? [task.assigneeUserId]
-                            : [];
+                              ? [task.assigneeUserId]
+                              : [];
                         const assigned = effectiveIds.includes(m.userId);
                         return (
                           <button
@@ -406,14 +442,14 @@ export function TaskListView({
                                 : "hover:bg-secondary/50 text-muted-foreground",
                             )}
                           >
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                            <div className="bg-brand-100 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
                               {getInitials(m.name)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-foreground">{m.name}</p>
-                              <p className="truncate text-muted-foreground">{m.email}</p>
+                              <p className="text-foreground truncate">{m.name}</p>
+                              <p className="text-muted-foreground truncate">{m.email}</p>
                             </div>
-                            {assigned && <Check size={12} className="shrink-0 text-primary" />}
+                            {assigned && <Check size={12} className="text-primary shrink-0" />}
                           </button>
                         );
                       })}
@@ -423,7 +459,10 @@ export function TaskListView({
               </TableCell>
 
               {/* Due - inline date picker */}
-              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+              <TableCell
+                className="px-4 py-3 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Popover>
                   <TooltipProvider delayDuration={400}>
                     <Tooltip>
@@ -431,7 +470,7 @@ export function TaskListView({
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                            className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs transition-colors"
                           >
                             {task.dueDate ? (
                               <>
@@ -439,7 +478,9 @@ export function TaskListView({
                                 {formatDueShort(task.dueDate)}
                               </>
                             ) : (
-                              <span className="text-muted-foreground/50">Click to set due date</span>
+                              <span className="text-muted-foreground/50">
+                                Click to set due date
+                              </span>
                             )}
                           </button>
                         </PopoverTrigger>
@@ -447,7 +488,12 @@ export function TaskListView({
                       <TooltipContent>Click to set due date</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <PopoverContent className="w-auto bg-white p-0" align="start" side="bottom" sideOffset={4}>
+                  <PopoverContent
+                    className="w-auto bg-white p-0"
+                    align="start"
+                    side="bottom"
+                    sideOffset={4}
+                  >
                     <Calendar
                       mode="single"
                       selected={task.dueDate ? new Date(task.dueDate) : undefined}
@@ -455,11 +501,11 @@ export function TaskListView({
                       initialFocus
                     />
                     {task.dueDate && (
-                      <div className="border-t border-border px-3 py-2">
+                      <div className="border-border border-t px-3 py-2">
                         <button
                           type="button"
                           onClick={() => handleDueDateChange(task, undefined)}
-                          className="text-xs text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                          className="text-muted-foreground hover:text-danger cursor-pointer text-xs transition-colors"
                         >
                           Clear date
                         </button>
@@ -470,7 +516,10 @@ export function TaskListView({
               </TableCell>
 
               {/* Estimate - TimeEstimateInput with elapsed-time color */}
-              <TableCell className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+              <TableCell
+                className="px-4 py-3 whitespace-nowrap"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <TimeEstimateInput
                   value={task.estimateMinutes}
                   onChange={(minutes) => handleEstimateChange(task, minutes)}
@@ -480,7 +529,6 @@ export function TaskListView({
                   className={getEstimateColor(task)}
                 />
               </TableCell>
-
             </TableRow>
           ))}
         </TableBody>

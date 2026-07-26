@@ -17,8 +17,8 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <div className="text-[13px] font-bold text-foreground">{label}</div>
-          <div className="text-[10px] text-muted-foreground">Manage your {label.toLowerCase()}</div>
+          <div className="text-foreground text-[13px] font-bold">{label}</div>
+          <div className="text-muted-foreground text-[10px]">Manage your {label.toLowerCase()}</div>
         </div>
       </div>
 
@@ -27,7 +27,7 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="rounded-lg border border-border bg-card p-6"
+        className="border-border bg-card rounded-lg border p-6"
       >
         <div className="flex flex-col items-center justify-center gap-2 py-4">
           {Icon && (
@@ -39,8 +39,8 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
               <Icon size={20} className="text-muted-foreground/30" />
             </Motion.div>
           )}
-          <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
-          <div className="text-[9px] text-muted-foreground/60">Content loads here</div>
+          <div className="text-muted-foreground text-[11px] font-medium">{label}</div>
+          <div className="text-muted-foreground/60 text-[9px]">Content loads here</div>
         </div>
 
         {/* Skeleton rows */}
@@ -53,11 +53,8 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
               transition={{ delay: 0.2 + i * 0.06 }}
               className="flex items-center gap-2"
             >
-              <div className="h-3 w-3 rounded bg-secondary" />
-              <div
-                className="h-2 rounded-full bg-secondary"
-                style={{ width: `${w * 100}%` }}
-              />
+              <div className="bg-secondary h-3 w-3 rounded" />
+              <div className="bg-secondary h-2 rounded-full" style={{ width: `${w * 100}%` }} />
             </Motion.div>
           ))}
         </div>

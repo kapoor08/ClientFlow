@@ -2,13 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import {
-  MoreHorizontal,
-  UserX,
-  ShieldCheck,
-  UserCheck,
-  Settings2,
-} from "lucide-react";
+import { MoreHorizontal, UserX, ShieldCheck, UserCheck, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -21,12 +15,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   useUpdateMemberRole,
   useSuspendMember,
@@ -76,7 +65,7 @@ function MemberAvatar({ name, image }: { name: string; image: string | null }) {
     );
   }
   return (
-    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-primary">
+    <div className="bg-brand-100 text-primary flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
       {initials}
     </div>
   );
@@ -100,10 +89,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
 
   const isSelf = member.userId === access.currentUserId;
   const isPending =
-    updateRole.isPending ||
-    suspend.isPending ||
-    remove.isPending ||
-    reactivate.isPending;
+    updateRole.isPending || suspend.isPending || remove.isPending || reactivate.isPending;
 
   if (!access.canManage || isSelf) return null;
 
@@ -114,7 +100,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
           <TooltipTrigger asChild>
             <DropdownMenuTrigger asChild>
               <button
-                className="cursor-pointer rounded-lg p-1 text-muted-foreground hover:bg-secondary transition-colors"
+                className="text-muted-foreground hover:bg-secondary cursor-pointer rounded-lg p-1 transition-colors"
                 disabled={isPending}
               >
                 <MoreHorizontal size={16} />
@@ -150,14 +136,15 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
                     { membershipId: member.membershipId, roleKey: role.key },
                     {
                       onSuccess: () => toast.success(`Role updated to ${role.name}`),
-                      onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update role."),
+                      onError: (err) =>
+                        toast.error(err instanceof Error ? err.message : "Failed to update role."),
                     },
                   )
                 }
               >
                 {role.name}
                 {role.key === member.roleKey && (
-                  <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                  <span className="text-muted-foreground ml-auto text-xs">Current</span>
                 )}
               </DropdownMenuItem>
             ))}
@@ -172,7 +159,10 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
                 { membershipId: member.membershipId },
                 {
                   onSuccess: () => toast.success("Member reactivated."),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to reactivate member."),
+                  onError: (err) =>
+                    toast.error(
+                      err instanceof Error ? err.message : "Failed to reactivate member.",
+                    ),
                 },
               )
             }
@@ -188,7 +178,8 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
                 { membershipId: member.membershipId },
                 {
                   onSuccess: () => toast.success("Member suspended."),
-                  onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to suspend member."),
+                  onError: (err) =>
+                    toast.error(err instanceof Error ? err.message : "Failed to suspend member."),
                 },
               )
             }
@@ -208,11 +199,12 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
               { membershipId: member.membershipId },
               {
                 onSuccess: () => toast.success("Team member removed."),
-                onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to remove member."),
+                onError: (err) =>
+                  toast.error(err instanceof Error ? err.message : "Failed to remove member."),
               },
             )
           }
-          className="cursor-pointer gap-2 text-danger focus:text-danger"
+          className="text-danger focus:text-danger cursor-pointer gap-2"
         >
           <UserX size={14} />
           Remove member
@@ -226,7 +218,7 @@ function MemberActions({ member, access, assignableRoles, onOpenPermissions }: M
 
 export function SkeletonRow() {
   return (
-    <tr className="border-b border-border last:border-0">
+    <tr className="border-border border-b last:border-0">
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <Skeleton className="h-8 w-8 rounded-full" />
@@ -236,10 +228,18 @@ export function SkeletonRow() {
           </div>
         </div>
       </td>
-      <td className="px-4 py-3"><Skeleton className="h-5 w-16 rounded-full" /></td>
-      <td className="hidden px-4 py-3 sm:table-cell"><Skeleton className="h-5 w-16 rounded-full" /></td>
-      <td className="hidden px-4 py-3 md:table-cell"><Skeleton className="h-3 w-6" /></td>
-      <td className="hidden px-4 py-3 lg:table-cell"><Skeleton className="h-3 w-20" /></td>
+      <td className="px-4 py-3">
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </td>
+      <td className="hidden px-4 py-3 sm:table-cell">
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </td>
+      <td className="hidden px-4 py-3 md:table-cell">
+        <Skeleton className="h-3 w-6" />
+      </td>
+      <td className="hidden px-4 py-3 lg:table-cell">
+        <Skeleton className="h-3 w-20" />
+      </td>
       <td className="px-4 py-3" />
     </tr>
   );
@@ -254,9 +254,16 @@ type TeamMemberRowProps = {
   orgRolePermissions: RolePermissionsConfig | null;
 };
 
-export function TeamMemberRow({ member: m, access, assignableRoles, orgRolePermissions }: TeamMemberRowProps) {
+export function TeamMemberRow({
+  member: m,
+  access,
+  assignableRoles,
+  orgRolePermissions,
+}: TeamMemberRowProps) {
   const [permDialogOpen, setPermDialogOpen] = useState(false);
-  const [localOverrides, setLocalOverrides] = useState<MemberPermissionOverrides | null>(m.permissionOverrides);
+  const [localOverrides, setLocalOverrides] = useState<MemberPermissionOverrides | null>(
+    m.permissionOverrides,
+  );
 
   const hasCustomPerms = localOverrides && Object.keys(localOverrides).length > 0;
 
@@ -264,15 +271,15 @@ export function TeamMemberRow({ member: m, access, assignableRoles, orgRolePermi
     <>
       <tr
         key={m.membershipId}
-        className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
+        className="border-border hover:bg-secondary/30 border-b transition-colors last:border-0"
       >
         {/* Member */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             <MemberAvatar name={m.name} image={m.image} />
             <div>
-              <p className="font-medium text-foreground">{m.name}</p>
-              <p className="text-xs text-muted-foreground">{m.email}</p>
+              <p className="text-foreground font-medium">{m.name}</p>
+              <p className="text-muted-foreground text-xs">{m.email}</p>
             </div>
           </div>
         </td>
@@ -281,12 +288,12 @@ export function TeamMemberRow({ member: m, access, assignableRoles, orgRolePermi
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${ROLE_BADGE[m.roleKey] ?? "bg-secondary text-foreground"}`}
+              className={`rounded-pill inline-flex px-2 py-0.5 text-xs font-medium capitalize ${ROLE_BADGE[m.roleKey] ?? "bg-secondary text-foreground"}`}
             >
               {m.roleName}
             </span>
             {hasCustomPerms && (
-              <span className="inline-flex rounded-pill bg-info/10 px-1.5 py-0.5 text-[10px] font-medium text-info">
+              <span className="rounded-pill bg-info/10 text-info inline-flex px-1.5 py-0.5 text-[10px] font-medium">
                 Custom
               </span>
             )}
@@ -296,19 +303,17 @@ export function TeamMemberRow({ member: m, access, assignableRoles, orgRolePermi
         {/* Status */}
         <td className="hidden px-4 py-3 sm:table-cell">
           <span
-            className={`inline-flex rounded-pill px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[m.status] ?? "bg-secondary text-foreground"}`}
+            className={`rounded-pill inline-flex px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[m.status] ?? "bg-secondary text-foreground"}`}
           >
             {m.status}
           </span>
         </td>
 
         {/* Projects */}
-        <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
-          {m.projectCount}
-        </td>
+        <td className="text-muted-foreground hidden px-4 py-3 md:table-cell">{m.projectCount}</td>
 
         {/* Joined */}
-        <td className="hidden px-4 py-3 text-xs text-muted-foreground lg:table-cell">
+        <td className="text-muted-foreground hidden px-4 py-3 text-xs lg:table-cell">
           {m.joinedAt
             ? new Date(m.joinedAt).toLocaleDateString("en-US", {
                 month: "short",

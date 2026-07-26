@@ -20,12 +20,7 @@ import { GripVertical, Plus, Trash2, Upload, X } from "lucide-react";
 import Image from "next/image";
 import type * as React from "react";
 import { useState } from "react";
-import {
-  type Control,
-  type FieldError,
-  useController,
-  useFieldArray,
-} from "react-hook-form";
+import { type Control, type FieldError, useController, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -72,17 +67,26 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const { field: textField, fieldState: { error: textError } } = useController({
+  const {
+    field: textField,
+    fieldState: { error: textError },
+  } = useController({
     control,
     name: `${fieldName}.text`,
   });
 
-  const { field: nameField, fieldState: { error: nameError } } = useController({
+  const {
+    field: nameField,
+    fieldState: { error: nameError },
+  } = useController({
     control,
     name: `${fieldName}.name`,
   });
 
-  const { field: designationField, fieldState: { error: designationError } } = useController({
+  const {
+    field: designationField,
+    fieldState: { error: designationError },
+  } = useController({
     control,
     name: `${fieldName}.designation`,
   });
@@ -92,19 +96,15 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
     name: `${fieldName}.isVerified`,
   });
 
-  const { field: imageUrlField, fieldState: { error: imageUrlError } } = useController({
+  const {
+    field: imageUrlField,
+    fieldState: { error: imageUrlError },
+  } = useController({
     control,
     name: `${fieldName}.imageUrl`,
   });
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
   });
 
@@ -114,9 +114,7 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -161,9 +159,7 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
       setIsUploading(false);
     } catch (error: any) {
       console.error("Upload error:", error);
-      setUploadError(
-        error.message || "Failed to upload image. Please try again.",
-      );
+      setUploadError(error.message || "Failed to upload image. Please try again.");
       setIsUploading(false);
     }
   };
@@ -173,21 +169,21 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className="relative py-0 gap-2">
-      <CardHeader className="pb-1 pt-2 px-3">
+    <Card ref={setNodeRef} style={style} className="relative gap-2 py-0">
+      <CardHeader className="px-3 pt-2 pb-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing"
+              className="h-6 w-6 cursor-grab p-0 active:cursor-grabbing"
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <GripVertical className="text-muted-foreground h-3 w-3" />
             </Button>
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="text-muted-foreground text-xs font-medium">
               Testimonial {index + 1}
             </span>
           </div>
@@ -197,14 +193,14 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
               variant="ghost"
               size="sm"
               onClick={onRemove}
-              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 w-6 p-0"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-0 pb-2 px-3 space-y-2">
+      <CardContent className="space-y-2 px-3 pt-0 pb-2">
         {/* Avatar Upload */}
         <div className="space-y-1">
           <Label className="text-xs">Avatar</Label>
@@ -217,21 +213,21 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
                   width={48}
                   height={48}
                   unoptimized
-                  className="w-12 h-12 rounded-full object-cover border-2 border-border"
+                  className="border-border h-12 w-12 rounded-full border-2 object-cover"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={handleRemoveImage}
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute -top-1 -right-1 h-5 w-5 rounded-full p-0"
                 >
                   <X className="h-3 w-3" />
                 </Button>
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-                <Upload className="h-4 w-4 text-muted-foreground" />
+              <div className="border-muted-foreground/30 flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed">
+                <Upload className="text-muted-foreground h-4 w-4" />
               </div>
             )}
 
@@ -241,19 +237,15 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
                 accept="image/*"
                 onChange={handleFileUpload}
                 disabled={isUploading}
-                className={`h-8 text-xs cursor-pointer ${imageUrlError ? 'border-destructive' : ''}`}
+                className={`h-8 cursor-pointer text-xs ${imageUrlError ? "border-destructive" : ""}`}
               />
               {imageUrlError && (
-                <p className="text-xs text-destructive mt-1">{imageUrlError.message}</p>
+                <p className="text-destructive mt-1 text-xs">{imageUrlError.message}</p>
               )}
               {uploadError && !imageUrlError && (
-                <p className="text-xs text-destructive mt-1">{uploadError}</p>
+                <p className="text-destructive mt-1 text-xs">{uploadError}</p>
               )}
-              {isUploading && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Uploading...
-                </p>
-              )}
+              {isUploading && <p className="text-muted-foreground mt-1 text-xs">Uploading...</p>}
             </div>
           </div>
         </div>
@@ -268,57 +260,44 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
             {...textField}
             placeholder="Share your experience with our platform..."
             rows={3}
-            className={`text-sm resize-none ${textError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+            className={`resize-none text-sm ${textError ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
-          {textError && (
-            <p className="text-xs text-destructive mt-1">{textError.message}</p>
-          )}
+          {textError && <p className="text-destructive mt-1 text-xs">{textError.message}</p>}
         </div>
 
         {/* Name and Designation */}
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <Label
-              htmlFor={`testimonial-${fieldName}-name`}
-              className="text-xs"
-            >
+            <Label htmlFor={`testimonial-${fieldName}-name`} className="text-xs">
               Name *
             </Label>
             <Input
               id={`testimonial-${fieldName}-name`}
               {...nameField}
               placeholder="e.g., Marie Jane"
-              className={`h-8 ${nameError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              className={`h-8 ${nameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
-            {nameError && (
-              <p className="text-xs text-destructive mt-1">{nameError.message}</p>
-            )}
+            {nameError && <p className="text-destructive mt-1 text-xs">{nameError.message}</p>}
           </div>
           <div className="space-y-1">
-            <Label
-              htmlFor={`testimonial-${fieldName}-designation`}
-              className="text-xs"
-            >
+            <Label htmlFor={`testimonial-${fieldName}-designation`} className="text-xs">
               Designation *
             </Label>
             <Input
               id={`testimonial-${fieldName}-designation`}
               {...designationField}
               placeholder="e.g., CFO at Movix"
-              className={`h-8 ${designationError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+              className={`h-8 ${designationError ? "border-destructive focus-visible:ring-destructive" : ""}`}
             />
             {designationError && (
-              <p className="text-xs text-destructive mt-1">{designationError.message}</p>
+              <p className="text-destructive mt-1 text-xs">{designationError.message}</p>
             )}
           </div>
         </div>
 
         {/* Verified Switch */}
-        <div className="flex items-center gap-4 mt-4 mb-1">
-          <Label
-            htmlFor={`testimonial-${fieldName}-verified`}
-            className="text-xs"
-          >
+        <div className="mt-4 mb-1 flex items-center gap-4">
+          <Label htmlFor={`testimonial-${fieldName}-verified`} className="text-xs">
             Verified User
           </Label>
           <Switch
@@ -383,20 +362,11 @@ export const ControlledTestimonials: React.FC<ControlledTestimonialsProps> = ({
   return (
     <div className={`space-y-2 ${className || ""}`}>
       {label && <Label className="text-sm">{label}</Label>}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-xs">{description}</p>}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-2 gap-0">
-          <SortableContext
-            items={fields.map((f) => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="gap-0 space-y-2">
+          <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             {fields.map((testimonial, index) => (
               <SortableTestimonialItem
                 key={testimonial.id}
@@ -414,16 +384,16 @@ export const ControlledTestimonials: React.FC<ControlledTestimonialsProps> = ({
             type="button"
             variant="outline"
             onClick={handleAddTestimonial}
-            className="w-full h-8"
+            className="h-8 w-full"
             size="sm"
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="mr-1 h-3 w-3" />
             Add Testimonial
           </Button>
         </div>
       </DndContext>
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-destructive text-sm">{error.message}</p>}
     </div>
   );
 };

@@ -20,9 +20,9 @@ type EngagementPanelProps = {
 /** "Engagement - last 30 days" panel: summary tiles + a daily-metrics table. */
 export function EngagementPanel({ dailyMetrics, totals }: EngagementPanelProps) {
   return (
-    <div className="rounded-xl border border-border bg-card shadow-cf-1 lg:col-span-2">
-      <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Engagement - last 30 days</h2>
+    <div className="border-border bg-card shadow-cf-1 rounded-xl border lg:col-span-2">
+      <div className="border-border flex items-center justify-between border-b px-5 py-4">
+        <h2 className="text-foreground text-sm font-semibold">Engagement - last 30 days</h2>
         <div className="flex gap-4">
           {[
             { label: "Tasks Created", value: totals.tasksCreated },
@@ -30,8 +30,8 @@ export function EngagementPanel({ dailyMetrics, totals }: EngagementPanelProps) 
             { label: "Active User-Days", value: totals.activeUsers },
           ].map(({ label, value }) => (
             <div key={label} className="text-right">
-              <p className="font-bold text-foreground">{value.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground">{label}</p>
+              <p className="text-foreground font-bold">{value.toLocaleString()}</p>
+              <p className="text-muted-foreground text-[10px]">{label}</p>
             </div>
           ))}
         </div>
@@ -57,7 +57,7 @@ export function EngagementPanel({ dailyMetrics, totals }: EngagementPanelProps) 
             <TableBody>
               {dailyMetrics.map((row) => (
                 <TableRow key={row.date?.toISOString()}>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-xs">
                     {row.date
                       ? new Date(row.date).toLocaleDateString("en-US", {
                           month: "short",

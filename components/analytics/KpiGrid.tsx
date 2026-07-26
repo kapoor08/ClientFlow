@@ -63,9 +63,7 @@ export function KpiGrid({ summary }: { summary: AnalyticsSummary }) {
   ];
 
   const completionRate =
-    summary.totalTasks > 0
-      ? Math.round((summary.completedTasks / summary.totalTasks) * 100)
-      : 0;
+    summary.totalTasks > 0 ? Math.round((summary.completedTasks / summary.totalTasks) * 100) : 0;
 
   const row2 = [
     {

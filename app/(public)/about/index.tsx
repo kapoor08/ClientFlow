@@ -12,43 +12,37 @@ const AboutPage = () => {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-border">
-        <div className="absolute inset-0 dot-grid dot-grid-fade opacity-40" />
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--cf-hero-gradient)" }}
-        />
-        <div className="container relative py-14 md:py-20">
+      <section className="border-border relative overflow-hidden border-b">
+        <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
+        <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
+        <div className="relative container py-14 md:py-20">
           <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-3xl text-center"
           >
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-              Built by agency people,{" "}
-              <span className="text-primary text-glow">for agencies</span>
+            <h1 className="font-display text-foreground text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">
+              Built by agency people, <span className="text-primary text-glow">for agencies</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-              We started ClientFlow because we were tired of stitching together
-              project management, billing, and client communication across five
-              different tools. There had to be a better way.
+            <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
+              We started ClientFlow because we were tired of stitching together project management,
+              billing, and client communication across five different tools. There had to be a
+              better way.
             </p>
           </Motion.div>
         </div>
       </section>
 
-      <section className="border-b border-border bg-card py-8">
+      <section className="border-border bg-card border-b py-8">
         <div className="container">
           <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
             {stats.map((s) => (
               <div key={s.label} className="text-center">
-                <div className="font-display text-2xl font-bold text-primary md:text-3xl">
+                <div className="font-display text-primary text-2xl font-bold md:text-3xl">
                   {s.value}
                 </div>
-                <div className="mt-0.5 text-[13px] text-muted-foreground">
-                  {s.label}
-                </div>
+                <div className="text-muted-foreground mt-0.5 text-[13px]">{s.label}</div>
               </div>
             ))}
           </div>
@@ -58,37 +52,31 @@ const AboutPage = () => {
       <section className="py-12 md:py-16">
         <div className="container">
           <div className="mx-auto max-w-3xl">
-            <h2 className="font-display text-xl font-bold text-foreground">
-              Our Story
-            </h2>
-            <div className="mt-4 space-y-3 text-[13px] leading-relaxed text-muted-foreground md:text-sm">
+            <h2 className="font-display text-foreground text-xl font-bold">Our Story</h2>
+            <div className="text-muted-foreground mt-4 space-y-3 text-[13px] leading-relaxed md:text-sm">
               <p>
-                ClientFlow was founded in 2024 by a team of agency operators and
-                engineers who experienced firsthand the chaos of managing client
-                relationships, project delivery, and billing across disconnected
-                tools.
+                ClientFlow was founded in 2024 by a team of agency operators and engineers who
+                experienced firsthand the chaos of managing client relationships, project delivery,
+                and billing across disconnected tools.
               </p>
               <p>
-                We set out to build the platform we wished we had - one that
-                unifies client management, project tracking, task workflows, and
-                invoicing into a single, thoughtfully designed system.
+                We set out to build the platform we wished we had - one that unifies client
+                management, project tracking, task workflows, and invoicing into a single,
+                thoughtfully designed system.
               </p>
               <p>
-                Today, ClientFlow serves over 2,000 agencies worldwide, from
-                boutique design studios to large-scale digital consultancies.
-                Our multi-tenant architecture ensures that every team gets
-                enterprise-grade security and performance, regardless of size.
+                Today, ClientFlow serves over 2,000 agencies worldwide, from boutique design studios
+                to large-scale digital consultancies. Our multi-tenant architecture ensures that
+                every team gets enterprise-grade security and performance, regardless of size.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="border-t border-border bg-card py-12 md:py-16">
+      <section className="border-border bg-card border-t py-12 md:py-16">
         <div className="container">
-          <h2 className="font-display text-xl font-bold text-foreground text-center">
-            Our Values
-          </h2>
+          <h2 className="font-display text-foreground text-center text-xl font-bold">Our Values</h2>
           <Motion.div
             variants={motionStagger.container}
             initial="hidden"
@@ -100,17 +88,15 @@ const AboutPage = () => {
               <Motion.div
                 key={v.title}
                 variants={motionStagger.item}
-                className="rounded-xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-cf-2"
+                className="border-border bg-background hover:border-primary/30 hover:shadow-cf-2 rounded-xl border p-5 transition-all"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                <div className="bg-primary/8 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
                   <v.icon size={18} />
                 </div>
-                <h3 className="mt-3 font-display text-sm font-semibold text-foreground">
+                <h3 className="font-display text-foreground mt-3 text-sm font-semibold">
                   {v.title}
                 </h3>
-                <p className="mt-1.5 text-[13px] text-muted-foreground">
-                  {v.desc}
-                </p>
+                <p className="text-muted-foreground mt-1.5 text-[13px]">{v.desc}</p>
               </Motion.div>
             ))}
           </Motion.div>

@@ -7,18 +7,8 @@ import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/utils/cn";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,11 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import {
   DropdownMenu,
@@ -56,17 +42,16 @@ import {
   useDeleteAttachment,
   taskDetailKeys,
 } from "@/core/task-detail/useCase";
-import {
-  useUpdateTask,
-  useDeleteTask,
-  useUpdateTaskAssignees,
-} from "@/core/tasks/useCase";
+import { useUpdateTask, useDeleteTask, useUpdateTaskAssignees } from "@/core/tasks/useCase";
 import { TimeEstimateInput } from "@/components/form";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { http } from "@/core/infrastructure";
 import { formatActivityMessage } from "@/core/task-detail/entity";
 import { PRIORITY_BADGE } from "@/core/tasks/entity";
-import { TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS, TASK_STATUS_OPTIONS as STATUS_OPTIONS } from "@/constants/task";
+import {
+  TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS,
+  TASK_STATUS_OPTIONS as STATUS_OPTIONS,
+} from "@/constants/task";
 import { formatDateDayMonthYear } from "@/utils/date";
 import { getInitials } from "@/utils/user";
 import { TASK_TAG_OPTIONS } from "@/schemas/tasks";
@@ -122,23 +107,19 @@ type TaskDetailSheetProps = {
   currentUserId?: string;
 };
 
-export function TaskDetailSheet({
-  taskId,
-  onClose,
-  currentUserId,
-}: TaskDetailSheetProps) {
+export function TaskDetailSheet({ taskId, onClose, currentUserId }: TaskDetailSheetProps) {
   const qc = useQueryClient();
   const [commentHtml, setCommentHtml] = useState("");
   const [commentKey, setCommentKey] = useState(0);
   const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
   const [pendingAttachPreviews, setPendingAttachPreviews] = useState<(string | null)[]>([]);
   const [editingPendingAttachments, setEditingPendingAttachments] = useState<File[]>([]);
-  const [editingPendingAttachPreviews, setEditingPendingAttachPreviews] = useState<(string | null)[]>([]);
+  const [editingPendingAttachPreviews, setEditingPendingAttachPreviews] = useState<
+    (string | null)[]
+  >([]);
   const [activeTab, setActiveTab] = useQueryState(
     "tab",
-    parseAsStringLiteral(["comments", "logs", "files"] as const).withDefault(
-      "comments",
-    ),
+    parseAsStringLiteral(["comments", "logs", "files"] as const).withDefault("comments"),
   );
   const [assigneeOpen, setAssigneeOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
@@ -148,15 +129,11 @@ export function TaskDetailSheet({
   // ── Local field state (batched by Save Changes) ────────────────────────────
   const [localStatus, setLocalStatus] = useState("todo");
   const [localPriority, setLocalPriority] = useState<string | null>(null);
-  const [localAssignees, setLocalAssignees] = useState<
-    { userId: string; name: string }[]
-  >([]);
+  const [localAssignees, setLocalAssignees] = useState<{ userId: string; name: string }[]>([]);
   const [localDueDate, setLocalDueDate] = useState<string | null>(null);
   const [localEstimate, setLocalEstimate] = useState<number | null>(null);
   const [localReporterId, setLocalReporterId] = useState<string | null>(null);
-  const [localReporterName, setLocalReporterName] = useState<string | null>(
-    null,
-  );
+  const [localReporterName, setLocalReporterName] = useState<string | null>(null);
   const [localTags, setLocalTags] = useState<string[]>([]);
   const [localDescription, setLocalDescription] = useState("");
   const [subtaskDialogOpen, setSubtaskDialogOpen] = useState(false);
@@ -253,8 +230,7 @@ export function TaskDetailSheet({
       JSON.stringify(localAssigneeIds) !== JSON.stringify(taskAssigneeIds) ||
       (localDueDate ?? null) !== (task.dueDate ?? null) ||
       (localEstimate ?? null) !== (task.estimateMinutes ?? null) ||
-      JSON.stringify([...localTags].sort()) !==
-        JSON.stringify([...(task.tags ?? [])].sort()) ||
+      JSON.stringify([...localTags].sort()) !== JSON.stringify([...(task.tags ?? [])].sort()) ||
       localDescription !== (task.description ?? ""));
 
   // ─── Save helpers ──────────────────────────────────────────────────────────
@@ -283,8 +259,7 @@ export function TaskDetailSheet({
             { taskId: task.id, userIds: localAssignees.map((a) => a.userId) },
             {
               onSuccess: () => toast.success("Changes saved."),
-              onError: (err) =>
-                toast.error(err.message ?? "Failed to update assignees."),
+              onError: (err) => toast.error(err.message ?? "Failed to update assignees."),
             },
           );
         },
@@ -344,17 +319,12 @@ export function TaskDetailSheet({
     setLocalTags(updated);
   }
 
-  const allTagOptions = Array.from(
-    new Set([...TASK_TAG_OPTIONS, ...localTags]),
-  );
+  const allTagOptions = Array.from(new Set([...TASK_TAG_OPTIONS, ...localTags]));
   const filteredTagOptions = tagSearch
-    ? allTagOptions.filter((t) =>
-        t.toLowerCase().includes(tagSearch.toLowerCase()),
-      )
+    ? allTagOptions.filter((t) => t.toLowerCase().includes(tagSearch.toLowerCase()))
     : allTagOptions;
 
-  const isCommentEmpty =
-    !commentHtml || commentHtml === "<p></p>" || commentHtml.trim() === "";
+  const isCommentEmpty = !commentHtml || commentHtml === "<p></p>" || commentHtml.trim() === "";
 
   function handleSubmitComment(e?: React.FormEvent) {
     e?.preventDefault();
@@ -369,9 +339,7 @@ export function TaskDetailSheet({
     });
   }
 
-  const selectedPriority = PRIORITY_OPTIONS.find(
-    (p) => p.value === localPriority,
-  );
+  const selectedPriority = PRIORITY_OPTIONS.find((p) => p.value === localPriority);
 
   // Merge comments + activity + file uploads for the right sidebar feed
   const feed = [
@@ -426,9 +394,7 @@ export function TaskDetailSheet({
       storageUrl: a.storageUrl,
       sizeBytes: a.sizeBytes,
     })),
-  ].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   // Scroll feed to bottom whenever comments/files are added
   useEffect(() => {
@@ -448,27 +414,25 @@ export function TaskDetailSheet({
       }}
     >
       <DialogContent
-        className="w-[90vw] max-w-350! p-0 gap-0 overflow-visible"
+        className="w-[90vw] max-w-350! gap-0 overflow-visible p-0"
         showCloseButton={false}
         onInteractOutside={(e) => {
           // e.target is the DialogContent node itself (Radix dispatches the custom event on it).
           // The actual outside element is in e.detail.originalEvent.target.
-          const outsideTarget = (e as CustomEvent<{ originalEvent: Event }>)
-            .detail?.originalEvent?.target as Element | null;
+          const outsideTarget = (e as CustomEvent<{ originalEvent: Event }>).detail?.originalEvent
+            ?.target as Element | null;
           if (outsideTarget?.closest?.("[data-mention-dropdown]")) {
             e.preventDefault();
           }
         }}
       >
-        <DialogTitle className="sr-only">
-          {task?.title ?? "Task detail"}
-        </DialogTitle>
+        <DialogTitle className="sr-only">{task?.title ?? "Task detail"}</DialogTitle>
 
         {/* Full-height flex layout - own div so we're not fighting DialogContent's base `grid` class */}
         <div className="flex h-[90vh] flex-col overflow-hidden rounded-xl">
           {/* ── Modal header bar ── */}
-          <div className="flex shrink-0 items-center gap-3 border-b border-border px-5 py-2.5">
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="border-border flex shrink-0 items-center gap-3 border-b px-5 py-2.5">
+            <div className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1.5 text-xs">
               <Folder size={11} className="shrink-0" />
               <span className="truncate">{task?.projectName ?? "-"}</span>
               {task?.columnName && (
@@ -485,7 +449,7 @@ export function TaskDetailSheet({
               {task?.refNumber && (
                 <>
                   <span className="text-border">·</span>
-                  <span className="font-mono text-[10px] text-muted-foreground/70">
+                  <span className="text-muted-foreground/70 font-mono text-[10px]">
                     {task.refNumber}
                   </span>
                 </>
@@ -496,7 +460,7 @@ export function TaskDetailSheet({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                    className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-7 w-7 cursor-pointer items-center justify-center rounded-md transition-colors"
                     aria-label="Task options"
                   >
                     <MoreHorizontal size={15} />
@@ -505,7 +469,7 @@ export function TaskDetailSheet({
                 <DropdownMenuContent align="end" className="w-40">
                   <DropdownMenuItem
                     onClick={() => setConfirmDelete(true)}
-                    className="gap-2 text-xs text-danger! focus:text-danger! hover:text-danger focus:bg-danger/10 cursor-pointer"
+                    className="text-danger! focus:text-danger! hover:text-danger focus:bg-danger/10 cursor-pointer gap-2 text-xs"
                   >
                     <Trash2 size={13} />
                     Delete task
@@ -515,7 +479,7 @@ export function TaskDetailSheet({
             )}
             <button
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors"
               aria-label="Close"
             >
               <X size={15} />
@@ -523,7 +487,7 @@ export function TaskDetailSheet({
           </div>
 
           {taskLoading || !task ? (
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
               <Skeleton className="h-7 w-3/4" />
               <Skeleton className="h-4 w-1/2" />
               <Skeleton className="h-32 w-full" />
@@ -531,33 +495,28 @@ export function TaskDetailSheet({
           ) : (
             <div className="flex min-h-0 flex-1 overflow-hidden">
               {/* ─── Left pane ──────────────────────────────────────────────── */}
-              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin border-r border-border p-6">
+              <div className="scrollbar-thin border-border min-h-0 flex-1 overflow-y-auto border-r p-6">
                 {/* Title */}
                 <DialogHeader className="mb-5">
-                  <InlineTitle
-                    value={task.title}
-                    onSave={(v) => saveField({ title: v })}
-                  />
+                  <InlineTitle value={task.title} onSave={(v) => saveField({ title: v })} />
                 </DialogHeader>
 
                 {/* Properties - 2-column grid */}
-                <div className="mb-5 rounded-card border border-border overflow-hidden text-sm">
+                <div className="rounded-card border-border mb-5 overflow-hidden border text-sm">
                   {/* Status - full width */}
-                  <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                    <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                    <div className="text-muted-foreground flex w-24 shrink-0 items-center gap-1.5 text-xs font-medium">
                       <AlertCircle size={11} /> Status
                     </div>
                     <Select value={localStatus} onValueChange={setLocalStatus}>
-                      <SelectTrigger className="h-8 w-44 border cursor-pointer bg-transparent px-2 text-xs shadow-none focus:ring-0">
+                      <SelectTrigger className="h-8 w-44 cursor-pointer border bg-transparent px-2 text-xs shadow-none focus:ring-0">
                         <SelectValue>
                           {(() => {
-                            const opt = STATUS_OPTIONS.find(
-                              (o) => o.value === localStatus,
-                            );
+                            const opt = STATUS_OPTIONS.find((o) => o.value === localStatus);
                             return opt ? (
                               <span className="flex items-center gap-1.5">
                                 <span
-                                  className="h-2 w-2 rounded-full shrink-0"
+                                  className="h-2 w-2 shrink-0 rounded-full"
                                   style={{ backgroundColor: opt.color }}
                                 />
                                 {opt.label}
@@ -566,20 +525,12 @@ export function TaskDetailSheet({
                           })()}
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent
-                        position="popper"
-                        side="bottom"
-                        align="start"
-                      >
+                      <SelectContent position="popper" side="bottom" align="start">
                         {STATUS_OPTIONS.map((opt) => (
-                          <SelectItem
-                            key={opt.value}
-                            value={opt.value}
-                            className="text-xs"
-                          >
+                          <SelectItem key={opt.value} value={opt.value} className="text-xs">
                             <span className="flex items-center gap-1.5">
                               <span
-                                className="h-2 w-2 rounded-full shrink-0"
+                                className="h-2 w-2 shrink-0 rounded-full"
                                 style={{ backgroundColor: opt.color }}
                               />
                               {opt.label}
@@ -593,15 +544,15 @@ export function TaskDetailSheet({
                   {/* 2-column grid */}
                   <div className="grid grid-cols-2">
                     {/* Priority */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <Flag size={10} /> Priority
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="flex h-8 items-center gap-1.5 text-xs text-foreground border rounded-md p-3 hover:text-foreground transition-colors cursor-pointer"
+                            className="text-foreground hover:text-foreground flex h-8 cursor-pointer items-center gap-1.5 rounded-md border p-3 text-xs transition-colors"
                           >
                             {selectedPriority ? (
                               <>
@@ -618,29 +569,24 @@ export function TaskDetailSheet({
                                 </span>
                               </>
                             ) : (
-                              <span className="text-muted-foreground">
-                                No priority
-                              </span>
+                              <span className="text-muted-foreground">No priority</span>
                             )}
-                            <ChevronDown
-                              size={11}
-                              className="text-muted-foreground"
-                            />
+                            <ChevronDown size={11} className="text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-36">
                           <DropdownMenuItem
                             onClick={() => setLocalPriority(null)}
-                            className="gap-2 text-xs cursor-pointer"
+                            className="cursor-pointer gap-2 text-xs"
                           >
-                            <span className="h-2 w-2 rounded-full border border-muted-foreground" />{" "}
+                            <span className="border-muted-foreground h-2 w-2 rounded-full border" />{" "}
                             None
                           </DropdownMenuItem>
                           {PRIORITY_OPTIONS.map((opt) => (
                             <DropdownMenuItem
                               key={opt.value}
                               onClick={() => setLocalPriority(opt.value)}
-                              className="gap-2 text-xs cursor-pointer"
+                              className="cursor-pointer gap-2 text-xs"
                             >
                               <span
                                 className="h-2 w-2 rounded-full"
@@ -648,9 +594,7 @@ export function TaskDetailSheet({
                               />
                               {opt.label}
                               {localPriority === opt.value && (
-                                <span className="ml-auto text-[10px] text-muted-foreground">
-                                  ✓
-                                </span>
+                                <span className="text-muted-foreground ml-auto text-[10px]">✓</span>
                               )}
                             </DropdownMenuItem>
                           ))}
@@ -659,18 +603,15 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Assignee - multi-select */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <User size={10} /> Assignee
                       </span>
-                      <Popover
-                        open={assigneeOpen}
-                        onOpenChange={setAssigneeOpen}
-                      >
+                      <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="flex h-8.5 border px-3 rounded-md min-w-0 items-center gap-1.5 text-xs hover:text-foreground transition-colors cursor-pointer"
+                            className="hover:text-foreground flex h-8.5 min-w-0 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-xs transition-colors"
                           >
                             {localAssignees.length > 0 ? (
                               <>
@@ -679,7 +620,7 @@ export function TaskDetailSheet({
                                     <div
                                       key={a.userId}
                                       className={cn(
-                                        "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold ring-1 ring-background",
+                                        "ring-background flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold ring-1",
                                         a.userId === currentUserId
                                           ? "bg-primary text-primary-foreground"
                                           : "bg-brand-100 text-primary",
@@ -690,26 +631,21 @@ export function TaskDetailSheet({
                                     </div>
                                   ))}
                                   {localAssignees.length > 3 && (
-                                    <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[9px] font-semibold text-foreground ring-1 ring-background">
+                                    <div className="bg-secondary text-foreground ring-background flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold ring-1">
                                       +{localAssignees.length - 3}
                                     </div>
                                   )}
                                 </div>
-                                <span className="truncate text-foreground">
+                                <span className="text-foreground truncate">
                                   {localAssignees.length === 1
                                     ? localAssignees[0].name
                                     : `${localAssignees.length} assignees`}
                                 </span>
                               </>
                             ) : (
-                              <span className="text-muted-foreground">
-                                Unassigned
-                              </span>
+                              <span className="text-muted-foreground">Unassigned</span>
                             )}
-                            <ChevronDown
-                              size={11}
-                              className="shrink-0 text-muted-foreground"
-                            />
+                            <ChevronDown size={11} className="text-muted-foreground shrink-0" />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2" align="start">
@@ -719,7 +655,7 @@ export function TaskDetailSheet({
                             onChange={(e) => setMemberSearch(e.target.value)}
                             className="mb-2 h-7 text-xs"
                           />
-                          <div className="max-h-48 overflow-y-auto space-y-0.5">
+                          <div className="max-h-48 space-y-0.5 overflow-y-auto">
                             {localAssignees.length > 0 && (
                               <button
                                 type="button"
@@ -727,15 +663,13 @@ export function TaskDetailSheet({
                                   setLocalAssignees([]);
                                   setAssigneeOpen(false);
                                 }}
-                                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-secondary cursor-pointer"
+                                className="text-muted-foreground hover:bg-secondary flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
                               >
                                 <User size={14} /> Unassign all
                               </button>
                             )}
                             {filteredMembers.map((m) => {
-                              const isSelected = localAssignees.some(
-                                (a) => a.userId === m.userId,
-                              );
+                              const isSelected = localAssignees.some((a) => a.userId === m.userId);
                               return (
                                 <button
                                   key={m.userId}
@@ -743,39 +677,27 @@ export function TaskDetailSheet({
                                   onClick={() => {
                                     setLocalAssignees((prev) =>
                                       isSelected
-                                        ? prev.filter(
-                                            (a) => a.userId !== m.userId,
-                                          )
-                                        : [
-                                            ...prev,
-                                            { userId: m.userId, name: m.name },
-                                          ],
+                                        ? prev.filter((a) => a.userId !== m.userId)
+                                        : [...prev, { userId: m.userId, name: m.name }],
                                     );
                                     setMemberSearch("");
                                   }}
                                   className={cn(
-                                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors cursor-pointer",
+                                    "flex w-full cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors",
                                     isSelected
                                       ? "bg-secondary text-foreground font-medium"
                                       : "hover:bg-secondary/50 text-muted-foreground",
                                   )}
                                 >
-                                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[9px] font-semibold text-primary">
+                                  <div className="bg-brand-100 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold">
                                     {getInitials(m.name)}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <p className="truncate text-foreground">
-                                      {m.name}
-                                    </p>
-                                    <p className="truncate text-muted-foreground">
-                                      {m.email}
-                                    </p>
+                                    <p className="text-foreground truncate">{m.name}</p>
+                                    <p className="text-muted-foreground truncate">{m.email}</p>
                                   </div>
                                   {isSelected && (
-                                    <Check
-                                      size={11}
-                                      className="shrink-0 text-primary"
-                                    />
+                                    <Check size={11} className="text-primary shrink-0" />
                                   )}
                                 </button>
                               );
@@ -786,8 +708,8 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Due date */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <CalendarDays size={10} /> Due date
                       </span>
                       <div className="flex min-w-0 items-center gap-1">
@@ -796,31 +718,21 @@ export function TaskDetailSheet({
                             <button
                               type="button"
                               className={cn(
-                                "flex h-7 items-center gap-1.5 rounded-md border cursor-pointer px-2 text-xs transition-colors hover:bg-secondary",
+                                "hover:bg-secondary flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2 text-xs transition-colors",
                                 localDueDate
                                   ? "text-foreground font-medium"
                                   : "text-muted-foreground",
                               )}
                             >
                               <CalendarDays size={12} />
-                              {localDueDate
-                                ? formatDateDayMonthYear(localDueDate)
-                                : "Set date"}
+                              {localDueDate ? formatDateDayMonthYear(localDueDate) : "Set date"}
                             </button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={
-                                localDueDate
-                                  ? new Date(localDueDate)
-                                  : undefined
-                              }
-                              onSelect={(date) =>
-                                setLocalDueDate(
-                                  date ? date.toISOString() : null,
-                                )
-                              }
+                              selected={localDueDate ? new Date(localDueDate) : undefined}
+                              onSelect={(date) => setLocalDueDate(date ? date.toISOString() : null)}
                             />
                           </PopoverContent>
                         </Popover>
@@ -828,7 +740,7 @@ export function TaskDetailSheet({
                           <button
                             type="button"
                             onClick={() => setLocalDueDate(null)}
-                            className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                            className="text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded transition-colors"
                           >
                             <X size={11} />
                           </button>
@@ -837,8 +749,8 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Estimate */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <Clock size={10} /> Estimate
                       </span>
                       <TimeEstimateInput
@@ -850,14 +762,14 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Log Time */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <Clock size={10} /> Time Logged
                       </span>
                       <button
                         type="button"
                         onClick={() => setLogTimeOpen(true)}
-                        className="flex h-8 items-center gap-1 rounded-md border border-border bg-secondary/50 px-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                        className="border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground flex h-8 cursor-pointer items-center gap-1 rounded-md border px-2.5 text-xs font-medium transition-colors"
                       >
                         <Plus size={10} />
                         Log time
@@ -865,8 +777,8 @@ export function TaskDetailSheet({
                     </div>
 
                     {/* Reporter - static display */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <User size={10} /> Reporter
                       </span>
                       {localReporterName ? (
@@ -881,51 +793,49 @@ export function TaskDetailSheet({
                           >
                             {getInitials(localReporterName)}
                           </div>
-                          <span className="text-xs text-foreground">
-                            {localReporterName}
-                          </span>
+                          <span className="text-foreground text-xs">{localReporterName}</span>
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </div>
 
                     {/* Created at */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <Clock size={10} /> Created
                       </span>
                       <RelativeTime
                         iso={task.createdAt}
-                        className="text-xs text-muted-foreground"
+                        className="text-muted-foreground text-xs"
                       />
                     </div>
 
                     {/* Updated at */}
-                    <div className="flex items-center justify-between gap-1 border-b border-r border-border px-4 py-2.5">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                    <div className="border-border flex items-center justify-between gap-1 border-r border-b px-4 py-2.5">
+                      <span className="text-muted-foreground flex items-center gap-1 text-[11px] font-medium">
                         <Clock size={10} /> Updated
                       </span>
                       <RelativeTime
                         iso={task.updatedAt}
-                        className="text-xs text-muted-foreground"
+                        className="text-muted-foreground text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Save / Discard bar */}
                   {isDirty && (
-                    <div className="flex items-center justify-end gap-2 border-t border-border bg-secondary/40 px-4 py-2">
+                    <div className="border-border bg-secondary/40 flex items-center justify-end gap-2 border-t px-4 py-2">
                       <button
                         type="button"
                         onClick={handleDiscard}
-                        className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground cursor-pointer text-xs transition-colors"
                       >
                         Discard
                       </button>
                       <Button
                         size="sm"
-                        className="h-7 text-xs px-3 cursor-pointer"
+                        className="h-7 cursor-pointer px-3 text-xs"
                         onClick={handleSaveChanges}
                         disabled={updateTask.isPending}
                       >
@@ -935,19 +845,18 @@ export function TaskDetailSheet({
                   )}
 
                   {/* Tags */}
-                  <div className="border-t border-border px-4 py-3">
-                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2.5">
+                  <div className="border-border border-t px-4 py-3">
+                    <div className="text-muted-foreground mb-2.5 flex items-center gap-1.5 text-[11px] font-medium">
                       <Tag size={10} /> Tags
                     </div>
                     {/* Selected tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-2">
+                    <div className="mb-2 flex flex-wrap gap-1.5">
                       {localTags.map((tag) => (
                         <span
                           key={tag}
                           className={cn(
                             "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium capitalize",
-                            TAG_COLORS[tag] ??
-                              "bg-secondary text-foreground border-transparent",
+                            TAG_COLORS[tag] ?? "bg-secondary text-foreground border-transparent",
                           )}
                         >
                           {tag}
@@ -962,14 +871,11 @@ export function TaskDetailSheet({
                       ))}
                     </div>
                     {/* Combobox popover */}
-                    <Popover
-                      open={tagPopoverOpen}
-                      onOpenChange={setTagPopoverOpen}
-                    >
+                    <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs transition-colors"
                         >
                           <Plus size={11} /> Add tag
                         </button>
@@ -986,7 +892,7 @@ export function TaskDetailSheet({
                           onChange={(e) => setTagSearch(e.target.value)}
                           className="mb-2 h-7 text-xs"
                         />
-                        <div className="max-h-40 overflow-y-auto space-y-0.5">
+                        <div className="max-h-40 space-y-0.5 overflow-y-auto">
                           {filteredTagOptions.map((tag) => (
                             <button
                               key={tag}
@@ -1008,22 +914,19 @@ export function TaskDetailSheet({
                               )}
                             </button>
                           ))}
-                          {tagSearch &&
-                            !allTagOptions.includes(
-                              tagSearch.toLowerCase(),
-                            ) && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  toggleTag(tagSearch.toLowerCase());
-                                  setTagSearch("");
-                                }}
-                                className="flex w-full cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs text-primary hover:bg-secondary/50 transition-colors"
-                              >
-                                <Plus size={11} /> Create &ldquo;{tagSearch}
-                                &rdquo;
-                              </button>
-                            )}
+                          {tagSearch && !allTagOptions.includes(tagSearch.toLowerCase()) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleTag(tagSearch.toLowerCase());
+                                setTagSearch("");
+                              }}
+                              className="text-primary hover:bg-secondary/50 flex w-full cursor-pointer items-center gap-1.5 rounded px-2 py-1.5 text-xs transition-colors"
+                            >
+                              <Plus size={11} /> Create &ldquo;{tagSearch}
+                              &rdquo;
+                            </button>
+                          )}
                         </div>
                       </PopoverContent>
                     </Popover>
@@ -1032,10 +935,8 @@ export function TaskDetailSheet({
 
                 {/* Description */}
                 <div className="mb-5">
-                  <p className="mb-2 text-sm font-medium text-foreground">
-                    Description
-                  </p>
-                  <div className="rounded-card border border-border overflow-hidden">
+                  <p className="text-foreground mb-2 text-sm font-medium">Description</p>
+                  <div className="rounded-card border-border overflow-hidden border">
                     <TiptapEditor
                       key={task.id}
                       content={localDescription}
@@ -1056,33 +957,30 @@ export function TaskDetailSheet({
                 {task?.id && (
                   <div className="mb-5">
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      <p className="text-foreground flex items-center gap-1.5 text-sm font-medium">
                         <Clock size={13} />
                         Time Logged
                       </p>
                       <button
                         type="button"
                         onClick={() => setLogTimeOpen(true)}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs transition-colors"
                       >
                         <Plus size={12} /> Log
                       </button>
                     </div>
-                    <TimeEntriesList
-                      taskId={task.id}
-                      currentUserId={currentUserId ?? ""}
-                    />
+                    <TimeEntriesList taskId={task.id} currentUserId={currentUserId ?? ""} />
                   </div>
                 )}
 
                 {/* ─── Subtasks ─────────────────────────────────────────────── */}
                 <div className="mb-5">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                    <p className="text-foreground flex items-center gap-1.5 text-sm font-medium">
                       <CheckSquare size={13} />
                       Subtasks
                       {subtasks.length > 0 && (
-                        <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        <span className="text-muted-foreground ml-1 text-xs font-normal">
                           {subtasksDone}/{subtasks.length}
                         </span>
                       )}
@@ -1090,7 +988,7 @@ export function TaskDetailSheet({
                     <button
                       type="button"
                       onClick={() => setSubtaskDialogOpen(true)}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs transition-colors"
                     >
                       <Plus size={12} /> Add
                     </button>
@@ -1098,9 +996,9 @@ export function TaskDetailSheet({
 
                   {/* Progress bar */}
                   {subtasks.length > 0 && (
-                    <div className="mb-2 h-1 w-full rounded-full bg-border overflow-hidden">
+                    <div className="bg-border mb-2 h-1 w-full overflow-hidden rounded-full">
                       <div
-                        className="h-full rounded-full bg-success transition-all duration-300"
+                        className="bg-success h-full rounded-full transition-all duration-300"
                         style={{
                           width: `${Math.round((subtasksDone / subtasks.length) * 100)}%`,
                         }}
@@ -1113,17 +1011,16 @@ export function TaskDetailSheet({
                     {subtasks.map((sub) => (
                       <div
                         key={sub.id}
-                        className="group flex items-start gap-2 rounded px-2 py-1.5 hover:bg-secondary/50 transition-colors"
+                        className="group hover:bg-secondary/50 flex items-start gap-2 rounded px-2 py-1.5 transition-colors"
                       >
                         <button
                           type="button"
                           onClick={() =>
                             toggleSubtask.mutate(sub.id, {
-                              onError: (err) =>
-                                toast.error(err.message ?? "Failed to update."),
+                              onError: (err) => toast.error(err.message ?? "Failed to update."),
                             })
                           }
-                          className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0 transition-colors"
                         >
                           {sub.status === "done" ? (
                             <CheckSquare size={14} className="text-success" />
@@ -1131,34 +1028,33 @@ export function TaskDetailSheet({
                             <Square size={14} />
                           )}
                         </button>
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <span
                             className={cn(
-                              "text-xs block",
+                              "block text-xs",
                               sub.status === "done"
-                                ? "line-through text-muted-foreground"
+                                ? "text-muted-foreground line-through"
                                 : "text-foreground",
                             )}
                           >
                             {sub.title}
                           </span>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2">
                             {sub.assigneeName && (
-                              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                              <span className="text-muted-foreground flex items-center gap-0.5 text-[10px]">
                                 <User size={9} /> {sub.assigneeName}
                               </span>
                             )}
                             <RelativeTime
                               iso={sub.createdAt}
-                              className="text-[10px] text-muted-foreground"
+                              className="text-muted-foreground text-[10px]"
                             />
                             {(sub.tags ?? []).map((t) => (
                               <span
                                 key={t}
                                 className={cn(
                                   "rounded-full border px-1.5 py-0 text-[9px] font-medium capitalize",
-                                  TAG_COLORS[t] ??
-                                    "bg-secondary text-foreground border-border",
+                                  TAG_COLORS[t] ?? "bg-secondary text-foreground border-border",
                                 )}
                               >
                                 {t}
@@ -1170,11 +1066,10 @@ export function TaskDetailSheet({
                           type="button"
                           onClick={() =>
                             deleteSubtaskMutation.mutate(sub.id, {
-                              onError: (err) =>
-                                toast.error(err.message ?? "Failed to delete."),
+                              onError: (err) => toast.error(err.message ?? "Failed to delete."),
                             })
                           }
-                          className="shrink-0 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all mt-0.5"
+                          className="text-muted-foreground hover:text-danger mt-0.5 shrink-0 opacity-0 transition-all group-hover:opacity-100"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -1184,26 +1079,26 @@ export function TaskDetailSheet({
                 </div>
 
                 {/* Meta */}
-                <p className="mt-auto pt-2 text-[11px] text-muted-foreground">
+                <p className="text-muted-foreground mt-auto pt-2 text-[11px]">
                   Created <RelativeTime iso={task.createdAt} />
                   {task.reporterName ? ` by ${task.reporterName}` : ""}
                 </p>
               </div>
 
               {/* ─── Right pane ─────────────────────────────────────────────── */}
-              <div className="flex w-120 shrink-0 flex-col overflow-hidden bg-secondary/20">
+              <div className="bg-secondary/20 flex w-120 shrink-0 flex-col overflow-hidden">
                 {/* Tabs header */}
-                <div className="border-b border-border px-4 pt-3 pb-0 flex items-center gap-0">
+                <div className="border-border flex items-center gap-0 border-b px-4 pt-3 pb-0">
                   {(["comments", "logs", "files"] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
                       onClick={() => setActiveTab(tab)}
                       className={cn(
-                        "px-3 pb-2.5 pt-0.5 text-xs font-medium capitalize border-b-2 transition-colors cursor-pointer",
+                        "cursor-pointer border-b-2 px-3 pt-0.5 pb-2.5 text-xs font-medium capitalize transition-colors",
                         activeTab === tab
                           ? "border-primary text-primary"
-                          : "border-transparent text-muted-foreground hover:text-foreground",
+                          : "text-muted-foreground hover:text-foreground border-transparent",
                       )}
                     >
                       {tab === "comments"
@@ -1219,22 +1114,27 @@ export function TaskDetailSheet({
                 {activeTab !== "files" && (
                   <div
                     ref={feedScrollRef}
-                    className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4 space-y-4"
+                    className="scrollbar-thin flex-1 space-y-4 overflow-y-auto px-4 py-4"
                   >
                     {(() => {
-                      const visibleFeed = activeTab === "comments"
-                        ? feed
-                            .filter((i) => i.type === "comment" || i.type === "file")
-                            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                        : feed
-                            .filter((i) => i.type === "activity")
-                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                      const visibleFeed =
+                        activeTab === "comments"
+                          ? feed
+                              .filter((i) => i.type === "comment" || i.type === "file")
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                              )
+                          : feed
+                              .filter((i) => i.type === "activity")
+                              .sort(
+                                (a, b) =>
+                                  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                              );
                       if (visibleFeed.length === 0) {
                         return (
-                          <p className="text-center text-xs text-muted-foreground py-4">
-                            {activeTab === "comments"
-                              ? "No comments yet."
-                              : "No activity yet."}
+                          <p className="text-muted-foreground py-4 text-center text-xs">
+                            {activeTab === "comments" ? "No comments yet." : "No activity yet."}
                           </p>
                         );
                       }
@@ -1246,7 +1146,7 @@ export function TaskDetailSheet({
                               {/* Avatar */}
                               <div
                                 className={cn(
-                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5",
+                                  "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
                                   item.actorUserId === currentUserId
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-primary/10 text-primary",
@@ -1255,58 +1155,53 @@ export function TaskDetailSheet({
                                 {getInitials(item.actorName)}
                               </div>
 
-                              <div className="flex-1 min-w-0">
+                              <div className="min-w-0 flex-1">
                                 {/* Name + time + actions */}
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="text-[11px] font-semibold text-foreground leading-none">
+                                <div className="mb-1 flex items-center gap-1.5">
+                                  <span className="text-foreground text-[11px] leading-none font-semibold">
                                     {item.actorName ?? "Someone"}
                                   </span>
                                   <RelativeTime
                                     iso={item.createdAt}
-                                    className="text-[10px] text-muted-foreground leading-none"
+                                    className="text-muted-foreground text-[10px] leading-none"
                                   />
-                                  {item.updatedAt &&
-                                    item.updatedAt !== item.createdAt && (
-                                      <EditedBadge updatedAt={item.updatedAt} />
-                                    )}
-                                  {currentUserId &&
-                                    item.authorId === currentUserId && (
-                                      <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setEditingCommentId(item.id);
-                                            setEditingCommentBody(item.body ?? "");
-                                            setEditingPendingAttachments([]);
-                                            setEditingPendingAttachPreviews([]);
-                                          }}
-                                          className="flex h-5 w-5 items-center justify-center rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                                        >
-                                          <Pencil size={10} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            deleteComment.mutate(item.id, {
-                                              onError: (err) =>
-                                                toast.error(
-                                                  err.message ??
-                                                    "Failed to delete.",
-                                                ),
-                                            })
-                                          }
-                                          disabled={deleteComment.isPending}
-                                          className="flex h-5 w-5 items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
-                                        >
-                                          <Trash2 size={10} />
-                                        </button>
-                                      </div>
-                                    )}
+                                  {item.updatedAt && item.updatedAt !== item.createdAt && (
+                                    <EditedBadge updatedAt={item.updatedAt} />
+                                  )}
+                                  {currentUserId && item.authorId === currentUserId && (
+                                    <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingCommentId(item.id);
+                                          setEditingCommentBody(item.body ?? "");
+                                          setEditingPendingAttachments([]);
+                                          setEditingPendingAttachPreviews([]);
+                                        }}
+                                        className="hover:bg-secondary text-muted-foreground hover:text-foreground flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors"
+                                      >
+                                        <Pencil size={10} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          deleteComment.mutate(item.id, {
+                                            onError: (err) =>
+                                              toast.error(err.message ?? "Failed to delete."),
+                                          })
+                                        }
+                                        disabled={deleteComment.isPending}
+                                        className="text-muted-foreground flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
+                                      >
+                                        <Trash2 size={10} />
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Body or edit mode */}
                                 {editingCommentId === item.id ? (
-                                  <div className="rounded-lg border border-ring/60 bg-background overflow-hidden shadow-sm">
+                                  <div className="border-ring/60 bg-background overflow-hidden rounded-lg border shadow-sm">
                                     <TiptapEditor
                                       key={`edit-${item.id}`}
                                       content={editingCommentBody}
@@ -1317,7 +1212,8 @@ export function TaskDetailSheet({
                                       }))}
                                       onChange={setEditingCommentBody}
                                       onSubmit={() => {
-                                        if (!editingCommentBody.trim() || updateComment.isPending) return;
+                                        if (!editingCommentBody.trim() || updateComment.isPending)
+                                          return;
                                         updateComment.mutate(
                                           { commentId: item.id, body: editingCommentBody },
                                           {
@@ -1328,7 +1224,7 @@ export function TaskDetailSheet({
                                       }}
                                       placeholder="Edit comment…"
                                     />
-                                    <div className="flex items-center justify-between border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
+                                    <div className="border-border/60 bg-secondary/20 flex items-center justify-between border-t px-2.5 py-1.5">
                                       <TooltipProvider delayDuration={300}>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
@@ -1336,12 +1232,14 @@ export function TaskDetailSheet({
                                               type="button"
                                               disabled={uploadAttachment.isPending}
                                               onClick={() => editAttachRef.current?.click()}
-                                              className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                                              className="text-muted-foreground/50 hover:text-foreground hover:bg-secondary flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors disabled:opacity-40"
                                             >
                                               <Paperclip size={11} />
                                             </button>
                                           </TooltipTrigger>
-                                          <TooltipContent side="top">Attach files (max 5 MB each)</TooltipContent>
+                                          <TooltipContent side="top">
+                                            Attach files (max 5 MB each)
+                                          </TooltipContent>
                                         </Tooltip>
                                       </TooltipProvider>
                                       <input
@@ -1353,19 +1251,25 @@ export function TaskDetailSheet({
                                           const files = Array.from(e.target.files ?? []);
                                           const valid = files.filter((f) => {
                                             if (f.size > 5 * 1024 * 1024) {
-                                              toast.error(`"${f.name}" exceeds 5 MB and was skipped.`);
+                                              toast.error(
+                                                `"${f.name}" exceeds 5 MB and was skipped.`,
+                                              );
                                               return false;
                                             }
                                             return true;
                                           });
-                                          setEditingPendingAttachments((prev) => [...prev, ...valid]);
+                                          setEditingPendingAttachments((prev) => [
+                                            ...prev,
+                                            ...valid,
+                                          ]);
                                           valid.forEach((file, idx) => {
                                             if (file.type.startsWith("image/")) {
                                               const reader = new FileReader();
                                               reader.onload = (ev) =>
                                                 setEditingPendingAttachPreviews((prev) => {
                                                   const next = [...prev];
-                                                  next[editingPendingAttachments.length + idx] = ev.target?.result as string;
+                                                  next[editingPendingAttachments.length + idx] = ev
+                                                    .target?.result as string;
                                                   return next;
                                                 });
                                               reader.readAsDataURL(file);
@@ -1388,7 +1292,7 @@ export function TaskDetailSheet({
                                             setEditingPendingAttachments([]);
                                             setEditingPendingAttachPreviews([]);
                                           }}
-                                          className="rounded border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                          className="text-muted-foreground hover:text-foreground cursor-pointer rounded border px-2 py-0.5 text-[11px] transition-colors"
                                         >
                                           Cancel
                                         </button>
@@ -1403,7 +1307,11 @@ export function TaskDetailSheet({
                                                 setEditingPendingAttachments([]);
                                                 setEditingPendingAttachPreviews([]);
                                               } catch (err) {
-                                                toast.error(err instanceof Error ? err.message : "Upload failed.");
+                                                toast.error(
+                                                  err instanceof Error
+                                                    ? err.message
+                                                    : "Upload failed.",
+                                                );
                                                 return;
                                               }
                                             }
@@ -1415,19 +1323,30 @@ export function TaskDetailSheet({
                                               },
                                             );
                                           }}
-                                          disabled={(!editingCommentBody.trim() && editingPendingAttachments.length === 0) || updateComment.isPending || uploadAttachment.isPending}
-                                          className="flex items-center gap-1 rounded bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground disabled:opacity-50 transition-opacity cursor-pointer"
+                                          disabled={
+                                            (!editingCommentBody.trim() &&
+                                              editingPendingAttachments.length === 0) ||
+                                            updateComment.isPending ||
+                                            uploadAttachment.isPending
+                                          }
+                                          className="bg-primary text-primary-foreground flex cursor-pointer items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium transition-opacity disabled:opacity-50"
                                         >
-                                          <Check size={10} /> {updateComment.isPending || uploadAttachment.isPending ? "Saving…" : "Save"}
+                                          <Check size={10} />{" "}
+                                          {updateComment.isPending || uploadAttachment.isPending
+                                            ? "Saving…"
+                                            : "Save"}
                                         </button>
                                       </div>
                                     </div>
 
                                     {/* Edit pending attachments preview */}
                                     {editingPendingAttachments.length > 0 && (
-                                      <div className="flex flex-wrap gap-2 border-t border-border/60 bg-secondary/10 px-2.5 py-2">
+                                      <div className="border-border/60 bg-secondary/10 flex flex-wrap gap-2 border-t px-2.5 py-2">
                                         {editingPendingAttachments.map((file, idx) => (
-                                          <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
+                                          <div
+                                            key={idx}
+                                            className="border-border bg-background relative flex max-w-[180px] items-center gap-1.5 rounded border px-2 py-1 pr-6"
+                                          >
                                             {editingPendingAttachPreviews[idx] ? (
                                               <Image
                                                 src={editingPendingAttachPreviews[idx]!}
@@ -1435,22 +1354,33 @@ export function TaskDetailSheet({
                                                 width={24}
                                                 height={24}
                                                 unoptimized
-                                                className="h-6 w-6 rounded object-cover shrink-0"
+                                                className="h-6 w-6 shrink-0 rounded object-cover"
                                               />
                                             ) : (
-                                              <Paperclip size={11} className="shrink-0 text-muted-foreground" />
+                                              <Paperclip
+                                                size={11}
+                                                className="text-muted-foreground shrink-0"
+                                              />
                                             )}
                                             <div className="min-w-0">
-                                              <p className="truncate text-[10px] font-medium text-foreground">{file.name}</p>
-                                              <p className="text-[9px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+                                              <p className="text-foreground truncate text-[10px] font-medium">
+                                                {file.name}
+                                              </p>
+                                              <p className="text-muted-foreground text-[9px]">
+                                                {(file.size / 1024).toFixed(0)} KB
+                                              </p>
                                             </div>
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                setEditingPendingAttachments((prev) => prev.filter((_, i) => i !== idx));
-                                                setEditingPendingAttachPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                                setEditingPendingAttachments((prev) =>
+                                                  prev.filter((_, i) => i !== idx),
+                                                );
+                                                setEditingPendingAttachPreviews((prev) =>
+                                                  prev.filter((_, i) => i !== idx),
+                                                );
                                               }}
-                                              className="absolute right-1 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                                              className="text-muted-foreground hover:text-danger absolute top-1/2 right-1 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center rounded transition-colors"
                                             >
                                               <X size={10} />
                                             </button>
@@ -1463,7 +1393,7 @@ export function TaskDetailSheet({
                                   <CommentBody
                                     html={item.body ?? ""}
                                     members={allMembers}
-                                    className="text-xs text-foreground leading-relaxed prose prose-sm max-w-none [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_code]:rounded [&_code]:bg-secondary [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px]"
+                                    className="text-foreground prose prose-sm [&_code]:bg-secondary max-w-none text-xs leading-relaxed [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[11px] [&_p]:my-0 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold"
                                   />
                                 )}
                               </div>
@@ -1473,7 +1403,7 @@ export function TaskDetailSheet({
                             <div className="flex gap-2.5">
                               <div
                                 className={cn(
-                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5",
+                                  "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
                                   item.actorUserId === currentUserId
                                     ? "bg-primary text-primary-foreground"
                                     : "bg-primary/10 text-primary",
@@ -1481,17 +1411,17 @@ export function TaskDetailSheet({
                               >
                                 {getInitials(item.actorName)}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-1.5">
-                                  <span className="text-[11px] font-semibold text-foreground leading-none">
+                              <div className="min-w-0 flex-1">
+                                <div className="mb-1.5 flex items-center gap-1.5">
+                                  <span className="text-foreground text-[11px] leading-none font-semibold">
                                     {item.actorName ?? "Someone"}
                                   </span>
-                                  <span className="text-[10px] text-muted-foreground leading-none">
+                                  <span className="text-muted-foreground text-[10px] leading-none">
                                     attached a file
                                   </span>
                                   <RelativeTime
                                     iso={item.createdAt}
-                                    className="text-[10px] text-muted-foreground/60 leading-none"
+                                    className="text-muted-foreground/60 text-[10px] leading-none"
                                   />
                                   <button
                                     type="button"
@@ -1500,27 +1430,21 @@ export function TaskDetailSheet({
                                         item.id.replace(/^file-/, ""),
                                         {
                                           onError: (err) =>
-                                            toast.error(
-                                              err.message ??
-                                                "Failed to delete.",
-                                            ),
+                                            toast.error(err.message ?? "Failed to delete."),
                                         },
                                       )
                                     }
-                                    disabled={
-                                      deleteAttachmentMutation.isPending
-                                    }
-                                    className="ml-auto flex h-5 w-5 items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-500 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                                    disabled={deleteAttachmentMutation.isPending}
+                                    className="text-muted-foreground ml-auto flex h-5 w-5 cursor-pointer items-center justify-center rounded opacity-0 transition-colors group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950/30"
                                   >
                                     <Trash2 size={10} />
                                   </button>
                                 </div>
                                 {(() => {
-                                  const isImage =
-                                    item.mimeType?.startsWith("image/");
+                                  const isImage = item.mimeType?.startsWith("image/");
                                   const canPreview = !!item.storageUrl;
                                   return (
-                                    <div className="group/file relative overflow-hidden rounded-lg border border-border bg-card w-fit max-w-full">
+                                    <div className="group/file border-border bg-card relative w-fit max-w-full overflow-hidden rounded-lg border">
                                       {isImage && item.storageUrl ? (
                                         <button
                                           type="button"
@@ -1539,12 +1463,12 @@ export function TaskDetailSheet({
                                           <img
                                             src={item.storageUrl}
                                             alt={item.fileName ?? ""}
-                                            className="h-32 max-w-55 object-cover rounded-t-lg"
+                                            className="h-32 max-w-55 rounded-t-lg object-cover"
                                           />
-                                          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/file:bg-black/25 transition-colors rounded-t-lg">
+                                          <div className="absolute inset-0 flex items-center justify-center rounded-t-lg bg-black/0 transition-colors group-hover/file:bg-black/25">
                                             <ZoomIn
                                               size={18}
-                                              className="text-white opacity-0 group-hover/file:opacity-100 transition-opacity drop-shadow"
+                                              className="text-white opacity-0 drop-shadow transition-opacity group-hover/file:opacity-100"
                                             />
                                           </div>
                                         </button>
@@ -1552,7 +1476,7 @@ export function TaskDetailSheet({
                                         <button
                                           type="button"
                                           disabled={!canPreview}
-                                          className="relative h-16 w-full overflow-hidden group/thumb disabled:cursor-default cursor-pointer"
+                                          className="group/thumb relative h-16 w-full cursor-pointer overflow-hidden disabled:cursor-default"
                                           onClick={() =>
                                             canPreview &&
                                             setPreviewFile({
@@ -1569,26 +1493,23 @@ export function TaskDetailSheet({
                                             fileName={item.fileName ?? "file"}
                                           />
                                           {canPreview && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/10 transition-colors cursor-pointer">
+                                            <div className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/0 transition-colors group-hover/thumb:bg-black/10">
                                               <Eye
                                                 size={13}
-                                                className="text-current opacity-0 group-hover/thumb:opacity-60 transition-opacity drop-shadow"
+                                                className="text-current opacity-0 drop-shadow transition-opacity group-hover/thumb:opacity-60"
                                               />
                                             </div>
                                           )}
                                         </button>
                                       )}
-                                      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-t border-border/60">
+                                      <div className="border-border/60 flex items-center justify-between gap-2 border-t px-2.5 py-1.5">
                                         <div className="min-w-0">
-                                          <p className="truncate text-[10px] font-medium text-foreground leading-tight max-w-40">
+                                          <p className="text-foreground max-w-40 truncate text-[10px] leading-tight font-medium">
                                             {item.fileName}
                                           </p>
                                           {item.sizeBytes && (
-                                            <p className="text-[9px] text-muted-foreground">
-                                              {(item.sizeBytes / 1024).toFixed(
-                                                0,
-                                              )}{" "}
-                                              KB
+                                            <p className="text-muted-foreground text-[9px]">
+                                              {(item.sizeBytes / 1024).toFixed(0)} KB
                                             </p>
                                           )}
                                         </div>
@@ -1596,7 +1517,7 @@ export function TaskDetailSheet({
                                           href={item.storageUrl ?? "#"}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                                          className="text-muted-foreground hover:text-foreground flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors"
                                           title="Download"
                                         >
                                           <Download size={11} />
@@ -1620,8 +1541,8 @@ export function TaskDetailSheet({
                               >
                                 {getInitials(item.actorName)}
                               </div>
-                              <p className="text-[11px] text-muted-foreground leading-snug pt-0.5">
-                                <span className="font-medium text-foreground/80">
+                              <p className="text-muted-foreground pt-0.5 text-[11px] leading-snug">
+                                <span className="text-foreground/80 font-medium">
                                   {item.actorName ?? "Someone"}
                                 </span>{" "}
                                 {formatActivityMessage(
@@ -1631,7 +1552,7 @@ export function TaskDetailSheet({
                                 )}
                                 <RelativeTime
                                   iso={item.createdAt}
-                                  className="ml-1.5 text-[10px] text-muted-foreground/60"
+                                  className="text-muted-foreground/60 ml-1.5 text-[10px]"
                                 />
                               </p>
                             </div>
@@ -1646,7 +1567,7 @@ export function TaskDetailSheet({
                 {activeTab === "files" && (
                   <div className="flex-1 overflow-y-auto px-4 py-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-xs font-medium text-muted-foreground">
+                      <p className="text-muted-foreground text-xs font-medium">
                         {attachments.length > 0
                           ? `${attachments.length} file${attachments.length !== 1 ? "s" : ""}`
                           : "No files yet"}
@@ -1655,7 +1576,7 @@ export function TaskDetailSheet({
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadAttachment.isPending}
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1 text-xs transition-colors disabled:opacity-50"
                       >
                         <Upload size={12} />
                         {uploadAttachment.isPending ? "Uploading…" : "Upload"}
@@ -1671,8 +1592,7 @@ export function TaskDetailSheet({
                         uploadAttachment.mutate(
                           { file },
                           {
-                            onError: (err) =>
-                              toast.error(err.message ?? "Upload failed."),
+                            onError: (err) => toast.error(err.message ?? "Upload failed."),
                           },
                         );
                         e.target.value = "";
@@ -1680,16 +1600,11 @@ export function TaskDetailSheet({
                     />
                     {attachments.length === 0 ? (
                       <div
-                        className="flex flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-border py-10 text-center cursor-pointer hover:border-foreground/30 transition-colors"
+                        className="rounded-card border-border hover:border-foreground/30 flex cursor-pointer flex-col items-center justify-center gap-2 border-2 border-dashed py-10 text-center transition-colors"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        <Paperclip
-                          size={20}
-                          className="text-muted-foreground/40"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Click to upload a file
-                        </p>
+                        <Paperclip size={20} className="text-muted-foreground/40" />
+                        <p className="text-muted-foreground text-xs">Click to upload a file</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
@@ -1698,7 +1613,7 @@ export function TaskDetailSheet({
                           return (
                             <div
                               key={att.id}
-                              className="group relative overflow-hidden rounded-card border border-border bg-card cursor-pointer"
+                              className="group rounded-card border-border bg-card relative cursor-pointer overflow-hidden border"
                             >
                               {isImage && att.storageUrl ? (
                                 <button
@@ -1720,17 +1635,17 @@ export function TaskDetailSheet({
                                     alt={att.fileName}
                                     className="h-20 w-full object-cover"
                                   />
-                                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/25 transition-colors">
+                                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/25">
                                     <ZoomIn
                                       size={16}
-                                      className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow"
+                                      className="text-white opacity-0 drop-shadow transition-opacity group-hover:opacity-100"
                                     />
                                   </div>
                                 </button>
                               ) : (
                                 <button
                                   type="button"
-                                  className="relative h-20 w-full overflow-hidden group/thumb cursor-pointer"
+                                  className="group/thumb relative h-20 w-full cursor-pointer overflow-hidden"
                                   onClick={() =>
                                     att.storageUrl &&
                                     setPreviewFile({
@@ -1747,10 +1662,10 @@ export function TaskDetailSheet({
                                     fileName={att.fileName}
                                   />
                                   {att.storageUrl && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/thumb:bg-black/10 transition-colors">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/thumb:bg-black/10">
                                       <Eye
                                         size={15}
-                                        className="text-current opacity-0 group-hover/thumb:opacity-60 transition-opacity drop-shadow"
+                                        className="text-current opacity-0 drop-shadow transition-opacity group-hover/thumb:opacity-60"
                                       />
                                     </div>
                                   )}
@@ -1758,11 +1673,11 @@ export function TaskDetailSheet({
                               )}
                               <div className="flex items-center justify-between gap-1 px-2 py-1.5">
                                 <div className="min-w-0">
-                                  <p className="truncate text-[10px] text-foreground leading-tight">
+                                  <p className="text-foreground truncate text-[10px] leading-tight">
                                     {att.fileName}
                                   </p>
                                   {att.sizeBytes && (
-                                    <p className="text-[9px] text-muted-foreground">
+                                    <p className="text-muted-foreground text-[9px]">
                                       {(att.sizeBytes / 1024).toFixed(0)} KB
                                     </p>
                                   )}
@@ -1771,7 +1686,7 @@ export function TaskDetailSheet({
                                   href={att.storageUrl ?? "#"}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="shrink-0 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                                  className="text-muted-foreground hover:text-foreground flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded opacity-0 transition-all group-hover:opacity-100"
                                   title="Download"
                                 >
                                   <Download size={11} />
@@ -1782,13 +1697,10 @@ export function TaskDetailSheet({
                                 onClick={() =>
                                   deleteAttachmentMutation.mutate(att.id, {
                                     onError: (err) =>
-                                      toast.error(
-                                        err.message ??
-                                          "Failed to delete attachment.",
-                                      ),
+                                      toast.error(err.message ?? "Failed to delete attachment."),
                                   })
                                 }
-                                className="absolute right-1 top-1 rounded bg-card/80 p-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-danger transition-all cursor-pointer"
+                                className="bg-card/80 text-muted-foreground hover:text-danger absolute top-1 right-1 cursor-pointer rounded p-0.5 opacity-0 transition-all group-hover:opacity-100"
                               >
                                 <Trash2 size={12} />
                               </button>
@@ -1802,8 +1714,8 @@ export function TaskDetailSheet({
 
                 {/* Comment input - Comments tab only */}
                 {activeTab === "comments" && (
-                  <div className="border-t border-border px-3 py-3">
-                    <div className="rounded-lg border border-input bg-background overflow-hidden shadow-sm focus-within:border-ring/60 focus-within:ring-1 focus-within:ring-ring/20 transition-all">
+                  <div className="border-border border-t px-3 py-3">
+                    <div className="border-input bg-background focus-within:border-ring/60 focus-within:ring-ring/20 overflow-hidden rounded-lg border shadow-sm transition-all focus-within:ring-1">
                       <TiptapEditor
                         key={commentKey}
                         content=""
@@ -1814,19 +1726,17 @@ export function TaskDetailSheet({
                         }))}
                         onChange={setCommentHtml}
                         onSubmit={() =>
-                          !isCommentEmpty &&
-                          !createComment.isPending &&
-                          handleSubmitComment()
+                          !isCommentEmpty && !createComment.isPending && handleSubmitComment()
                         }
                         placeholder="Write a comment… (type @ to mention)"
                         className="text-sm"
                       />
-                      <div className="flex items-center justify-between border-t border-border/60 bg-secondary/20 px-2.5 py-1.5">
+                      <div className="border-border/60 bg-secondary/20 flex items-center justify-between border-t px-2.5 py-1.5">
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground/50 select-none">
+                          <span className="text-muted-foreground/50 text-[10px] select-none">
                             @ mention · Enter to post
                           </span>
-                          <span className="text-[10px] text-muted-foreground/30 select-none">
+                          <span className="text-muted-foreground/30 text-[10px] select-none">
                             ·
                           </span>
                           <TooltipProvider delayDuration={300}>
@@ -1836,7 +1746,7 @@ export function TaskDetailSheet({
                                   type="button"
                                   disabled={uploadAttachment.isPending}
                                   onClick={() => commentAttachRef.current?.click()}
-                                  className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground/50 hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 cursor-pointer"
+                                  className="text-muted-foreground/50 hover:text-foreground hover:bg-secondary flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors disabled:opacity-40"
                                 >
                                   <Paperclip size={11} />
                                 </button>
@@ -1865,7 +1775,8 @@ export function TaskDetailSheet({
                                   reader.onload = (ev) =>
                                     setPendingAttachPreviews((prev) => {
                                       const next = [...prev];
-                                      next[pendingAttachments.length + idx] = ev.target?.result as string;
+                                      next[pendingAttachments.length + idx] = ev.target
+                                        ?.result as string;
                                       return next;
                                     });
                                   reader.readAsDataURL(file);
@@ -1883,15 +1794,21 @@ export function TaskDetailSheet({
                         </div>
                         <Button
                           size="sm"
-                          className="h-6 px-2.5 text-[11px] cursor-pointer gap-1"
-                          disabled={(isCommentEmpty && pendingAttachments.length === 0) || createComment.isPending || uploadAttachment.isPending}
+                          className="h-6 cursor-pointer gap-1 px-2.5 text-[11px]"
+                          disabled={
+                            (isCommentEmpty && pendingAttachments.length === 0) ||
+                            createComment.isPending ||
+                            uploadAttachment.isPending
+                          }
                           onClick={async () => {
                             if (pendingAttachments.length > 0) {
                               try {
                                 for (const file of pendingAttachments) {
                                   await uploadAttachment.mutateAsync({ file });
                                 }
-                                toast.success(`${pendingAttachments.length} file${pendingAttachments.length > 1 ? "s" : ""} attached.`);
+                                toast.success(
+                                  `${pendingAttachments.length} file${pendingAttachments.length > 1 ? "s" : ""} attached.`,
+                                );
                                 setPendingAttachments([]);
                                 setPendingAttachPreviews([]);
                               } catch (err) {
@@ -1903,15 +1820,20 @@ export function TaskDetailSheet({
                           }}
                         >
                           <Send size={11} />
-                          {createComment.isPending || uploadAttachment.isPending ? "Posting…" : "Post"}
+                          {createComment.isPending || uploadAttachment.isPending
+                            ? "Posting…"
+                            : "Post"}
                         </Button>
                       </div>
 
                       {/* Pending attachments preview */}
                       {pendingAttachments.length > 0 && (
-                        <div className="flex flex-wrap gap-2 border-t border-border/60 bg-secondary/10 px-2.5 py-2">
+                        <div className="border-border/60 bg-secondary/10 flex flex-wrap gap-2 border-t px-2.5 py-2">
                           {pendingAttachments.map((file, idx) => (
-                            <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
+                            <div
+                              key={idx}
+                              className="border-border bg-background relative flex max-w-[180px] items-center gap-1.5 rounded border px-2 py-1 pr-6"
+                            >
                               {pendingAttachPreviews[idx] ? (
                                 <Image
                                   src={pendingAttachPreviews[idx]!}
@@ -1919,22 +1841,28 @@ export function TaskDetailSheet({
                                   width={24}
                                   height={24}
                                   unoptimized
-                                  className="h-6 w-6 rounded object-cover shrink-0"
+                                  className="h-6 w-6 shrink-0 rounded object-cover"
                                 />
                               ) : (
-                                <Paperclip size={11} className="shrink-0 text-muted-foreground" />
+                                <Paperclip size={11} className="text-muted-foreground shrink-0" />
                               )}
                               <div className="min-w-0">
-                                <p className="truncate text-[10px] font-medium text-foreground">{file.name}</p>
-                                <p className="text-[9px] text-muted-foreground">{(file.size / 1024).toFixed(0)} KB</p>
+                                <p className="text-foreground truncate text-[10px] font-medium">
+                                  {file.name}
+                                </p>
+                                <p className="text-muted-foreground text-[9px]">
+                                  {(file.size / 1024).toFixed(0)} KB
+                                </p>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => {
                                   setPendingAttachments((prev) => prev.filter((_, i) => i !== idx));
-                                  setPendingAttachPreviews((prev) => prev.filter((_, i) => i !== idx));
+                                  setPendingAttachPreviews((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  );
                                 }}
-                                className="absolute right-1 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:text-danger transition-colors cursor-pointer"
+                                className="text-muted-foreground hover:text-danger absolute top-1/2 right-1 flex h-4 w-4 -translate-y-1/2 cursor-pointer items-center justify-center rounded transition-colors"
                               >
                                 <X size={10} />
                               </button>
@@ -2004,12 +1932,7 @@ export function TaskDetailSheet({
       />
 
       {/* File preview modal */}
-      {previewFile && (
-        <FilePreviewModal
-          file={previewFile}
-          onClose={() => setPreviewFile(null)}
-        />
-      )}
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
     </Dialog>
   );
 }

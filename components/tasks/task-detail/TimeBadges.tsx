@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime, formatTimeAgo } from "@/utils/date";
 
 /** Renders a relative timestamp that re-evaluates every 30 s. */
@@ -25,7 +20,7 @@ export function EditedBadge({ updatedAt }: { updatedAt: string }) {
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-[10px] text-muted-foreground/50 italic leading-none cursor-default">
+          <span className="text-muted-foreground/50 cursor-default text-[10px] leading-none italic">
             edited
           </span>
         </TooltipTrigger>

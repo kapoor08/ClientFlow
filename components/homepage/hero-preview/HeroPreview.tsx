@@ -75,12 +75,12 @@ export default function HeroPreview() {
         <span />
         <span />
         <span />
-        <div className="ml-3 flex h-5 flex-1 items-center rounded-full bg-secondary px-3">
-          <div className="h-1.5 w-24 rounded-full bg-border" />
+        <div className="bg-secondary ml-3 flex h-5 flex-1 items-center rounded-full px-3">
+          <div className="bg-border h-1.5 w-24 rounded-full" />
         </div>
         <div className="ml-auto flex items-center gap-1.5">
-          <div className="h-4 w-14 rounded bg-secondary" />
-          <div className="h-4 w-10 rounded bg-secondary" />
+          <div className="bg-secondary h-4 w-14 rounded" />
+          <div className="bg-secondary h-4 w-10 rounded" />
         </div>
       </div>
 
@@ -93,7 +93,7 @@ export default function HeroPreview() {
           onToggleCollapse={() => setSidebarCollapsed((p) => !p)}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col bg-background">
+        <div className="bg-background flex min-w-0 flex-1 flex-col">
           <HeroNavbar
             onSearchClick={handleSearchClick}
             onNotificationClick={handleNotificationClick}
@@ -111,11 +111,7 @@ export default function HeroPreview() {
               transition={{ duration: 0.15 }}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              {PageComponent ? (
-                <PageComponent />
-              ) : (
-                <HeroPlaceholderPage href={activePage} />
-              )}
+              {PageComponent ? <PageComponent /> : <HeroPlaceholderPage href={activePage} />}
             </Motion.div>
           </AnimatePresence>
         </div>

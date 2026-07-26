@@ -2,13 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 
-export function InlineTitle({
-  value,
-  onSave,
-}: {
-  value: string;
-  onSave: (v: string) => void;
-}) {
+export function InlineTitle({ value, onSave }: { value: string; onSave: (v: string) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -42,14 +36,14 @@ export function InlineTitle({
             setEditing(false);
           }
         }}
-        className="w-full rounded bg-transparent text-xl font-semibold text-foreground outline-none ring-2 ring-primary/40 px-1 -mx-1"
+        className="text-foreground ring-primary/40 -mx-1 w-full rounded bg-transparent px-1 text-xl font-semibold ring-2 outline-none"
       />
     );
   }
 
   return (
     <h2
-      className="cursor-text text-xl font-semibold text-foreground leading-snug hover:bg-secondary/60 rounded px-1 -mx-1 transition-colors"
+      className="text-foreground hover:bg-secondary/60 -mx-1 cursor-text rounded px-1 text-xl leading-snug font-semibold transition-colors"
       onClick={() => setEditing(true)}
       title="Click to edit"
     >

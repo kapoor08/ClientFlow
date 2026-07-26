@@ -1,19 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/utils/cn";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { TaskListItem } from "@/core/tasks/entity";
 import type { BoardColumn } from "@/core/task-columns/entity";
 import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -44,14 +35,10 @@ export function SortableColumn({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: column.id, data: { type: "column", column } });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: column.id,
+    data: { type: "column", column },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -63,14 +50,11 @@ export function SortableColumn({
     <div
       ref={setNodeRef}
       style={isDragOverlay ? {} : style}
-      className={cn(
-        "flex w-72 shrink-0 flex-col h-full",
-        isDragOverlay && "rotate-1 opacity-90",
-      )}
+      className={cn("flex h-full w-72 shrink-0 flex-col", isDragOverlay && "rotate-1 opacity-90")}
     >
       {/* Column header */}
       <div
-        className="group/header flex items-center gap-2 pb-3 cursor-grab active:cursor-grabbing"
+        className="group/header flex cursor-grab items-center gap-2 pb-3 active:cursor-grabbing"
         {...(isDragOverlay ? {} : { ...attributes, ...listeners })}
       >
         {/* Colored left-border accent */}
@@ -78,13 +62,11 @@ export function SortableColumn({
           className="h-5 w-0.75 shrink-0 rounded-full"
           style={{ backgroundColor: column.color }}
         />
-        <span className="font-display text-[13px] font-semibold text-foreground tracking-tight leading-none">
+        <span className="font-display text-foreground text-[13px] leading-none font-semibold tracking-tight">
           {column.name}
         </span>
-        <span className="text-[11px] font-medium text-muted-foreground">
-          {tasks.length}
-        </span>
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-opacity">
+        <span className="text-muted-foreground text-[11px] font-medium">{tasks.length}</span>
+        <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover/header:opacity-100">
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -94,7 +76,7 @@ export function SortableColumn({
                     e.stopPropagation();
                     onAddTask(column);
                   }}
-                  className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+                  className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
                   aria-label="Add Task"
                 >
                   <Plus size={13} />
@@ -110,25 +92,22 @@ export function SortableColumn({
                 e.stopPropagation();
                 setMenuOpen((v) => !v);
               }}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors cursor-pointer"
+              className="text-muted-foreground hover:bg-secondary hover:text-foreground flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors"
               aria-label="Column options"
             >
               <MoreHorizontal size={13} />
             </button>
             {menuOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 top-7 z-20 min-w-36 rounded-card border border-border bg-card shadow-cf-2 py-1">
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="rounded-card border-border bg-card shadow-cf-2 absolute top-7 right-0 z-20 min-w-36 border py-1">
                   <button
                     type="button"
                     onClick={() => {
                       onEditColumn(column);
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                    className="text-foreground hover:bg-secondary flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors"
                   >
                     <Pencil size={13} /> Edit Column
                   </button>
@@ -138,7 +117,7 @@ export function SortableColumn({
                       onDeleteColumn(column);
                       setMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-danger hover:bg-danger/10 transition-colors cursor-pointer"
+                    className="text-danger hover:bg-danger/10 flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors"
                   >
                     <Trash2 size={13} /> Delete Column
                   </button>
@@ -150,11 +129,8 @@ export function SortableColumn({
       </div>
 
       {/* Task list */}
-      <div className="scrollbar-thin flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
-        <SortableContext
-          items={tasks.map((t) => t.id)}
-          strategy={verticalListSortingStrategy}
-        >
+      <div className="scrollbar-thin min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+        <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
             <SortableTaskCard
               key={task.id}
@@ -167,7 +143,7 @@ export function SortableColumn({
           ))}
         </SortableContext>
         {tasks.length === 0 && (
-          <div className="rounded-card border border-dashed px-4 py-6 text-center text-xs text-muted-foreground/60 border-cf-neutral-950!">
+          <div className="rounded-card text-muted-foreground/60 border-cf-neutral-950! border border-dashed px-4 py-6 text-center text-xs">
             No tasks yet
           </div>
         )}
@@ -177,7 +153,7 @@ export function SortableColumn({
       <button
         type="button"
         onClick={() => onAddTask(column)}
-        className="mt-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors cursor-pointer"
+        className="text-muted-foreground hover:text-foreground hover:bg-secondary/60 mt-2 flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors"
       >
         <Plus size={12} /> Add Task
       </button>

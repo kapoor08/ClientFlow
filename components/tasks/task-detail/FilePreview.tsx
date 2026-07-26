@@ -2,11 +2,7 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { cn } from "@/utils/cn";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getFileCategory, type FileCategory } from "@/utils/file";
 import ReactMarkdown from "react-markdown";
 import {
@@ -94,16 +90,12 @@ export function FileTypeThumbnail({
   return (
     <div
       className={cn(
-        "flex h-full w-full flex-col items-center justify-center gap-1 cursor-pointer",
+        "flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1",
         bg,
       )}
     >
       <Icon size={26} className={iconCls} />
-      {ext && (
-        <span className={cn("text-[9px] font-bold tracking-widest", iconCls)}>
-          {ext}
-        </span>
-      )}
+      {ext && <span className={cn("text-[9px] font-bold tracking-widest", iconCls)}>{ext}</span>}
     </div>
   );
 }
@@ -132,13 +124,7 @@ function parseCSV(text: string): string[][] {
     });
 }
 
-export function FilePreviewModal({
-  file,
-  onClose,
-}: {
-  file: PreviewFile;
-  onClose: () => void;
-}) {
+export function FilePreviewModal({ file, onClose }: { file: PreviewFile; onClose: () => void }) {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [csvRows, setCsvRows] = useState<string[][] | null>(null);
   const [fetchError, setFetchError] = useState(false);
@@ -147,8 +133,7 @@ export function FilePreviewModal({
   // Proxy route streams the file server-side, bypassing Cloudinary raw-resource auth (401).
   // Images/video/audio load fine directly from Cloudinary CDN so they keep using src.
   const proxyUrl = `/api/tasks/attachments/proxy?id=${encodeURIComponent(file.id)}`;
-  const needsFetch =
-    category === "text" || category === "markdown" || category === "csv";
+  const needsFetch = category === "text" || category === "markdown" || category === "csv";
   const officeViewerUrl =
     category === "office"
       ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.src)}`
@@ -180,21 +165,19 @@ export function FilePreviewModal({
       }}
     >
       <DialogContent
-        className="w-[92vw] max-w-7xl! p-0 gap-0 flex flex-col overflow-hidden"
+        className="flex w-[92vw] max-w-7xl! flex-col gap-0 overflow-hidden p-0"
         style={{ height: "90vh" }}
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">{file.fileName}</DialogTitle>
 
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0">
+        <div className="border-border flex shrink-0 items-center gap-3 border-b px-4 py-3">
           {getFileIcon(file.mimeType, file.fileName, 15)}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {file.fileName}
-            </p>
+            <p className="text-foreground truncate text-sm font-medium">{file.fileName}</p>
             {file.sizeBytes ? (
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-[10px]">
                 {(file.sizeBytes / 1024).toFixed(0)} KB
               </p>
             ) : null}
@@ -204,7 +187,7 @@ export function FilePreviewModal({
             download={file.fileName}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors"
             title="Download"
           >
             <Download size={13} />
@@ -212,14 +195,14 @@ export function FilePreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-secondary flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors"
           >
             <X size={13} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden bg-secondary/20">
+        <div className="bg-secondary/20 flex-1 overflow-hidden">
           {category === "image" && (
             <div className="flex h-full items-center justify-center p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -232,20 +215,12 @@ export function FilePreviewModal({
           )}
 
           {category === "pdf" && (
-            <iframe
-              src={proxyUrl}
-              className="h-full w-full"
-              title={file.fileName}
-            />
+            <iframe src={proxyUrl} className="h-full w-full" title={file.fileName} />
           )}
 
           {category === "video" && (
             <div className="flex h-full items-center justify-center p-4">
-              <video
-                src={file.src}
-                controls
-                className="max-h-full max-w-full rounded-lg shadow"
-              />
+              <video src={file.src} controls className="max-h-full max-w-full rounded-lg shadow" />
             </div>
           )}
 
@@ -256,29 +231,21 @@ export function FilePreviewModal({
           )}
 
           {category === "office" && officeViewerUrl && (
-            <iframe
-              src={officeViewerUrl}
-              className="h-full w-full"
-              title={file.fileName}
-            />
+            <iframe src={officeViewerUrl} className="h-full w-full" title={file.fileName} />
           )}
 
           {(category === "markdown" || category === "text") && (
             <div className="h-full overflow-y-auto p-6">
               {fetchError ? (
-                <p className="text-sm text-muted-foreground">
-                  Unable to load preview.
-                </p>
+                <p className="text-muted-foreground text-sm">Unable to load preview.</p>
               ) : textContent === null ? (
-                <p className="text-sm text-muted-foreground animate-pulse">
-                  Loading…
-                </p>
+                <p className="text-muted-foreground animate-pulse text-sm">Loading…</p>
               ) : category === "markdown" ? (
-                <article className="prose prose-sm max-w-none dark:prose-invert">
+                <article className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown>{textContent}</ReactMarkdown>
                 </article>
               ) : (
-                <pre className="whitespace-pre-wrap wrap-break-words font-mono text-xs text-foreground">
+                <pre className="wrap-break-words text-foreground font-mono text-xs whitespace-pre-wrap">
                   {textContent}
                 </pre>
               )}
@@ -288,13 +255,9 @@ export function FilePreviewModal({
           {category === "csv" && (
             <div className="h-full overflow-auto p-4">
               {fetchError ? (
-                <p className="text-sm text-muted-foreground">
-                  Unable to load preview.
-                </p>
+                <p className="text-muted-foreground text-sm">Unable to load preview.</p>
               ) : csvRows === null ? (
-                <p className="text-sm text-muted-foreground animate-pulse">
-                  Loading…
-                </p>
+                <p className="text-muted-foreground animate-pulse text-sm">Loading…</p>
               ) : (
                 <table className="w-full border-collapse text-xs">
                   <thead>
@@ -302,7 +265,7 @@ export function FilePreviewModal({
                       {(csvRows[0] ?? []).map((cell, i) => (
                         <th
                           key={i}
-                          className="border border-border bg-secondary px-2 py-1.5 text-left font-semibold text-foreground whitespace-nowrap"
+                          className="border-border bg-secondary text-foreground border px-2 py-1.5 text-left font-semibold whitespace-nowrap"
                         >
                           {cell}
                         </th>
@@ -315,7 +278,7 @@ export function FilePreviewModal({
                         {row.map((cell, ci) => (
                           <td
                             key={ci}
-                            className="border border-border px-2 py-1 text-foreground/80 whitespace-nowrap"
+                            className="border-border text-foreground/80 border px-2 py-1 whitespace-nowrap"
                           >
                             {cell}
                           </td>
@@ -332,10 +295,8 @@ export function FilePreviewModal({
             <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
               <File size={48} className="text-muted-foreground/30" />
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Preview not available
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-foreground text-sm font-medium">Preview not available</p>
+                <p className="text-muted-foreground mt-1 text-xs">
                   This file type cannot be previewed in the browser
                 </p>
               </div>
@@ -344,7 +305,7 @@ export function FilePreviewModal({
                 download={file.fileName}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
               >
                 <Download size={12} />
                 Download file

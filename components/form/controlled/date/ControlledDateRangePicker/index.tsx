@@ -63,9 +63,7 @@ export const ControlledDateRangePicker = <T extends FieldValues>({
           );
         }}
       />
-      {description && (
-        <p className="text-sm text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-sm">{description}</p>}
       {error && <p className="text-sm text-red-500">{error.message}</p>}
     </div>
   );

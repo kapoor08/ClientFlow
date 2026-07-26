@@ -16,8 +16,22 @@ const STATUS_ICON: Record<string, { icon: React.ElementType; style: string }> = 
 };
 
 const INVITATIONS = [
-  { email: "aman@yopmail.com", by: "Lakshay Kapoor", role: "Client", status: "Accepted", sent: "15 days ago", expires: "-" },
-  { email: "lakshaykapoor08@gmail.com", by: "Lakshay Kapoor", role: "Client", status: "Expired", sent: "22 days ago", expires: "Expired 15 days ago" },
+  {
+    email: "aman@yopmail.com",
+    by: "Lakshay Kapoor",
+    role: "Client",
+    status: "Accepted",
+    sent: "15 days ago",
+    expires: "-",
+  },
+  {
+    email: "lakshaykapoor08@gmail.com",
+    by: "Lakshay Kapoor",
+    role: "Client",
+    status: "Expired",
+    sent: "22 days ago",
+    expires: "Expired 15 days ago",
+  },
 ];
 
 const row = {
@@ -28,15 +42,24 @@ const row = {
 export function HeroInvitationsPage() {
   return (
     <div className="hero-preview-scrollbar flex-1 overflow-y-auto p-5">
-      <PageHeader title="Invitations" description="Manage team invitations for Lakshay's Workspace" actionLabel="Send Invite" />
+      <PageHeader
+        title="Invitations"
+        description="Manage team invitations for Lakshay's Workspace"
+        actionLabel="Send Invite"
+      />
       <SearchFiltersBar placeholder="Search by email..." showDates showFilters />
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="border-border bg-card overflow-hidden rounded-lg border">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-secondary/50">
+            <tr className="border-border bg-secondary/50 border-b">
               {["Actions", "Email", "Role", "Status", "Sent", "Expires"].map((h) => (
-                <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold text-muted-foreground">{h}</th>
+                <th
+                  key={h}
+                  className="text-muted-foreground px-4 py-2.5 text-left text-[10px] font-semibold"
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -51,33 +74,35 @@ export function HeroInvitationsPage() {
                   variants={row}
                   initial="hidden"
                   animate="show"
-                  className="border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
+                  className="border-border hover:bg-secondary/30 border-b transition-colors last:border-0"
                 >
                   <td className="px-4 py-2.5">
-                    <div className="h-3 w-3 rounded-sm bg-muted-foreground/15" />
+                    <div className="bg-muted-foreground/15 h-3 w-3 rounded-sm" />
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1.5">
                       <Mail size={10} className="text-muted-foreground/40" />
                       <div>
-                        <div className="text-[11px] font-medium text-foreground">{inv.email}</div>
-                        <div className="text-[9px] text-muted-foreground">by {inv.by}</div>
+                        <div className="text-foreground text-[11px] font-medium">{inv.email}</div>
+                        <div className="text-muted-foreground text-[9px]">by {inv.by}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-medium ${ROLE_STYLES[inv.role] ?? "bg-secondary text-muted-foreground"}`}>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-medium ${ROLE_STYLES[inv.role] ?? "bg-secondary text-muted-foreground"}`}
+                    >
                       {inv.role}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
                     <span className="flex items-center gap-1">
                       <StatusIcon size={9} className={si?.style ?? ""} />
-                      <span className="text-[10px] text-foreground">{inv.status}</span>
+                      <span className="text-foreground text-[10px]">{inv.status}</span>
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.sent}</td>
-                  <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.expires}</td>
+                  <td className="text-muted-foreground px-4 py-2.5 text-[10px]">{inv.sent}</td>
+                  <td className="text-muted-foreground px-4 py-2.5 text-[10px]">{inv.expires}</td>
                 </Motion.tr>
               );
             })}

@@ -32,11 +32,11 @@ export function PageHeader({
   return (
     <div className="mb-3 flex items-start justify-between">
       <div>
-        <h2 className="text-lg font-bold font-display text-foreground">{title}</h2>
-        <p className="text-[13px] text-muted-foreground">{description}</p>
+        <h2 className="font-display text-foreground text-lg font-bold">{title}</h2>
+        <p className="text-muted-foreground text-[13px]">{description}</p>
       </div>
       {actionLabel && (
-        <div className="flex h-6 items-center gap-1 rounded-md bg-primary px-2.5 text-[13px] font-medium text-primary-foreground">
+        <div className="bg-primary text-primary-foreground flex h-6 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium">
           <ActionIcon size={10} />
           {actionLabel}
         </div>
@@ -63,16 +63,16 @@ export function SearchFiltersBar({
   return (
     <div className="mb-2.5 flex items-center gap-2">
       {/* Search */}
-      <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5">
+      <div className="border-border bg-background flex flex-1 items-center gap-1.5 rounded-md border px-2.5 py-1.5">
         <Search size={10} className="text-muted-foreground/50" />
-        <span className="text-[13px] text-muted-foreground/40">{placeholder}</span>
+        <span className="text-muted-foreground/40 text-[13px]">{placeholder}</span>
       </div>
 
       {extraButtons}
 
       {/* Select dates */}
       {showDates && (
-        <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs text-muted-foreground">
+        <div className="border-border bg-background text-muted-foreground flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs">
           <Calendar size={9} />
           Select dates...
           <ChevronDown size={8} />
@@ -81,7 +81,7 @@ export function SearchFiltersBar({
 
       {/* Filters */}
       {showFilters && (
-        <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs font-medium text-foreground">
+        <div className="border-border bg-background text-foreground flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium">
           <Filter size={9} />
           Filters
         </div>
@@ -89,8 +89,8 @@ export function SearchFiltersBar({
 
       {/* View toggle - using proper lucide icons */}
       {showViewToggle && (
-        <div className="flex items-center overflow-hidden rounded-md border border-border">
-          <div className="flex items-center justify-center bg-secondary px-1.5 py-1">
+        <div className="border-border flex items-center overflow-hidden rounded-md border">
+          <div className="bg-secondary flex items-center justify-center px-1.5 py-1">
             <List size={11} className="text-foreground" />
           </div>
           <div className="flex items-center justify-center px-1.5 py-1">
@@ -104,13 +104,7 @@ export function SearchFiltersBar({
 
 // ─── Status Badge ───────────────────────────────────────────────────────────
 
-export function StatusBadge({
-  label,
-  className,
-}: {
-  label: string;
-  className: string;
-}) {
+export function StatusBadge({ label, className }: { label: string; className: string }) {
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${className}`}
@@ -131,26 +125,26 @@ export function Pagination({
   pageSize?: string;
 }) {
   return (
-    <div className="flex items-center justify-between border-t border-border px-3 py-2">
-      <span className="text-xs text-muted-foreground">{showing}</span>
+    <div className="border-border flex items-center justify-between border-t px-3 py-2">
+      <span className="text-muted-foreground text-xs">{showing}</span>
       <div className="flex items-center gap-1.5">
-        <span className="flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground">
+        <span className="border-border text-muted-foreground flex items-center gap-0.5 rounded border px-1.5 py-0.5 text-[11px]">
           {pageSize}
           <ChevronDown size={7} />
         </span>
         <div className="flex items-center gap-0.5 text-xs">
-          <span className="px-0.5 text-muted-foreground/40">
+          <span className="text-muted-foreground/40 px-0.5">
             <ChevronLeft size={8} />
           </span>
-          <span className="text-[11px] text-muted-foreground/30">Previous</span>
-          <span className="mx-0.5 flex h-4 w-4 items-center justify-center rounded bg-primary text-[11px] font-medium text-primary-foreground">
+          <span className="text-muted-foreground/30 text-[11px]">Previous</span>
+          <span className="bg-primary text-primary-foreground mx-0.5 flex h-4 w-4 items-center justify-center rounded text-[11px] font-medium">
             1
           </span>
-          <span className="flex h-4 w-4 items-center justify-center rounded text-[11px] text-muted-foreground">
+          <span className="text-muted-foreground flex h-4 w-4 items-center justify-center rounded text-[11px]">
             2
           </span>
-          <span className="text-[11px] text-muted-foreground/30">Next</span>
-          <span className="px-0.5 text-muted-foreground/40">
+          <span className="text-muted-foreground/30 text-[11px]">Next</span>
+          <span className="text-muted-foreground/40 px-0.5">
             <ChevronRight size={8} />
           </span>
         </div>

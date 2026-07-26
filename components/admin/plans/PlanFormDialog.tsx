@@ -48,9 +48,7 @@ type Props = {
 export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
   const isEdit = !!plan;
   const [isPending, startTransition] = useTransition();
-  const [featuresText, setFeaturesText] = useState<string>(
-    (plan?.features ?? []).join("\n"),
-  );
+  const [featuresText, setFeaturesText] = useState<string>((plan?.features ?? []).join("\n"));
 
   const schema = isEdit ? planFormSchema : createPlanSchema;
 
@@ -123,12 +121,15 @@ export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? `Edit ${plan!.name}` : "Create plan"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit as SubmitHandler<CreatePlanValues>)} className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit as SubmitHandler<CreatePlanValues>)}
+          className="space-y-4"
+        >
           {!isEdit && (
             <ControlledInput
               control={control}
@@ -239,7 +240,7 @@ export function PlanFormDialog({ open, onOpenChange, plan }: Props) {
               placeholder={"Unlimited projects\nPriority support\nAPI access"}
               rows={5}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Bullet points shown on the public pricing page. One feature per line.
             </p>
           </div>

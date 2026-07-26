@@ -32,13 +32,17 @@ export function ColorPicker({ value, onChange, disabled, className }: ColorPicke
           <button
             type="button"
             disabled={disabled}
-            className="h-9 w-9 shrink-0 rounded-lg border border-border shadow-sm transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            className="border-border focus-visible:ring-ring h-9 w-9 shrink-0 cursor-pointer rounded-lg border shadow-sm transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: isValidHex ? value : DEFAULT_BRAND_COLOR }}
             aria-label="Pick a color"
           />
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3" align="start">
-          <HexColorPicker color={isValidHex ? value : DEFAULT_BRAND_COLOR} className="cursor-pointer" onChange={onChange} />
+          <HexColorPicker
+            color={isValidHex ? value : DEFAULT_BRAND_COLOR}
+            className="cursor-pointer"
+            onChange={onChange}
+          />
           <Input
             value={value}
             onChange={handleHexInput}
@@ -59,7 +63,7 @@ export function ColorPicker({ value, onChange, disabled, className }: ColorPicke
       />
 
       <div
-        className="h-9 w-9 shrink-0 rounded-lg border border-border"
+        className="border-border h-9 w-9 shrink-0 rounded-lg border"
         style={{ backgroundColor: isValidHex ? value : "transparent" }}
       />
     </div>

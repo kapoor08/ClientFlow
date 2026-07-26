@@ -87,11 +87,7 @@ const SsoPage = () => {
           autoComplete="email"
         />
 
-        <Button
-          type="submit"
-          className="w-full cursor-pointer"
-          disabled={loading}
-        >
+        <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -106,9 +102,9 @@ const SsoPage = () => {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-4 text-center text-sm">
         Not using SSO?{" "}
-        <Link href={authRoutes.signIn} className="font-medium text-primary hover:underline">
+        <Link href={authRoutes.signIn} className="text-primary font-medium hover:underline">
           Sign in with password
         </Link>
       </p>

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
 import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
-import {
-  listBoardColumnsForUser,
-  createBoardColumnForUser,
-} from "@/server/task-columns";
+import { listBoardColumnsForUser, createBoardColumnForUser } from "@/server/task-columns";
 import { createTaskColumnSchema } from "@/schemas/api-misc";
 
 export async function GET() {
@@ -33,7 +30,7 @@ export async function POST(request: Request) {
     const result = await createBoardColumnForUser(userId, {
       name,
       color,
-      columnType: columnType === "none" ? null : columnType ?? null,
+      columnType: columnType === "none" ? null : (columnType ?? null),
       description: description ?? null,
     });
 

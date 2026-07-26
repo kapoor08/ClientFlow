@@ -8,12 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function KpiSkeleton() {
   return (
-    <div className="rounded-card border border-border bg-card p-5 shadow-cf-1">
-      <div className="flex items-center justify-between mb-3">
+    <div className="rounded-card border-border bg-card shadow-cf-1 border p-5">
+      <div className="mb-3 flex items-center justify-between">
         <Skeleton className="h-3 w-28" />
         <Skeleton className="h-4 w-4" />
       </div>
-      <Skeleton className="h-7 w-16 mb-2" />
+      <Skeleton className="mb-2 h-7 w-16" />
       <Skeleton className="h-3 w-20" />
     </div>
   );
@@ -33,16 +33,14 @@ export function KpiCard({ label, value, icon: Icon, description, motionItem }: K
   return (
     <Motion.div
       variants={motionItem}
-      className="rounded-card border border-border bg-card p-5 shadow-cf-1"
+      className="rounded-card border-border bg-card shadow-cf-1 border p-5"
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-muted-foreground text-sm font-medium">{label}</span>
         <Icon size={18} className="text-muted-foreground" />
       </div>
-      <div className="mt-2 font-display text-2xl font-bold text-foreground">
-        {value}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <div className="font-display text-foreground mt-2 text-2xl font-bold">{value}</div>
+      <p className="text-muted-foreground mt-1 text-xs">{description}</p>
     </Motion.div>
   );
 }

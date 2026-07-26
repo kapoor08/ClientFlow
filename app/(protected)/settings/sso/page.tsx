@@ -58,19 +58,19 @@ export default function SsoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-foreground">Single Sign-On</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="font-display text-foreground text-2xl font-semibold">Single Sign-On</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
           Configure OIDC or SAML-based SSO for your organization.
         </p>
       </div>
 
       {/* Enterprise notice */}
-      <div className="rounded-card border border-info/30 bg-info/5 p-4">
+      <div className="rounded-card border-info/30 bg-info/5 border p-4">
         <div className="flex items-start gap-3">
-          <Info size={15} className="mt-0.5 shrink-0 text-info" />
+          <Info size={15} className="text-info mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-foreground">Enterprise Feature</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-foreground text-sm font-medium">Enterprise Feature</p>
+            <p className="text-muted-foreground mt-1 text-xs">
               SSO enforcement requires server-side middleware configuration. Save your settings here
               and contact support to activate enforcement on your domain.
             </p>
@@ -79,7 +79,7 @@ export default function SsoPage() {
       </div>
 
       {error && (
-        <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-3 text-sm">
           {error}
         </div>
       )}

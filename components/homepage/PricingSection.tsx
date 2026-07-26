@@ -10,16 +10,16 @@ const PricingSection = ({ plans }: { plans: PublicPlan[] }) => {
   const motionFx = useHomeMotion();
 
   return (
-    <section className="py-24 bg-muted" id="pricing">
+    <section className="bg-muted py-24" id="pricing">
       <div className="container">
         <Motion.div {...motionFx.inView.fadeUp} className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+          <span className="border-primary/20 bg-primary/5 text-primary inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold tracking-[0.12em] uppercase">
             <CreditCard size={12} /> Pricing
           </span>
-          <h2 className="mt-5 font-display text-2xl font-bold text-foreground md:text-3xl lg:text-[2.5rem]">
+          <h2 className="font-display text-foreground mt-5 text-2xl font-bold md:text-3xl lg:text-[2.5rem]">
             Simple, transparent pricing
           </h2>
-          <p className="mt-3 text-[15px] text-muted-foreground">
+          <p className="text-muted-foreground mt-3 text-[15px]">
             Start free, scale as you grow. No hidden fees.
           </p>
         </Motion.div>

@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  getPlanLimits,
-  canAccessHref,
-  PLAN_LIMITS,
-} from "@/config/plan-limits";
+import { getPlanLimits, canAccessHref, PLAN_LIMITS } from "@/config/plan-limits";
 
 // Critical-path coverage for the entitlement/RBAC decision layer. These pure
 // functions gate revenue features and module access, and they are the fallback

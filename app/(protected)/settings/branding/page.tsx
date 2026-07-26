@@ -14,10 +14,8 @@ export default async function BrandingPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Branding
-        </h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="font-display text-foreground text-2xl font-semibold">Branding</h1>
+        <p className="text-muted-foreground text-sm">
           Customize your organization&apos;s logo and brand color.
         </p>
       </div>

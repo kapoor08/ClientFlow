@@ -31,8 +31,10 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
 
   if (plans.length === 0) {
     return (
-      <div className={`mx-auto max-w-2xl rounded-2xl border border-border bg-card p-10 text-center ${className}`}>
-        <p className="text-sm text-muted-foreground">No plans are currently available.</p>
+      <div
+        className={`border-border bg-card mx-auto max-w-2xl rounded-2xl border p-10 text-center ${className}`}
+      >
+        <p className="text-muted-foreground text-sm">No plans are currently available.</p>
       </div>
     );
   }
@@ -55,11 +57,11 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
               variants={motionFx.stagger.variants.item}
               className="relative flex"
             >
-              <span className="absolute left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-white px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-primary shadow-sm">
+              <span className="text-primary absolute left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white px-4 py-1 text-[11px] font-bold tracking-wider whitespace-nowrap uppercase shadow-sm">
                 Most Popular
               </span>
 
-              <div className="flex w-full flex-col rounded-2xl bg-linear-to-br from-primary to-accent p-7 shadow-[0_20px_60px_hsl(var(--primary)/0.3)]">
+              <div className="from-primary to-accent flex w-full flex-col rounded-2xl bg-linear-to-br p-7 shadow-[0_20px_60px_hsl(var(--primary)/0.3)]">
                 <h3 className="font-display text-xl font-bold text-white">{plan.name}</h3>
                 {plan.description && (
                   <p className="mt-1 text-[13px] text-white/60">{plan.description}</p>
@@ -67,13 +69,15 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
 
                 <div className="mt-5 flex items-end gap-1">
                   {isCustom ? (
-                    <span className="font-display text-4xl font-extrabold leading-none text-white">
+                    <span className="font-display text-4xl leading-none font-extrabold text-white">
                       Custom
                     </span>
                   ) : (
                     <>
-                      <span className="mb-1 font-display text-base font-semibold text-white/60">$</span>
-                      <span className="font-display text-5xl font-extrabold leading-none text-white">
+                      <span className="font-display mb-1 text-base font-semibold text-white/60">
+                        $
+                      </span>
+                      <span className="font-display text-5xl leading-none font-extrabold text-white">
                         {amount}
                       </span>
                       <span className="mb-1 text-sm text-white/50">{period}</span>
@@ -97,10 +101,13 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
                 <div className="mt-7 space-y-2.5">
                   <Link
                     href={cta.href}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-[13.5px] font-bold text-primary transition-all duration-200 hover:bg-white/90"
+                    className="group text-primary flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-[13.5px] font-bold transition-all duration-200 hover:bg-white/90"
                   >
                     {cta.label}
-                    <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight
+                      size={14}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
                   </Link>
                   {plan.trialDays && plan.trialDays > 0 && (
                     <p className="text-center text-[11px] text-white/40">
@@ -117,38 +124,40 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
           <Motion.div
             key={plan.code}
             variants={motionFx.stagger.variants.item}
-            className="group flex flex-col rounded-2xl border border-border bg-card p-7 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.08)]"
+            className="group border-border bg-card hover:border-primary/20 flex flex-col rounded-2xl border p-7 shadow-sm transition-all duration-300 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.08)]"
           >
-            <h3 className="font-display text-xl font-bold text-foreground">{plan.name}</h3>
+            <h3 className="font-display text-foreground text-xl font-bold">{plan.name}</h3>
             {plan.description && (
-              <p className="mt-1 text-[13px] text-muted-foreground">{plan.description}</p>
+              <p className="text-muted-foreground mt-1 text-[13px]">{plan.description}</p>
             )}
 
             <div className="mt-5 flex items-end gap-1">
               {isCustom ? (
-                <span className="font-display text-4xl font-extrabold leading-none text-foreground">
+                <span className="font-display text-foreground text-4xl leading-none font-extrabold">
                   Custom
                 </span>
               ) : (
                 <>
-                  <span className="mb-1 font-display text-base font-semibold text-muted-foreground">$</span>
-                  <span className="font-display text-5xl font-extrabold leading-none text-foreground">
+                  <span className="font-display text-muted-foreground mb-1 text-base font-semibold">
+                    $
+                  </span>
+                  <span className="font-display text-foreground text-5xl leading-none font-extrabold">
                     {amount}
                   </span>
-                  <span className="mb-1 text-sm text-muted-foreground">{period}</span>
+                  <span className="text-muted-foreground mb-1 text-sm">{period}</span>
                 </>
               )}
             </div>
 
-            <div className="my-5 h-px bg-border" />
+            <div className="bg-border my-5 h-px" />
 
             <ul className="flex-1 space-y-3">
               {plan.features.map((f) => (
                 <li key={f} className="flex items-center gap-2.5">
-                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <div className="bg-primary/10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full">
                     <Check size={11} strokeWidth={2.5} className="text-primary" />
                   </div>
-                  <span className="text-[13px] font-medium text-foreground">{f}</span>
+                  <span className="text-foreground text-[13px] font-medium">{f}</span>
                 </li>
               ))}
             </ul>
@@ -156,12 +165,12 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
             <div className="mt-7">
               <Link
                 href={cta.href}
-                className="flex w-full items-center justify-center rounded-xl border border-border bg-background py-3 text-[13.5px] font-semibold text-foreground transition-all duration-200 hover:border-primary/30 hover:text-primary"
+                className="border-border bg-background text-foreground hover:border-primary/30 hover:text-primary flex w-full items-center justify-center rounded-xl border py-3 text-[13.5px] font-semibold transition-all duration-200"
               >
                 {cta.label}
               </Link>
               {isCustom && (
-                <p className="mt-2 text-center text-[11px] text-muted-foreground/50">
+                <p className="text-muted-foreground/50 mt-2 text-center text-[11px]">
                   Custom onboarding included
                 </p>
               )}

@@ -7,9 +7,9 @@ type TopOrg = Awaited<ReturnType<typeof getAdminAnalyticsData>>["topOrgs"][numbe
 /** "Most Active Organizations" leaderboard panel. */
 export function TopOrgsPanel({ topOrgs }: { topOrgs: TopOrg[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-cf-1">
-      <div className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Most Active Organizations</h2>
+    <div className="border-border bg-card shadow-cf-1 overflow-hidden rounded-xl border">
+      <div className="border-border border-b px-5 py-4">
+        <h2 className="text-foreground text-sm font-semibold">Most Active Organizations</h2>
       </div>
       {topOrgs.length === 0 ? (
         <EmptyState
@@ -18,26 +18,24 @@ export function TopOrgsPanel({ topOrgs }: { topOrgs: TopOrg[] }) {
           className="rounded-none border-0 shadow-none"
         />
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           {topOrgs.map((org, i) => (
             <div key={org.id} className="flex items-center gap-3 px-5 py-3">
-              <span className="w-5 shrink-0 text-xs font-bold text-muted-foreground">
-                #{i + 1}
-              </span>
+              <span className="text-muted-foreground w-5 shrink-0 text-xs font-bold">#{i + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">{org.name}</p>
+                <p className="text-foreground truncate text-sm font-medium">{org.name}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm font-bold text-foreground">
+                <p className="text-foreground text-sm font-bold">
                   {Number(org.totalTasksCreated ?? 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-muted-foreground">tasks created</p>
+                <p className="text-muted-foreground text-[10px]">tasks created</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-foreground text-sm font-medium">
                   {Number(org.totalActiveUsers ?? 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-muted-foreground">active user-days</p>
+                <p className="text-muted-foreground text-[10px]">active user-days</p>
               </div>
             </div>
           ))}

@@ -48,9 +48,9 @@ type Props = {
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-cf-1">
-      <div className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+    <div className="border-border bg-card shadow-cf-1 overflow-hidden rounded-xl border">
+      <div className="border-border border-b px-5 py-4">
+        <h2 className="text-foreground text-sm font-semibold">{title}</h2>
       </div>
       <div className="p-5">{children}</div>
     </div>
@@ -82,7 +82,7 @@ export default function AdminAnalyticsPage({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Analytics" description="Platform overview and engagement metrics" />
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           <CsvExportButton />
           <PeriodSelector period={period} />
         </div>

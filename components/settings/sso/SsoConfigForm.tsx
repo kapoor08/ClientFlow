@@ -23,17 +23,17 @@ type SsoConfigFormProps = {
 
 export function SsoConfigForm({ config, onUpdate, onSave, isSaving, saved }: SsoConfigFormProps) {
   return (
-    <div className="rounded-card border border-border bg-card p-6 shadow-cf-1 space-y-5">
-      <div className="flex items-center gap-2 mb-2">
+    <div className="rounded-card border-border bg-card shadow-cf-1 space-y-5 border p-6">
+      <div className="mb-2 flex items-center gap-2">
         <Shield size={16} className="text-muted-foreground" />
-        <h2 className="text-sm font-semibold text-foreground">SSO Configuration</h2>
+        <h2 className="text-foreground text-sm font-semibold">SSO Configuration</h2>
       </div>
 
       {/* Enable toggle */}
-      <div className="flex items-center justify-between rounded-lg border border-border p-3">
+      <div className="border-border flex items-center justify-between rounded-lg border p-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Enable SSO</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-foreground text-sm font-medium">Enable SSO</p>
+          <p className="text-muted-foreground text-xs">
             Require organization members to sign in via SSO.
           </p>
         </div>
@@ -128,7 +128,7 @@ export function SsoConfigForm({ config, onUpdate, onSave, isSaving, saved }: Sso
       {/* Callback URL display */}
       <div className="space-y-2">
         <Label>Callback URL (for your Identity Provider)</Label>
-        <div className="flex items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 py-2 font-mono text-xs text-muted-foreground">
+        <div className="border-border bg-secondary/50 text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 font-mono text-xs">
           <span className="flex-1 truncate">
             {typeof window !== "undefined" ? window.location.origin : "https://your-app.com"}
             /api/auth/callback/sso
@@ -137,7 +137,7 @@ export function SsoConfigForm({ config, onUpdate, onSave, isSaving, saved }: Sso
         </div>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center gap-3">
         <Button onClick={onSave} disabled={isSaving} className="cursor-pointer">
           {isSaving ? (
             <>
@@ -155,7 +155,7 @@ export function SsoConfigForm({ config, onUpdate, onSave, isSaving, saved }: Sso
         {config.enabled && config.clientId && config.discoveryUrl && (
           <a
             href={`/api/auth/sso/initiate?org=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -166,9 +166,9 @@ export function SsoConfigForm({ config, onUpdate, onSave, isSaving, saved }: Sso
       </div>
 
       {config.enabled && (
-        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2">
-          <span className="h-2 w-2 rounded-full bg-success" />
-          <span className="text-xs text-success font-medium">
+        <div className="border-success/30 bg-success/5 flex items-center gap-2 rounded-lg border px-3 py-2">
+          <span className="bg-success h-2 w-2 rounded-full" />
+          <span className="text-success text-xs font-medium">
             SSO enforcement active - members will be redirected to your IdP on sign-in
           </span>
         </div>

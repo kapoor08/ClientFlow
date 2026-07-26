@@ -2,11 +2,7 @@ import "server-only";
 
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import {
-  supportTicketEvents,
-  supportTicketMessages,
-  supportTickets,
-} from "@/db/schema";
+import { supportTicketEvents, supportTicketMessages, supportTickets } from "@/db/schema";
 import { user } from "@/db/auth-schema";
 
 // ── SLA defaults (minutes) ────────────────────────────────────────────────────

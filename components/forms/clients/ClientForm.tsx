@@ -63,7 +63,8 @@ export function ClientForm(props: ClientFormProps) {
             router.push(`/clients/${props.clientId}`);
             router.refresh();
           },
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update client."),
+          onError: (err) =>
+            toast.error(err instanceof Error ? err.message : "Failed to update client."),
         },
       );
     } else {
@@ -73,7 +74,8 @@ export function ClientForm(props: ClientFormProps) {
           router.push(`/clients/${data.clientId}`);
           router.refresh();
         },
-        onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to create client."),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to create client."),
       });
     }
   };
@@ -81,7 +83,7 @@ export function ClientForm(props: ClientFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {serverError ? (
-        <div className="rounded-card border border-error-border bg-error-surface px-4 py-3 text-sm text-error">
+        <div className="rounded-card border-error-border bg-error-surface text-error border px-4 py-3 text-sm">
           {serverError}
         </div>
       ) : null}

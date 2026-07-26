@@ -10,9 +10,36 @@ const COLUMNS = [
     count: 5,
     color: "bg-amber-400",
     tasks: [
-      { ref: "CF-A98C454B", title: "Task 5", project: "Prop Firm Genie", assignees: ["AD", "LK"], priority: "Urgent", priorityColor: "bg-red-500/10 text-red-600", comments: 1, attachments: 1 },
-      { ref: "CF-1147D63B", title: "Task 4", project: "Prop Firm Genie", assignees: ["LK"], priority: "Medium", priorityColor: "bg-amber-500/10 text-amber-600", comments: 0, attachments: 0 },
-      { ref: "CF-23F37C6F", title: "Task 3", project: "Prop Firm Genie", assignees: ["AD"], priority: "High", priorityColor: "bg-orange-500/10 text-orange-600", comments: 0, attachments: 0 },
+      {
+        ref: "CF-A98C454B",
+        title: "Task 5",
+        project: "Prop Firm Genie",
+        assignees: ["AD", "LK"],
+        priority: "Urgent",
+        priorityColor: "bg-red-500/10 text-red-600",
+        comments: 1,
+        attachments: 1,
+      },
+      {
+        ref: "CF-1147D63B",
+        title: "Task 4",
+        project: "Prop Firm Genie",
+        assignees: ["LK"],
+        priority: "Medium",
+        priorityColor: "bg-amber-500/10 text-amber-600",
+        comments: 0,
+        attachments: 0,
+      },
+      {
+        ref: "CF-23F37C6F",
+        title: "Task 3",
+        project: "Prop Firm Genie",
+        assignees: ["AD"],
+        priority: "High",
+        priorityColor: "bg-orange-500/10 text-orange-600",
+        comments: 0,
+        attachments: 0,
+      },
     ],
   },
   { key: "in_progress", label: "In Progress", count: 0, color: "bg-orange-400", tasks: [] },
@@ -26,7 +53,11 @@ const colAnim = {
 };
 const cardAnim = {
   hidden: { opacity: 0, scale: 0.96 },
-  show: (i: number) => ({ opacity: 1, scale: 1, transition: { delay: 0.2 + i * 0.05, duration: 0.25 } }),
+  show: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { delay: 0.2 + i * 0.05, duration: 0.25 },
+  }),
 };
 
 export function HeroTasksPage() {
@@ -35,28 +66,28 @@ export function HeroTasksPage() {
       {/* Header */}
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <h2 className="text-base font-bold font-display text-foreground">My Tasks</h2>
-          <p className="text-[11px] text-muted-foreground">4 columns · 5 tasks</p>
+          <h2 className="font-display text-foreground text-base font-bold">My Tasks</h2>
+          <p className="text-muted-foreground text-[11px]">4 columns · 5 tasks</p>
         </div>
-        <div className="flex h-6 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-medium text-primary-foreground">
+        <div className="bg-primary text-primary-foreground flex h-6 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium">
           <Plus size={10} /> Add Task
         </div>
       </div>
 
       {/* Filters bar */}
       <div className="mb-3 flex items-center gap-2">
-        <div className="flex flex-1 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 max-w-[40%]">
+        <div className="border-border bg-background flex max-w-[40%] flex-1 items-center gap-1.5 rounded-md border px-2.5 py-1.5">
           <Search size={10} className="text-muted-foreground/50" />
-          <span className="text-[11px] text-muted-foreground/40">Search tasks...</span>
+          <span className="text-muted-foreground/40 text-[11px]">Search tasks...</span>
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[10px] text-muted-foreground">
+        <div className="border-border bg-background text-muted-foreground flex items-center gap-1 rounded-md border px-2 py-1.5 text-[10px]">
           <Users size={9} /> Assigned to me
         </div>
-        <div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-[10px] text-muted-foreground">
+        <div className="border-border bg-background text-muted-foreground flex items-center gap-1 rounded-md border px-2 py-1.5 text-[10px]">
           <SlidersHorizontal size={9} /> Filters
         </div>
-        <div className="ml-auto flex items-center overflow-hidden rounded-md border border-border">
-          <div className="flex items-center justify-center bg-primary/10 px-1.5 py-1">
+        <div className="border-border ml-auto flex items-center overflow-hidden rounded-md border">
+          <div className="bg-primary/10 flex items-center justify-center px-1.5 py-1">
             <LayoutGrid size={11} className="text-primary" />
           </div>
           <div className="flex items-center justify-center px-1.5 py-1">
@@ -79,8 +110,8 @@ export function HeroTasksPage() {
             {/* Column header */}
             <div className="mb-2 flex items-center gap-1.5 px-1">
               <div className={`h-4 w-0.5 rounded-full ${col.color}`} />
-              <span className="text-xs font-bold text-foreground">{col.label}</span>
-              <span className="text-[11px] text-muted-foreground">{col.count}</span>
+              <span className="text-foreground text-xs font-bold">{col.label}</span>
+              <span className="text-muted-foreground text-[11px]">{col.count}</span>
             </div>
 
             {/* Cards */}
@@ -93,23 +124,28 @@ export function HeroTasksPage() {
                     variants={cardAnim}
                     initial="hidden"
                     animate="show"
-                    className="rounded-lg border border-border bg-card p-2.5 transition-all hover:border-primary/20 hover:shadow-sm"
+                    className="border-border bg-card hover:border-primary/20 rounded-lg border p-2.5 transition-all hover:shadow-sm"
                   >
-                    <div className="text-[9px] text-muted-foreground/50 font-mono">{task.ref}</div>
-                    <div className="mt-0.5 text-xs font-medium text-foreground">{task.title}</div>
-                    <div className="text-[10px] text-muted-foreground">{task.project}</div>
+                    <div className="text-muted-foreground/50 font-mono text-[9px]">{task.ref}</div>
+                    <div className="text-foreground mt-0.5 text-xs font-medium">{task.title}</div>
+                    <div className="text-muted-foreground text-[10px]">{task.project}</div>
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         {task.assignees.map((a) => (
-                          <div key={a} className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[5px] font-bold text-primary-foreground -ml-0.5 first:ml-0">
+                          <div
+                            key={a}
+                            className="bg-primary text-primary-foreground -ml-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[5px] font-bold first:ml-0"
+                          >
                             {a}
                           </div>
                         ))}
-                        <span className={`ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[6px] font-medium ${task.priorityColor}`}>
+                        <span
+                          className={`ml-1 inline-flex rounded-full px-1.5 py-0.5 text-[6px] font-medium ${task.priorityColor}`}
+                        >
                           {task.priority}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/50">
+                      <div className="text-muted-foreground/50 flex items-center gap-1.5 text-[9px]">
                         {task.comments > 0 && <span>&#9633;{task.comments}</span>}
                         {task.attachments > 0 && <span>&#128206;{task.attachments}</span>}
                       </div>
@@ -117,13 +153,13 @@ export function HeroTasksPage() {
                   </Motion.div>
                 ))
               ) : (
-                <div className="rounded-lg border border-dashed border-border/50 py-4 text-center text-[10px] text-muted-foreground/40">
+                <div className="border-border/50 text-muted-foreground/40 rounded-lg border border-dashed py-4 text-center text-[10px]">
                   No tasks yet
                 </div>
               )}
 
               {/* Add Task */}
-              <div className="flex items-center justify-center gap-1 py-2 text-[10px] text-muted-foreground/40">
+              <div className="text-muted-foreground/40 flex items-center justify-center gap-1 py-2 text-[10px]">
                 <Plus size={8} /> Add Task
               </div>
             </div>
