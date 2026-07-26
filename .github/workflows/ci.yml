@@ -76,9 +76,11 @@ jobs:
       - name: Apply migrations to a throwaway Postgres
         # P3-10: proves every migration applies cleanly from scratch against a
         # real Postgres (the `services.postgres` container above), not just a
-        # static drizzle diff. Production migrations run from `vercel-build`
-        # against the prod DATABASE_URL on deploy.
-        run: npm run db:migrate
+        # static drizzle diff. Uses node-postgres over plain TCP (see
+        # scripts/ci-migrate.mjs) - `drizzle-kit migrate` can't be used here
+        # because it auto-selects the Neon WebSocket driver, which cannot reach
+        # a local Postgres. Production migrations run from `vercel-build`.
+        run: npm run db:migrate:ci
 
       - name: Typecheck
         run: npm run typecheck
