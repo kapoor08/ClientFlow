@@ -79,7 +79,10 @@ export function assertSafeWebhookUrl(raw: string): URL {
   if (host === "localhost" || BLOCKED_HOST_SUFFIXES.some((s) => host.endsWith(s))) {
     throw new UnsafeWebhookUrlError("Webhook URL host is not allowed.");
   }
-  if (net.isIP(host) && ipIsPrivate(host)) {
+  // URL.hostname wraps IPv6 literals in brackets ([::1]); strip them so net.isIP
+  // and the private-range checks recognise the address.
+  const ipLiteral = host.replace(/^\[|\]$/g, "");
+  if (net.isIP(ipLiteral) && ipIsPrivate(ipLiteral)) {
     throw new UnsafeWebhookUrlError("Webhook URL cannot target a private or loopback address.");
   }
 
@@ -94,9 +97,11 @@ export function assertSafeWebhookUrl(raw: string): URL {
  */
 export async function assertOutboundHostAllowed(hostname: string): Promise<void> {
   const host = hostname.toLowerCase().replace(/\.$/, "");
+  // Strip IPv6 brackets ([::1]) so the literal is recognised by net.isIP.
+  const ipLiteral = host.replace(/^\[|\]$/g, "");
 
-  if (net.isIP(host)) {
-    if (ipIsPrivate(host)) {
+  if (net.isIP(ipLiteral)) {
+    if (ipIsPrivate(ipLiteral)) {
       throw new UnsafeWebhookUrlError("Webhook host resolves to a private address.");
     }
     return;
