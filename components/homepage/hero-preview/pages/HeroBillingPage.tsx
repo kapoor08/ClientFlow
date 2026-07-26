@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Briefcase, Calendar, CheckSquare, CreditCard, Download, Eye, FolderOpen, MessageSquare, Upload, Users } from "lucide-react";
 import { Pagination } from "../shared";
 
@@ -38,7 +38,7 @@ export function HeroBillingPage() {
       </div>
 
       {/* Subscription card */}
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-3 rounded-lg border border-border bg-card p-3"
@@ -58,17 +58,17 @@ export function HeroBillingPage() {
         <div className="mt-0.5 flex items-center gap-0.5 text-[10px] text-muted-foreground">
           <Calendar size={6} /> Renews in 13 days
         </div>
-      </motion.div>
+      </Motion.div>
 
       {/* Usage */}
       <div className="mb-2">
         <h3 className="mb-1.5 text-[13px] font-bold text-foreground">Usage</h3>
         <div className="grid grid-cols-3 gap-1.5 mb-2">
           {USAGE_ROW1.map(({ icon: Icon, label, value, limit }, i) => (
-            <motion.div key={label} custom={i} variants={fadeIn} initial="hidden" animate="show" className="rounded-lg border border-border bg-card p-2">
+            <Motion.div key={label} custom={i} variants={fadeIn} initial="hidden" animate="show" className="rounded-lg border border-border bg-card p-2">
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Icon size={7} /> {label}</div>
               <div className="mt-1 text-sm font-bold text-foreground">{value} <span className="text-[11px] font-normal text-muted-foreground">/ {limit}</span></div>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
       </div>
@@ -78,10 +78,10 @@ export function HeroBillingPage() {
         <h3 className="mb-1.5 text-[13px] font-bold text-foreground">This Month&apos;s Activity</h3>
         <div className="grid grid-cols-3 gap-1.5">
           {USAGE_ROW2.map(({ icon: Icon, label, value, limit }, i) => (
-            <motion.div key={label} custom={i + 3} variants={fadeIn} initial="hidden" animate="show" className="rounded-lg border border-border bg-card p-2">
+            <Motion.div key={label} custom={i + 3} variants={fadeIn} initial="hidden" animate="show" className="rounded-lg border border-border bg-card p-2">
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Icon size={7} /> {label}</div>
               <div className="mt-1 text-sm font-bold text-foreground">{value} <span className="text-[11px] font-normal text-muted-foreground">/ {limit}</span></div>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
       </div>
@@ -99,7 +99,7 @@ export function HeroBillingPage() {
           </thead>
           <tbody>
             {BILLING_HISTORY.map((b, i) => (
-              <motion.tr key={b.invoice} custom={i} variants={fadeIn} initial="hidden" animate="show" className="border-b border-border last:border-0 hover:bg-secondary/30">
+              <Motion.tr key={b.invoice} custom={i} variants={fadeIn} initial="hidden" animate="show" className="border-b border-border last:border-0 hover:bg-secondary/30">
                 <td className="px-4 py-2.5 text-[11px] font-mono text-foreground">{b.invoice}</td>
                 <td className="px-4 py-2.5 text-[11px] font-medium text-foreground">{b.amount}</td>
                 <td className="px-4 py-2.5">
@@ -112,7 +112,7 @@ export function HeroBillingPage() {
                     <Download size={7} className="text-muted-foreground/30" />
                   </div>
                 </td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

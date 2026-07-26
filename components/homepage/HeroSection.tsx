@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowRight, ChevronRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useHomeMotion } from "@/hooks/use-home-motion";
@@ -16,11 +16,11 @@ const HeroSection = () => {
       <div className="absolute inset-0 hero-grid" />
 
       <div className="container relative z-10 pt-20 pb-10 md:pt-28 md:pb-16 lg:pt-20 lg:pb-20">
-        <motion.div
+        <Motion.div
           {...motionFx.hero.container}
           className="mx-auto max-w-4xl text-center"
         >
-          <motion.div
+          <Motion.div
             {...motionFx.hero.badge}
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-brand-100 px-4 py-1.5 text-[13px] font-medium text-brand-700 backdrop-blur-sm"
           >
@@ -29,7 +29,7 @@ const HeroSection = () => {
             </span>
             Built for agencies that move fast
             <ChevronRight size={14} className="text-brand-300" />
-          </motion.div>
+          </Motion.div>
 
           <h1 className="font-display text-[2.5rem] font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-[4.25rem]">
             Manage clients, projects
@@ -39,15 +39,15 @@ const HeroSection = () => {
             </span>
           </h1>
 
-          <motion.p
+          <Motion.p
             {...motionFx.hero.lead}
             className="mx-auto mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground md:text-base"
           >
             ClientFlow is the all-in-one SaaS platform for agencies and
             service-based teams. Stop juggling tools - start delivering results.
-          </motion.p>
+          </Motion.p>
 
-          <motion.div
+          <Motion.div
             {...motionFx.hero.actions}
             className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
           >
@@ -68,22 +68,22 @@ const HeroSection = () => {
             >
               <Link href="/features">See All Features</Link>
             </Button>
-          </motion.div>
+          </Motion.div>
 
-          <motion.p
+          <Motion.p
             {...motionFx.hero.meta}
             className="mt-5 text-[12px] text-muted-foreground/70"
           >
             No credit card required · 14-day free trial · Cancel anytime
-          </motion.p>
-        </motion.div>
+          </Motion.p>
+        </Motion.div>
 
-        <motion.div
+        <Motion.div
           {...motionFx.hero.mockup}
           className="mx-auto mt-12 max-w-full"
         >
           <HeroPreview />
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
   );

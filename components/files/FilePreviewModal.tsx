@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, FileX, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export type PreviewFile = {
@@ -18,30 +13,16 @@ export type PreviewFile = {
   mimeType: string | null;
 };
 
-type PreviewKind =
-  | "image"
-  | "video"
-  | "pdf"
-  | "markdown"
-  | "text"
-  | "office"
-  | "unsupported";
+type PreviewKind = "image" | "video" | "pdf" | "markdown" | "text" | "office" | "unsupported";
 
 function isMarkdown(mimeType: string | null, fileName: string): boolean {
-  if (
-    mimeType === "text/markdown" ||
-    mimeType === "text/x-markdown" ||
-    mimeType === "text/md"
-  )
+  if (mimeType === "text/markdown" || mimeType === "text/x-markdown" || mimeType === "text/md")
     return true;
   const ext = fileName.split(".").pop()?.toLowerCase();
   return ext === "md" || ext === "mdx" || ext === "markdown";
 }
 
-function getPreviewKind(
-  mimeType: string | null,
-  fileName: string,
-): PreviewKind {
+function getPreviewKind(mimeType: string | null, fileName: string): PreviewKind {
   // Check filename extension first - MIME type may be null or generic from the storage provider
   if (isMarkdown(mimeType, fileName)) return "markdown";
   if (!mimeType) return "unsupported";
@@ -89,7 +70,7 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
     <Dialog open={!!file} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[92vh] w-[92vw] max-w-[92vw] flex-col gap-0 overflow-hidden p-0 sm:max-w-[92vw]">
         {/* Header */}
-        <DialogHeader className="flex shrink-0 flex-row items-center justify-between border-b border-border px-5 py-3 pr-12">
+        <DialogHeader className="border-border flex shrink-0 flex-row items-center justify-between border-b px-5 py-3 pr-12">
           <DialogTitle
             className="max-w-[calc(100%-7rem)] truncate text-sm font-medium"
             title={file?.fileName}
@@ -114,6 +95,11 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
           {/* Image */}
           {kind === "image" && (
             <div className="flex h-full min-h-[60vh] items-center justify-center p-6">
+              {/* P3-5: raw <img> is intentional here - an on-demand full-size
+                  preview of a user-uploaded file of arbitrary intrinsic
+                  dimensions (already served from the Cloudinary CDN), so
+                  next/image's fixed-size optimization does not apply. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={file!.storageUrl}
                 alt={file!.fileName}
@@ -150,15 +136,14 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                 title={file!.fileName}
                 className="h-full w-full border-0"
               />
-              <p className="shrink-0 border-t border-border px-4 py-2 text-center text-[11px] text-muted-foreground">
-                Powered by Google Docs Viewer · If the preview doesn&apos;t
-                load,{" "}
+              <p className="border-border text-muted-foreground shrink-0 border-t px-4 py-2 text-center text-[11px]">
+                Powered by Google Docs Viewer · If the preview doesn&apos;t load,{" "}
                 <a
                   href={file!.storageUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="underline underline-offset-2 hover:text-foreground"
+                  className="hover:text-foreground underline underline-offset-2"
                 >
                   download the file
                 </a>
@@ -171,34 +156,29 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
             <div className="p-6">
               {textLoading ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2
-                    size={20}
-                    className="animate-spin text-muted-foreground"
-                  />
+                  <Loader2 size={20} className="text-muted-foreground animate-spin" />
                 </div>
               ) : (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     h1: ({ children }) => (
-                      <h1 className="mb-4 mt-6 font-display text-2xl font-bold text-foreground first:mt-0">
+                      <h1 className="font-display text-foreground mt-6 mb-4 text-2xl font-bold first:mt-0">
                         {children}
                       </h1>
                     ),
                     h2: ({ children }) => (
-                      <h2 className="mb-3 mt-5 font-display text-xl font-semibold text-foreground">
+                      <h2 className="font-display text-foreground mt-5 mb-3 text-xl font-semibold">
                         {children}
                       </h2>
                     ),
                     h3: ({ children }) => (
-                      <h3 className="mb-2 mt-4 font-display text-base font-semibold text-foreground">
+                      <h3 className="font-display text-foreground mt-4 mb-2 text-base font-semibold">
                         {children}
                       </h3>
                     ),
                     p: ({ children }) => (
-                      <p className="mb-3 text-sm leading-relaxed text-foreground/90">
-                        {children}
-                      </p>
+                      <p className="text-foreground/90 mb-3 text-sm leading-relaxed">{children}</p>
                     ),
                     a: ({ href, children }) => (
                       <a
@@ -211,20 +191,18 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                       </a>
                     ),
                     ul: ({ children }) => (
-                      <ul className="mb-3 ml-5 list-disc space-y-1 text-sm text-foreground/90">
+                      <ul className="text-foreground/90 mb-3 ml-5 list-disc space-y-1 text-sm">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="mb-3 ml-5 list-decimal space-y-1 text-sm text-foreground/90">
+                      <ol className="text-foreground/90 mb-3 ml-5 list-decimal space-y-1 text-sm">
                         {children}
                       </ol>
                     ),
-                    li: ({ children }) => (
-                      <li className="leading-relaxed">{children}</li>
-                    ),
+                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                     blockquote: ({ children }) => (
-                      <blockquote className="mb-3 border-l-4 border-border pl-4 text-sm italic text-muted-foreground">
+                      <blockquote className="border-border text-muted-foreground mb-3 border-l-4 pl-4 text-sm italic">
                         {children}
                       </blockquote>
                     ),
@@ -232,14 +210,14 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                       const isBlock = className?.includes("language-");
                       return isBlock ? (
                         <code
-                          className={`block overflow-x-auto rounded-lg bg-muted px-4 py-3 font-mono text-xs leading-relaxed text-foreground ${className}`}
+                          className={`bg-muted text-foreground block overflow-x-auto rounded-lg px-4 py-3 font-mono text-xs leading-relaxed ${className}`}
                           {...props}
                         >
                           {children}
                         </code>
                       ) : (
                         <code
-                          className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground"
+                          className="bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-xs"
                           {...props}
                         >
                           {children}
@@ -247,34 +225,29 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
                       );
                     },
                     pre: ({ children }) => (
-                      <pre className="mb-3 overflow-x-auto rounded-lg bg-muted p-0">
-                        {children}
-                      </pre>
+                      <pre className="bg-muted mb-3 overflow-x-auto rounded-lg p-0">{children}</pre>
                     ),
-                    hr: () => <hr className="my-4 border-border" />,
+                    hr: () => <hr className="border-border my-4" />,
                     table: ({ children }) => (
                       <div className="mb-3 overflow-x-auto">
-                        <table className="w-full border-collapse text-sm">
-                          {children}
-                        </table>
+                        <table className="w-full border-collapse text-sm">{children}</table>
                       </div>
                     ),
                     th: ({ children }) => (
-                      <th className="border border-border bg-muted px-3 py-2 text-left text-xs font-semibold text-foreground">
+                      <th className="border-border bg-muted text-foreground border px-3 py-2 text-left text-xs font-semibold">
                         {children}
                       </th>
                     ),
                     td: ({ children }) => (
-                      <td className="border border-border px-3 py-2 text-sm text-foreground/80">
+                      <td className="border-border text-foreground/80 border px-3 py-2 text-sm">
                         {children}
                       </td>
                     ),
                     img: ({ src, alt }) => (
-                      <img
-                        src={src}
-                        alt={alt}
-                        className="my-3 max-w-full rounded-lg"
-                      />
+                      // P3-5: markdown-authored image with an arbitrary host and
+                      // unknown dimensions - next/image cannot be used here.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={src} alt={alt} className="my-3 max-w-full rounded-lg" />
                     ),
                   }}
                 >
@@ -289,13 +262,10 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
             <div className="p-5">
               {textLoading ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2
-                    size={20}
-                    className="animate-spin text-muted-foreground"
-                  />
+                  <Loader2 size={20} className="text-muted-foreground animate-spin" />
                 </div>
               ) : (
-                <pre className="whitespace-pre-wrap wrap-break-words font-mono text-sm leading-relaxed text-foreground">
+                <pre className="wrap-break-words text-foreground font-mono text-sm leading-relaxed whitespace-pre-wrap">
                   {textContent}
                 </pre>
               )}
@@ -305,14 +275,12 @@ export function FilePreviewModal({ file, onClose }: FilePreviewModalProps) {
           {/* Unsupported */}
           {kind === "unsupported" && (
             <div className="flex flex-col items-center gap-4 py-20 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <div className="bg-muted flex h-16 w-16 items-center justify-center rounded-full">
                 <FileX size={28} className="text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Preview not available
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-foreground text-sm font-medium">Preview not available</p>
+                <p className="text-muted-foreground mt-1 text-xs">
                   This file type cannot be previewed in the browser.
                 </p>
               </div>

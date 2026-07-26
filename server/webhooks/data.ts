@@ -1,11 +1,12 @@
 import "server-only";
 
-import { createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { outboundWebhooks } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { writeAuditLog } from "@/server/security/audit";
+import { assertSafeWebhookUrl } from "@/server/webhooks/url-guard";
 
 export type WebhookItem = {
   id: string;
@@ -54,6 +55,9 @@ export async function createWebhookForUser(
   if (!ctx) throw new Error("No active organization found.");
   if (!ctx.canManageSettings) throw new Error("Only admins can create webhooks.");
 
+  const url = data.url.trim();
+  assertSafeWebhookUrl(url); // SSRF guard - rejects non-https / private / internal targets
+
   const id = crypto.randomUUID();
   const secret = generateSecret();
 
@@ -63,7 +67,7 @@ export async function createWebhookForUser(
       id,
       organizationId: ctx.organizationId,
       name: data.name.trim(),
-      url: data.url.trim(),
+      url,
       secret,
       events: data.events,
       createdByUserId: userId,
@@ -91,6 +95,13 @@ export async function updateWebhookForUser(
   if (!ctx) throw new Error("No active organization found.");
   if (!ctx.canManageSettings) throw new Error("Only admins can update webhooks.");
 
+  // Re-validate the URL on update (SSRF guard) and persist the normalized value.
+  const changes = { ...data };
+  if (changes.url !== undefined) {
+    changes.url = changes.url.trim();
+    assertSafeWebhookUrl(changes.url);
+  }
+
   const [existing] = await db
     .select({ id: outboundWebhooks.id, name: outboundWebhooks.name })
     .from(outboundWebhooks)
@@ -101,7 +112,7 @@ export async function updateWebhookForUser(
 
   await db
     .update(outboundWebhooks)
-    .set({ ...data, updatedAt: new Date() })
+    .set({ ...changes, updatedAt: new Date() })
     .where(eq(outboundWebhooks.id, webhookId));
 
   writeAuditLog({

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, count, desc, eq, gt, gte, isNull, lt, lte, ne, sql, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, lt, lte, ne, sql, sum } from "drizzle-orm";
 import { clients, invoices, projectFiles, projects, tasks, timeEntries } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
@@ -106,32 +106,6 @@ export async function getAnalyticsSummaryForUser(
           dateTo ? lte(tasks.createdAt, dateTo) : undefined,
         )
       : taskBase;
-
-  const invoiceBase = and(
-    eq(invoices.organizationId, orgId),
-    clientId ? eq(invoices.clientId, clientId) : undefined,
-    dateFrom ? gte(invoices.createdAt, dateFrom) : undefined,
-    dateTo ? lte(invoices.createdAt, dateTo) : undefined,
-  );
-
-  const timeBase = and(
-    eq(timeEntries.organizationId, orgId),
-    clientId || priority
-      ? undefined
-      : and(
-          dateFrom ? gte(timeEntries.loggedAt, dateFrom) : undefined,
-          dateTo ? lte(timeEntries.loggedAt, dateTo) : undefined,
-        ),
-  );
-
-  // ─── Helper: build task query (with optional project join for client/priority) ─
-
-  function withProjectJoin<T>(
-    baseQuery: Parameters<typeof db.select>[0],
-  ) {
-    // Used in task queries when clientId or priority filter is active
-    return clientId || priority;
-  }
 
   // ─── All queries in parallel ──────────────────────────────────────────────────
 

@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, XCircle, Building2, UserCheck } from "lucide-react";
+import { CheckCircle2, XCircle, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInvitationByToken } from "@/server/invitations";
 import { getServerSession } from "@/server/auth/session";
 import { acceptInviteAction } from "@/server/actions/invite";
+import { InviteLayout, StatusCard } from "@/components/invite/InviteLayout";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -150,40 +151,5 @@ export default async function InviteAcceptPage({ params, searchParams }: Props) 
         </div>
       </div>
     </InviteLayout>
-  );
-}
-
-// ─── Layout helpers ────────────────────────────────────────────────────────────
-
-function InviteLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-background flex min-h-screen flex-col items-center justify-center px-4 py-16">
-      <div className="mb-8 flex items-center gap-2">
-        <Building2 size={24} className="text-primary" />
-        <span className="font-display text-foreground text-xl font-semibold">ClientFlow</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function StatusCard({
-  icon,
-  title,
-  description,
-  action,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-card border-border bg-card shadow-cf-2 w-full max-w-md border p-8 text-center">
-      <div className="mb-4 flex justify-center">{icon}</div>
-      <h1 className="font-display text-foreground mb-2 text-xl font-semibold">{title}</h1>
-      <p className="text-muted-foreground mb-6 text-sm">{description}</p>
-      {action && <div className="flex justify-center">{action}</div>}
-    </div>
   );
 }

@@ -31,7 +31,6 @@ export const ControlledDateRangePicker = <T extends FieldValues>({
   label,
   control,
   error,
-  disabled = false,
   description,
   showCompare = false,
   align = "start",

@@ -1,12 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import {
   Building2,
   ChevronDown,
-  Code2,
   Download,
-  Globe,
   Key,
   Palette,
   Save,
@@ -30,7 +28,7 @@ export function HeroOrganizationPage() {
     <div className="hero-preview-scrollbar flex-1 overflow-y-auto p-5">
       <div className="flex gap-3">
         {/* Settings sidebar */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
           className="w-28 shrink-0"
@@ -49,10 +47,10 @@ export function HeroOrganizationPage() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* Settings content */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -120,7 +118,7 @@ export function HeroOrganizationPage() {
           <div className="flex items-center gap-0.5 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground w-fit">
             <Save size={7} /> Save Changes
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </div>
   );

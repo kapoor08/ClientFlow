@@ -3,32 +3,18 @@
 import { useActionState, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { ControlledInput, ControlledSelect, ControlledTextarea } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { contactMethods } from "@/config/contact";
+import { ContactMethods } from "@/components/contact/ContactMethods";
+import {
+  contactFormSchema,
+  SUBJECT_OPTIONS,
+  type ContactFormValues,
+} from "@/schemas/contact";
 import { type ContactActionState, submitContactFormAction } from "@/server/actions/contact";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
-
-const SUBJECT_OPTIONS = [
-  { value: "General Inquiry", label: "General Inquiry" },
-  { value: "Request a Demo", label: "Request a Demo" },
-  { value: "Sales / Enterprise", label: "Sales / Enterprise" },
-  { value: "Partnership", label: "Partnership" },
-  { value: "Support", label: "Support" },
-];
-
-const contactFormSchema = z.object({
-  name: z.string().trim().min(2, "Enter a valid name."),
-  email: z.string().trim().email("Enter a valid email address."),
-  company: z.string().trim().optional(),
-  subject: z.string().trim().min(1, "Select a subject."),
-  message: z.string().trim().min(10, "Add a bit more detail so we can help."),
-});
-
-type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 const ContactPage = () => {
   const initialState: ContactActionState = {
@@ -72,7 +58,7 @@ const ContactPage = () => {
         <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
         <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
         <div className="relative container py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -84,7 +70,7 @@ const ContactPage = () => {
             <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
               Have a question, want a demo, or ready to start? We&apos;d love to hear from you.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
@@ -184,30 +170,7 @@ const ContactPage = () => {
               )}
             </div>
 
-            <div>
-              <h2 className="font-display text-foreground text-lg font-bold">
-                Other ways to reach us
-              </h2>
-              <div className="mt-5 space-y-3">
-                {contactMethods.map((m) => (
-                  <div
-                    key={m.title}
-                    className="border-border bg-card hover:border-primary/30 flex gap-3 rounded-xl border p-4 transition-all"
-                  >
-                    <div className="bg-primary/8 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-                      <m.icon size={18} />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-foreground text-[13px] font-semibold">
-                        {m.title}
-                      </h3>
-                      <p className="text-primary text-[13px] font-medium">{m.value}</p>
-                      <p className="text-muted-foreground text-[11px]">{m.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ContactMethods />
           </div>
         </div>
       </section>

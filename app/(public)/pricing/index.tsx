@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import PlanCards from "@/components/shared/PlanCards";
 import type { PublicPlan } from "@/server/public/plans";
 
@@ -14,7 +14,7 @@ const PricingPage = ({ plans }: { plans: PublicPlan[] }) => {
           style={{ background: "var(--cf-hero-gradient)" }}
         />
         <div className="container relative py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -27,7 +27,7 @@ const PricingPage = ({ plans }: { plans: PublicPlan[] }) => {
             <p className="mt-4 text-base text-muted-foreground">
               Start free. Upgrade when you need more power.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import {
   Bell,
   BellRing,
@@ -48,7 +48,7 @@ export function HeroNotificationsPage() {
           const cfg = typeIcon[n.type] ?? { icon: Bell, color: "bg-secondary text-muted-foreground" };
           const Icon = cfg.icon;
           return (
-            <motion.div
+            <Motion.div
               key={n.title}
               custom={i}
               variants={itemAnim}
@@ -71,7 +71,7 @@ export function HeroNotificationsPage() {
               {n.unread && (
                 <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               )}
-            </motion.div>
+            </Motion.div>
           );
         })}
       </div>

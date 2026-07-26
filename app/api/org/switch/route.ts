@@ -9,9 +9,9 @@ export async function POST(req: Request) {
   try {
     const { userId } = await requireAuth();
     const body = await req.json();
-    const organizationId: string = body.organizationId;
+    const organizationId: unknown = body.organizationId;
 
-    if (!organizationId) {
+    if (typeof organizationId !== "string" || !organizationId) {
       return NextResponse.json({ error: "organizationId required." }, { status: 400 });
     }
 

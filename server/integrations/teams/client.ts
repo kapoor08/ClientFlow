@@ -14,6 +14,7 @@ export async function postToPowerAutomate(input: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input.payload),
+    signal: AbortSignal.timeout(10_000),
   });
   // Power Automate returns 202 Accepted with an empty body on success.
   // 4xx/5xx come back with a JSON error envelope.

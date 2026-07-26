@@ -170,7 +170,7 @@ export function InvitationsTable({
       .withOptions({ shallow: false, startTransition, clearOnDefault: true }),
   );
 
-  const handleRevoke = (id: string, email: string) => {
+  const handleRevoke = (id: string, _email: string) => {
     setRevokingId(id);
     revoke.mutate(
       { invitationId: id },

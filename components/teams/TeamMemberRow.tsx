@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import {
   MoreHorizontal,
@@ -64,9 +65,12 @@ function MemberAvatar({ name, image }: { name: string; image: string | null }) {
 
   if (image) {
     return (
-      <img
+      <Image
         src={image}
         alt={name}
+        width={32}
+        height={32}
+        unoptimized
         className="h-8 w-8 rounded-full object-cover"
       />
     );

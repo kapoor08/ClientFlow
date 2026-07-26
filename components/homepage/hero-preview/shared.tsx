@@ -124,7 +124,6 @@ export function StatusBadge({
 
 export function Pagination({
   showing,
-  total,
   pageSize = "10 / page",
 }: {
   showing: string;

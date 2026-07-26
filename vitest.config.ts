@@ -9,6 +9,19 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx"],
+    // Coverage floor for the pure, critical logic that now has real tests.
+    // Active only under `npm run test:coverage` (requires @vitest/coverage-v8).
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: [
+        "lib/auth/api-key-hash.ts",
+        "lib/webhooks/signature.ts",
+        "lib/billing/invoice-totals.ts",
+        "server/webhooks/url-guard.ts",
+      ],
+      thresholds: { lines: 70, functions: 70, statements: 70 },
+    },
   },
   resolve: {
     // More specific aliases must come before general ones

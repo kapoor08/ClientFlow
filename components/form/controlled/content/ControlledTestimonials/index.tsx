@@ -17,11 +17,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2, Upload, X } from "lucide-react";
+import Image from "next/image";
 import type * as React from "react";
 import { useState } from "react";
 import {
   type Control,
-  Controller,
   type FieldError,
   useController,
   useFieldArray,
@@ -211,9 +211,12 @@ const SortableTestimonialItem: React.FC<SortableTestimonialItemProps> = ({
           <div className="flex items-center gap-3">
             {imageUrlField.value ? (
               <div className="relative">
-                <img
+                <Image
                   src={imageUrlField.value}
                   alt={nameField.value || "Avatar"}
+                  width={48}
+                  height={48}
+                  unoptimized
                   className="w-12 h-12 rounded-full object-cover border-2 border-border"
                 />
                 <Button

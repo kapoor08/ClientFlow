@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { sections } from "@/config/docs";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -12,7 +12,7 @@ const DocsPage = () => (
       <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
       <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
       <div className="relative container py-14 md:py-20">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -24,7 +24,7 @@ const DocsPage = () => (
           <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base">
             Everything you need to build, integrate, and scale with ClientFlow.
           </p>
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
 
@@ -32,7 +32,7 @@ const DocsPage = () => (
       <div className="container mx-auto max-w-4xl">
         <div className="space-y-3">
           {sections.map((s) => (
-            <motion.div
+            <Motion.div
               key={s.title}
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -51,7 +51,7 @@ const DocsPage = () => (
                   <ArrowRight size={14} />
                 </Link>
               </Button>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
       </div>

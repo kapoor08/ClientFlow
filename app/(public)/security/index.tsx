@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useMotionStagger } from "@/hooks/use-home-motion";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Shield } from "lucide-react";
 import { dataHandling, practices } from "@/config/security";
 
@@ -19,7 +19,7 @@ const SecurityPage = () => {
         <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
         <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
         <div className="relative container py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -36,7 +36,7 @@ const SecurityPage = () => {
               ClientFlow is engineered with strict tenant isolation, audited access controls, and
               modern transport security. Below is the honest list of what ships today.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
@@ -48,7 +48,7 @@ const SecurityPage = () => {
           <p className="text-muted-foreground mt-2 text-center text-sm">
             How we keep your data safe every day.
           </p>
-          <motion.div
+          <Motion.div
             variants={motionStagger.container}
             initial="hidden"
             whileInView="show"
@@ -56,7 +56,7 @@ const SecurityPage = () => {
             className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
           >
             {practices.map((p) => (
-              <motion.div
+              <Motion.div
                 key={p.title}
                 variants={motionStagger.item}
                 className="border-border bg-card hover:border-primary/30 hover:shadow-cf-2 rounded-xl border p-5 transition-all"
@@ -68,9 +68,9 @@ const SecurityPage = () => {
                   {p.title}
                 </h3>
                 <p className="text-muted-foreground mt-1.5 text-[13px]">{p.desc}</p>
-              </motion.div>
+              </Motion.div>
             ))}
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 

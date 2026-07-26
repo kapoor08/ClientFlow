@@ -20,9 +20,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import type * as React from "react";
 import {
   type Control,
-  Controller,
   type FieldError,
-  type FieldValues,
   useController,
   useFieldArray,
   useFormContext,
@@ -78,14 +76,7 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
     name: `${fieldName}.subtitle`,
   });
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
   });
 
@@ -96,23 +87,21 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className="relative py-0 gap-0">
-      <CardHeader className="pt-2 px-3">
+    <Card ref={setNodeRef} style={style} className="relative gap-0 py-0">
+      <CardHeader className="px-3 pt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing"
+              className="h-6 w-6 cursor-grab p-0 active:cursor-grabbing"
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <GripVertical className="text-muted-foreground h-3 w-3" />
             </Button>
-            <span className="text-xs font-medium text-muted-foreground">
-              Step {index + 1}
-            </span>
+            <span className="text-muted-foreground text-xs font-medium">Step {index + 1}</span>
           </div>
           {canRemove && (
             <Button
@@ -120,14 +109,14 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
               variant="ghost"
               size="sm"
               onClick={onRemove}
-              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 w-6 p-0"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-0 pb-2 px-3 space-y-2">
+      <CardContent className="space-y-2 px-3 pt-0 pb-2">
         <div className="space-y-1">
           <Label htmlFor={`step-${fieldName}-title`} className="text-xs">
             Title *
@@ -142,15 +131,11 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
             }}
             placeholder="e.g., Signup & Choose a Firm"
             className={`h-8 ${
-              titleFieldState.error
-                ? "border-destructive focus-visible:ring-destructive"
-                : ""
+              titleFieldState.error ? "border-destructive focus-visible:ring-destructive" : ""
             }`}
           />
           {titleFieldState.error && (
-            <p className="text-xs text-destructive mt-1">
-              {titleFieldState.error.message}
-            </p>
+            <p className="text-destructive mt-1 text-xs">{titleFieldState.error.message}</p>
           )}
         </div>
         <div className="space-y-1">
@@ -167,16 +152,12 @@ const SortableStepItem: React.FC<SortableStepItemProps> = ({
             }}
             placeholder="Describe what happens in this step..."
             rows={2}
-            className={`text-sm resize-none ${
-              subtitleFieldState.error
-                ? "border-destructive focus-visible:ring-destructive"
-                : ""
+            className={`resize-none text-sm ${
+              subtitleFieldState.error ? "border-destructive focus-visible:ring-destructive" : ""
             }`}
           />
           {subtitleFieldState.error && (
-            <p className="text-xs text-destructive mt-1">
-              {subtitleFieldState.error.message}
-            </p>
+            <p className="text-destructive mt-1 text-xs">{subtitleFieldState.error.message}</p>
           )}
         </div>
       </CardContent>
@@ -232,20 +213,11 @@ export const ControlledProcessSteps: React.FC<ControlledProcessStepsProps> = ({
   return (
     <div className={`space-y-2 ${className || ""}`}>
       {label && <Label className="text-sm">{label}</Label>}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-xs">{description}</p>}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-2 gap-0">
-          <SortableContext
-            items={fields.map((f) => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="gap-0 space-y-2">
+          <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             {fields.map((step, index) => (
               <SortableStepItem
                 key={step.id}
@@ -263,16 +235,16 @@ export const ControlledProcessSteps: React.FC<ControlledProcessStepsProps> = ({
             type="button"
             variant="outline"
             onClick={handleAddStep}
-            className="w-full h-8"
+            className="h-8 w-full"
             size="sm"
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="mr-1 h-3 w-3" />
             Add Step
           </Button>
         </div>
       </DndContext>
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-destructive text-sm">{error.message}</p>}
     </div>
   );
 };

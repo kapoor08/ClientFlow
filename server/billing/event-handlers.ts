@@ -1,7 +1,7 @@
 import "server-only";
 
 import type Stripe from "stripe";
-import { and, count, eq, or } from "drizzle-orm";
+import { and, count, eq, or, sql } from "drizzle-orm";
 import { stripe, withStripeBreaker } from "@/server/third-party/stripe";
 import { db } from "@/server/db/client";
 import {
@@ -96,6 +96,30 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     stripe.subscriptions.retrieve(stripeSubscriptionId),
   );
   const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
+
+  // Idempotency: if a subscription row for this Stripe subscription already
+  // exists - `customer.subscription.created` may have landed first, or this is
+  // a duplicate `checkout.session.completed` delivery - reuse it and just point
+  // the org at it. Prevents duplicate subscription rows without relying on the
+  // insert throwing; the partial-unique index on stripe_subscription_id is the
+  // DB backstop for the concurrent-delivery race.
+  const [existing] = await db
+    .select({ id: subscriptions.id })
+    .from(subscriptions)
+    .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .insert(organizationCurrentSubscriptions)
+      .values({ id: createId(), organizationId, subscriptionId: existing.id })
+      .onConflictDoUpdate({
+        target: organizationCurrentSubscriptions.organizationId,
+        set: { subscriptionId: existing.id, updatedAt: new Date() },
+      });
+    return;
+  }
+
   const subscriptionId = createId();
 
   await db.insert(subscriptions).values({
@@ -225,9 +249,10 @@ async function handleSubscriptionCreated(stripeSub: Stripe.Subscription) {
   }
 }
 
-async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
+async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription, eventCreated: number) {
   const stripeSubscriptionId = stripeSub.id;
   const { periodStart, periodEnd, trialEnd } = getSubscriptionPeriod(stripeSub);
+  const eventAt = new Date(eventCreated * 1000);
 
   const [existingSub] = await db
     .select({
@@ -235,6 +260,7 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
       organizationId: subscriptions.organizationId,
       cancelAtPeriodEnd: subscriptions.cancelAtPeriodEnd,
       planId: subscriptions.planId,
+      lastStripeEventAt: subscriptions.lastStripeEventAt,
     })
     .from(subscriptions)
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId))
@@ -242,6 +268,16 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
 
   if (!existingSub) {
     await upsertSubscriptionFromStripe(stripeSub);
+    return;
+  }
+
+  // Reject out-of-order deliveries: if a strictly newer Stripe event has
+  // already been applied to this row, ignore this one. Stops a delayed
+  // `customer.subscription.updated` from reviving a subscription already
+  // finalized by `customer.subscription.deleted`. Same-event duplicates are
+  // deduped upstream by the webhook claim, so a strict `>` (not `>=`) is
+  // correct - it still lets distinct same-second events through.
+  if (existingSub.lastStripeEventAt && existingSub.lastStripeEventAt > eventAt) {
     return;
   }
 
@@ -303,6 +339,7 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
       cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
       canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
       trialEndsAt: trialEnd ? new Date(trialEnd * 1000) : null,
+      lastStripeEventAt: eventAt,
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId));
@@ -342,13 +379,16 @@ async function handleSubscriptionUpdated(stripeSub: Stripe.Subscription) {
   }
 }
 
-async function handleSubscriptionDeleted(stripeSub: Stripe.Subscription) {
+async function handleSubscriptionDeleted(stripeSub: Stripe.Subscription, eventCreated: number) {
+  // Terminal: stamp the watermark at this event's timestamp so a late-arriving
+  // (older) `updated` can't overwrite the canceled state back to active.
   await db
     .update(subscriptions)
     .set({
       status: "canceled",
       canceledAt: new Date(),
       endedAt: new Date(),
+      lastStripeEventAt: new Date(eventCreated * 1000),
       updatedAt: new Date(),
     })
     .where(eq(subscriptions.stripeSubscriptionId, stripeSub.id));
@@ -553,6 +593,10 @@ async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
 
   if (!sub) return;
 
+  // Upsert keyed on the Stripe invoice id (partial-unique). Retried
+  // `invoice.payment_failed` deliveries update the single row instead of
+  // inserting duplicates. `setWhere` guards against an out-of-order failed
+  // event overwriting an already-paid/refunded invoice back to failed.
   await db
     .insert(invoices)
     .values({
@@ -567,7 +611,19 @@ async function handleInvoicePaymentFailed(stripeInvoice: Stripe.Invoice) {
       invoiceUrl: stripeInvoice.hosted_invoice_url ?? null,
       dueAt: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000) : null,
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: invoices.externalInvoiceId,
+      targetWhere: sql`${invoices.externalInvoiceId} IS NOT NULL`,
+      set: {
+        status: "payment_failed",
+        amountDueCents: stripeInvoice.amount_due,
+        currencyCode: stripeInvoice.currency.toUpperCase(),
+        invoiceUrl: stripeInvoice.hosted_invoice_url ?? null,
+        dueAt: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000) : null,
+        updatedAt: new Date(),
+      },
+      setWhere: sql`${invoices.status} not in ('paid', 'refunded', 'partially_refunded')`,
+    });
 
   try {
     const ctx = await getOrgBillingContext(sub.organizationId);
@@ -624,6 +680,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
       id: invoices.id,
       organizationId: invoices.organizationId,
       currencyCode: invoices.currencyCode,
+      amountPaidCents: invoices.amountPaidCents,
       number: invoices.number,
     })
     .from(invoices)
@@ -636,7 +693,26 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   const refundedAmount = charge.amount_refunded ?? 0;
-  const fullyRefunded = refundedAmount >= (charge.amount ?? 0);
+
+  // P3-1: label full vs partial against the amount we actually recorded as paid,
+  // not the raw charge total. Guard currency first - comparing cents across
+  // currencies would mislabel, so if the charge currency doesn't match the
+  // stored invoice currency we fall back to the charge total and flag it.
+  const chargeCurrency = charge.currency?.toUpperCase() ?? null;
+  const currencyMatches =
+    inv.currencyCode != null && chargeCurrency != null && inv.currencyCode === chargeCurrency;
+
+  if (!currencyMatches) {
+    logger.warn("webhook.charge_refunded.currency_mismatch", {
+      externalInvoiceId,
+      invoiceCurrency: inv.currencyCode,
+      chargeCurrency,
+    });
+  }
+
+  const paidBaseline =
+    currencyMatches && inv.amountPaidCents != null ? inv.amountPaidCents : (charge.amount ?? 0);
+  const fullyRefunded = refundedAmount >= paidBaseline;
   const reason = charge.refunds?.data?.[0]?.reason ?? charge.failure_message ?? null;
 
   await db
@@ -684,10 +760,10 @@ export async function dispatchBillingEvent(event: Stripe.Event): Promise<void> {
       await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
       break;
     case "customer.subscription.updated":
-      await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+      await handleSubscriptionUpdated(event.data.object as Stripe.Subscription, event.created);
       break;
     case "customer.subscription.deleted":
-      await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+      await handleSubscriptionDeleted(event.data.object as Stripe.Subscription, event.created);
       break;
     case "invoice.paid":
       await handleInvoicePaid(event.data.object as Stripe.Invoice);

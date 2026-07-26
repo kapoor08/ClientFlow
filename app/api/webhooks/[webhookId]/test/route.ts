@@ -5,6 +5,7 @@ import { requireAuth, apiErrorResponse } from "@/server/api/helpers";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { db } from "@/server/db/client";
 import { outboundWebhooks } from "@/db/schema";
+import { assertSafeWebhookUrl, assertOutboundHostAllowed } from "@/server/webhooks/url-guard";
 
 type Params = { params: Promise<{ webhookId: string }> };
 
@@ -35,6 +36,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
       .limit(1);
 
     if (!hook) throw new Error("Webhook not found.");
+
+    // SSRF guard: re-validate the stored URL (covers legacy rows) and resolve
+    // the host to block private/rebinding targets. Throws UnsafeWebhookUrlError
+    // (422) so /test can't be used to probe internal hosts via the status code.
+    assertSafeWebhookUrl(hook.url);
+    await assertOutboundHostAllowed(new URL(hook.url).hostname);
 
     const body = JSON.stringify({
       event: "ping",

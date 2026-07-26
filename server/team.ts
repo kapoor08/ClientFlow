@@ -6,7 +6,7 @@ import { organizationMemberships, projectMembers, roles } from "@/db/schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { writeAuditLog } from "@/server/security/audit";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import type { MemberPermissionOverrides } from "@/config/role-permissions";
 
 export type TeamModuleAccess = {
@@ -259,8 +259,8 @@ export async function removeMemberForUser(
     entityId: targetMembershipId,
   }).catch(console.error);
 
-  dispatchWebhookEvent(access.organizationId, "team.member_removed", {
+  dispatchWebhookEventAfter(access.organizationId, "team.member_removed", {
     membershipId: targetMembershipId,
     userId: existing[0].userId,
-  }).catch(console.error);
+  });
 }

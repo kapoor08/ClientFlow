@@ -4,6 +4,7 @@ import { HexColorPicker } from "react-colorful";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
+import { DEFAULT_BRAND_COLOR } from "@/constants/colors";
 
 type ColorPickerProps = {
   value: string;
@@ -32,16 +33,16 @@ export function ColorPicker({ value, onChange, disabled, className }: ColorPicke
             type="button"
             disabled={disabled}
             className="h-9 w-9 shrink-0 rounded-lg border border-border shadow-sm transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-            style={{ backgroundColor: isValidHex ? value : "#6366f1" }}
+            style={{ backgroundColor: isValidHex ? value : DEFAULT_BRAND_COLOR }}
             aria-label="Pick a color"
           />
         </PopoverTrigger>
         <PopoverContent className="w-auto p-3" align="start">
-          <HexColorPicker color={isValidHex ? value : "#6366f1"} className="cursor-pointer" onChange={onChange} />
+          <HexColorPicker color={isValidHex ? value : DEFAULT_BRAND_COLOR} className="cursor-pointer" onChange={onChange} />
           <Input
             value={value}
             onChange={handleHexInput}
-            placeholder="#6366f1"
+            placeholder={DEFAULT_BRAND_COLOR}
             maxLength={7}
             className="mt-2 font-mono text-sm"
           />
@@ -51,7 +52,7 @@ export function ColorPicker({ value, onChange, disabled, className }: ColorPicke
       <Input
         value={value}
         onChange={handleHexInput}
-        placeholder="#6366f1"
+        placeholder={DEFAULT_BRAND_COLOR}
         className="w-36 font-mono text-sm"
         maxLength={7}
         disabled={disabled}

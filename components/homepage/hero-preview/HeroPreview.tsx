@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as Motion } from "framer-motion";
 import { HeroSidebar } from "./HeroSidebar";
 import { HeroNavbar } from "./HeroNavbar";
 import { HeroSearchModal } from "./HeroSearchModal";
@@ -103,7 +103,7 @@ export default function HeroPreview() {
 
           {/* Page content with transition */}
           <AnimatePresence mode="wait">
-            <motion.div
+            <Motion.div
               key={activePage}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -116,7 +116,7 @@ export default function HeroPreview() {
               ) : (
                 <HeroPlaceholderPage href={activePage} />
               )}
-            </motion.div>
+            </Motion.div>
           </AnimatePresence>
         </div>
 

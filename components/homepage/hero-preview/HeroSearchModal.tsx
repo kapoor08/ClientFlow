@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m as Motion, AnimatePresence } from "framer-motion";
 import { Search, CornerDownLeft } from "lucide-react";
 import { HERO_NAV_GROUPS } from "./data";
 
@@ -16,7 +16,7 @@ export function HeroSearchModal({ open, onClose, onNavigate }: HeroSearchModalPr
       {open && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -26,7 +26,7 @@ export function HeroSearchModal({ open, onClose, onNavigate }: HeroSearchModalPr
           />
 
           {/* Modal */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
@@ -98,7 +98,7 @@ export function HeroSearchModal({ open, onClose, onNavigate }: HeroSearchModalPr
               </div>
               <span className="text-[9px] text-muted-foreground/40">ClientFlow Search</span>
             </div>
-          </motion.div>
+          </Motion.div>
         </>
       )}
     </AnimatePresence>

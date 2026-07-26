@@ -7,6 +7,7 @@ import { bootstrapWorkspaceForUser } from "@/server/organization-settings";
 import { sendVerifyEmail, sendPasswordReset, sendSignInOtp } from "@/server/email/send";
 import { db } from "@/server/db/client";
 import { signInLockout, lockoutKey } from "@/server/rate-limit";
+import { assertIpAllowedForSignInEmail, IpAllowlistError } from "@/server/security/ip-allowlist";
 import { validatePassword } from "@/lib/password-policy";
 import { verifyTurnstileToken, isTurnstileConfigured } from "@/server/security/turnstile";
 import { desktopExchangePlugin } from "@/server/auth/desktop-exchange-plugin";
@@ -28,6 +29,31 @@ function formatExpiry(ms: number) {
     minute: "2-digit",
     timeZoneName: "short",
   });
+}
+
+/**
+ * Records an email-delivery failure for an auth flow without leaking the
+ * single-use secret (reset/verify URL or sign-in OTP) into logs.
+ *
+ * Those secrets previously reached production server logs and Sentry, which
+ * is an account-takeover vector for anyone with log access. In production we
+ * log only a non-sensitive failure event keyed on a user reference; in
+ * non-production the secret is echoed to the local console as a developer
+ * fallback for when no email provider is configured.
+ */
+function logAuthDeliveryFailure(
+  channel: string,
+  opts: { userRef?: string; secret?: string; error?: unknown },
+) {
+  const ref = opts.userRef ? ` for ${opts.userRef}` : "";
+  if (opts.error !== undefined) {
+    console.error(`[BetterAuth:${channel}] Email delivery failed${ref}:`, opts.error);
+  } else {
+    console.warn(`[BetterAuth:${channel}] Email not delivered${ref}`);
+  }
+  if (process.env.NODE_ENV !== "production" && opts.secret) {
+    console.info(`[BetterAuth:${channel}] (dev fallback) ${opts.secret}`);
+  }
 }
 
 export const auth = betterAuth({
@@ -98,11 +124,10 @@ export const auth = betterAuth({
           support_email: process.env.RESEND_REPLY_TO_EMAIL ?? "",
         });
         if (!result?.delivered) {
-          console.info(`[BetterAuth:reset-password] ${currentUser.email} -> ${url}`);
+          logAuthDeliveryFailure("reset-password", { userRef: currentUser.id, secret: url });
         }
       } catch (error) {
-        console.error(`[BetterAuth:reset-password] Email delivery failed:`, error);
-        console.info(`[BetterAuth:reset-password] Fallback URL for ${currentUser.email} -> ${url}`);
+        logAuthDeliveryFailure("reset-password", { userRef: currentUser.id, secret: url, error });
       }
     },
   },
@@ -118,11 +143,10 @@ export const auth = betterAuth({
           app_url: baseURL,
         });
         if (!result?.delivered) {
-          console.info(`[BetterAuth:verify-email] ${currentUser.email} -> ${url}`);
+          logAuthDeliveryFailure("verify-email", { userRef: currentUser.id, secret: url });
         }
       } catch (error) {
-        console.error(`[BetterAuth:verify-email] Email delivery failed:`, error);
-        console.info(`[BetterAuth:verify-email] Fallback URL for ${currentUser.email} -> ${url}`);
+        logAuthDeliveryFailure("verify-email", { userRef: currentUser.id, secret: url, error });
       }
     },
   },
@@ -170,6 +194,19 @@ export const auth = betterAuth({
       if (path === "/sign-in/email") {
         const email = (ctx.body as { email?: unknown } | undefined)?.email;
         if (typeof email === "string" && email.length > 0) {
+          // Server-side IP allowlist enforcement. Reject a blocked IP here -
+          // before any session or 2FA state is minted - rather than relying on
+          // the (bypassable) client-side post-sign-in check. Downstream layout /
+          // API guards still enforce for navigations; this closes the mint gap.
+          try {
+            await assertIpAllowedForSignInEmail(email);
+          } catch (e) {
+            if (e instanceof IpAllowlistError) {
+              throw new APIError("FORBIDDEN", { message: e.message });
+            }
+            throw e;
+          }
+
           const { success } = await signInLockout.limit(lockoutKey(email));
           if (!success) {
             throw new APIError("TOO_MANY_REQUESTS", {
@@ -201,8 +238,7 @@ export const auth = betterAuth({
             expires_in_minutes: "10",
           });
         } catch (error) {
-          console.error(`[BetterAuth:sign-in-otp] delivery failed:`, error);
-          console.info(`[BetterAuth:sign-in-otp] Fallback OTP for ${email}: ${otp}`);
+          logAuthDeliveryFailure("sign-in-otp", { secret: otp, error });
         }
       },
     }),

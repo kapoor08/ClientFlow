@@ -1,5 +1,6 @@
 import { and, eq, gt, gte, isNotNull, lt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
+import { notDeleted } from "@/server/db/soft-delete";
 import { tasks, taskAssignees } from "@/db/schema";
 import { dispatchNotification } from "@/server/notifications/data";
 import { assertCronAuth, runCron } from "@/server/cron/guard";
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
         .from(tasks)
         .where(
           and(
+            notDeleted(tasks.deletedAt),
             isNotNull(tasks.dueDate),
             gte(tasks.dueDate, now),
             lt(tasks.dueDate, in24h),
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
         .from(tasks)
         .where(
           and(
+            notDeleted(tasks.deletedAt),
             isNotNull(tasks.dueDate),
             lt(tasks.dueDate, now),
             ne(tasks.status, "completed"),

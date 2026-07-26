@@ -1,1 +1,0 @@
-ALTER TABLE "tasks" ADD COLUMN "estimate_set_at" timestamp;

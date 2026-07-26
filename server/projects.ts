@@ -1,7 +1,7 @@
 import "server-only";
 
 import { writeAuditLog } from "@/server/security/audit";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import {
   and,
   asc,
@@ -380,12 +380,12 @@ export async function createProjectForUser(userId: string, input: ProjectFormVal
   }).catch(console.error);
 
   // ─── Webhook dispatch ─────────────────────────────────────────────────────
-  dispatchWebhookEvent(access.organizationId, "project.created", {
+  dispatchWebhookEventAfter(access.organizationId, "project.created", {
     projectId,
     name: input.name.trim(),
     status: input.status,
     clientId: input.clientId ?? null,
-  }).catch(console.error);
+  });
 
   // Notify all org members about the new project (awaited so notification is in DB before response)
   const memberIdsForCreate = await getOrgMemberUserIds(access.organizationId);
@@ -465,13 +465,13 @@ export async function updateProjectForUser(
     metadata: projectChangedMeta,
   }).catch(console.error);
 
-  dispatchWebhookEvent(access.organizationId, "project.updated", {
+  dispatchWebhookEventAfter(access.organizationId, "project.updated", {
     projectId,
     name: input.name.trim(),
     status: input.status,
     priority: input.priority || null,
     clientId: input.clientId,
-  }).catch(console.error);
+  });
 
   // Determine the most specific event key based on what changed
   const eventKey =
@@ -534,10 +534,10 @@ export async function deleteProjectForUser(userId: string, projectId: string) {
     metadata: { name: existing[0].name },
   }).catch(console.error);
 
-  dispatchWebhookEvent(access.organizationId, "project.deleted", {
+  dispatchWebhookEventAfter(access.organizationId, "project.deleted", {
     projectId,
     name: existing[0].name,
-  }).catch(console.error);
+  });
 }
 
 export async function restoreProjectForUser(userId: string, projectId: string) {

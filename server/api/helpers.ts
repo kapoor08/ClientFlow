@@ -7,6 +7,8 @@ import {
   assertIpAllowedForOrg,
   assertIpAllowedForUser,
 } from "@/server/security/ip-allowlist";
+import { UnsafeWebhookUrlError } from "@/server/webhooks/url-guard";
+import { logger } from "@/server/observability/logger";
 
 export type AuthenticatedContext = {
   userId: string;
@@ -87,6 +89,10 @@ export function apiErrorResponse(error: unknown): NextResponse {
     return NextResponse.json({ error: error.message }, { status: error.statusCode });
   }
 
+  if (error instanceof UnsafeWebhookUrlError) {
+    return NextResponse.json({ error: error.message }, { status: error.statusCode });
+  }
+
   if (error instanceof PlanLimitError) {
     return NextResponse.json(
       {
@@ -101,7 +107,11 @@ export function apiErrorResponse(error: unknown): NextResponse {
     );
   }
 
-  console.error("[API Error]", error);
+  // Unexpected throw: forward to Sentry (via the structured logger) with the
+  // per-request x-request-id attached, instead of a bare console.error that
+  // never reaches alerting. The known error types above return before here, so
+  // this only fires on genuine 500s.
+  logger.error("api.unhandled_error", error);
 
   return NextResponse.json({ error: "An unexpected error occurred." }, { status: 500 });
 }

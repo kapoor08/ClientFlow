@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ALL_NAV_ITEMS } from "../data";
 
 type HeroPlaceholderPageProps = {
@@ -23,7 +23,7 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
       </div>
 
       {/* Placeholder content */}
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -31,13 +31,13 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
       >
         <div className="flex flex-col items-center justify-center gap-2 py-4">
           {Icon && (
-            <motion.div
+            <Motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.3 }}
             >
               <Icon size={20} className="text-muted-foreground/30" />
-            </motion.div>
+            </Motion.div>
           )}
           <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
           <div className="text-[9px] text-muted-foreground/60">Content loads here</div>
@@ -46,7 +46,7 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
         {/* Skeleton rows */}
         <div className="mt-3 space-y-2">
           {[0.8, 0.65, 0.9, 0.5].map((w, i) => (
-            <motion.div
+            <Motion.div
               key={i}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -58,10 +58,10 @@ export function HeroPlaceholderPage({ href }: HeroPlaceholderPageProps) {
                 className="h-2 rounded-full bg-secondary"
                 style={{ width: `${w * 100}%` }}
               />
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 }

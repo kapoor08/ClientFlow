@@ -53,6 +53,7 @@ export async function exchangeOAuthCode(input: {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
+    signal: AbortSignal.timeout(10_000),
   });
 
   return (await res.json()) as SlackOAuthAccessResponse;
@@ -67,6 +68,7 @@ export async function revokeBotToken(token: string): Promise<{ ok: boolean }> {
   const res = await fetch(SLACK_AUTH_REVOKE_URL, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(10_000),
   });
   const json = (await res.json()) as { ok: boolean };
   return json;
@@ -84,6 +86,7 @@ export async function postToIncomingWebhook(input: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input.payload),
+    signal: AbortSignal.timeout(10_000),
   });
   const body = await res.text();
   return { ok: res.ok && body === "ok", status: res.status, body };

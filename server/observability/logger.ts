@@ -31,6 +31,19 @@ async function readRequestId(): Promise<string | null> {
   }
 }
 
+// Mask any email address appearing in a logged value so recipient/customer PII
+// never reaches the log sink or Sentry (P2-10). `sendDefaultPii:false` covers
+// Sentry's auto-attached data but NOT context we attach as `extra`, so we scrub
+// centrally here - it runs on every log call. Keeps the first local char +
+// domain for debuggability, e.g. "john@example.com" -> "j***@example.com".
+const EMAIL_RE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+function maskEmails(s: string): string {
+  return s.replace(EMAIL_RE, (m) => {
+    const at = m.indexOf("@");
+    return `${m.slice(0, 1)}***@${m.slice(at + 1)}`;
+  });
+}
+
 function sanitize(ctx: LogContext | undefined): Record<string, unknown> {
   if (!ctx) return {};
   const out: Record<string, unknown> = {};
@@ -38,15 +51,18 @@ function sanitize(ctx: LogContext | undefined): Record<string, unknown> {
     if (v === undefined) continue;
     // Drop anything that isn't JSON-safe - the caller passed it but we don't
     // want giant objects or circular refs ending up in production logs.
-    if (v === null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    if (typeof v === "string") {
+      out[k] = maskEmails(v);
+    } else if (v === null || typeof v === "number" || typeof v === "boolean") {
       out[k] = v;
     } else if (v instanceof Date) {
       out[k] = v.toISOString();
     } else {
       try {
-        out[k] = JSON.parse(JSON.stringify(v));
+        // Mask emails nested inside objects/arrays too (via the JSON round-trip).
+        out[k] = JSON.parse(maskEmails(JSON.stringify(v)));
       } catch {
-        out[k] = String(v);
+        out[k] = maskEmails(String(v));
       }
     }
   }

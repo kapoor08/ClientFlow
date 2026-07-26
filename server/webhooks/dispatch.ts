@@ -1,10 +1,13 @@
 import "server-only";
 
-import { createHmac } from "crypto";
+import { after } from "next/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { outboundWebhooks, outboundWebhookDeliveries } from "@/db/schema";
 import type { WebhookEvent } from "@/schemas/webhooks";
+import { assertOutboundHostAllowed } from "@/server/webhooks/url-guard";
+import { logger } from "@/server/observability/logger";
+import { signWebhookPayload } from "@/lib/webhooks/signature";
 
 type DispatchOptions = {
   /** When set, the resulting delivery row records this as a replay-of pointer. */
@@ -27,7 +30,27 @@ async function deliverOne(
   responseStatus: number | null;
   error: string | null;
 }> {
-  const sig = createHmac("sha256", hook.secret).update(body).digest("hex");
+  // SSRF guard at fetch time: even though the URL was validated at create,
+  // re-resolve the host to defeat DNS rebinding. A blocked host is a permanent
+  // failure - never retried, never DLQ'd for replay.
+  let hostname: string;
+  try {
+    hostname = new URL(hook.url).hostname;
+  } catch {
+    return { status: "permanent_fail", attempts: 0, responseStatus: null, error: "Invalid webhook URL" };
+  }
+  try {
+    await assertOutboundHostAllowed(hostname);
+  } catch (err) {
+    return {
+      status: "permanent_fail",
+      attempts: 0,
+      responseStatus: null,
+      error: err instanceof Error ? err.message : "Blocked destination",
+    };
+  }
+
+  const sig = signWebhookPayload(hook.secret, body);
   const headers = {
     "Content-Type": "application/json",
     "X-ClientFlow-Signature": `sha256=${sig}`,
@@ -152,4 +175,32 @@ export async function dispatchWebhookEvent(
       }
     }),
   );
+}
+
+/**
+ * Fire-and-forget dispatch that survives the serverless response lifecycle.
+ *
+ * The previous pattern - `dispatchWebhookEvent(...).catch(console.error)` -
+ * was not awaited and had no `waitUntil`, so on Vercel the function can freeze
+ * right after the HTTP response is sent: the delivery attempts AND the
+ * outboundWebhookDeliveries insert (the replayable DLQ row) may never run.
+ *
+ * Wrapping the work in `after()` keeps the function alive until it completes.
+ * Outside a request scope (e.g. a queue worker) `after()` throws, so we fall
+ * back to a plain background call - no worse than before.
+ */
+export function dispatchWebhookEventAfter(
+  organizationId: string,
+  event: WebhookEvent,
+  payload: Record<string, unknown>,
+): void {
+  const run = () =>
+    dispatchWebhookEvent(organizationId, event, payload).catch((err) =>
+      logger.error("webhook.dispatch_failed", err, { organizationId, event }),
+    );
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
 }

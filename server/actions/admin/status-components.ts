@@ -1,6 +1,6 @@
 "use server";
 
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db/client";
 import { statusComponents } from "@/db/schema";
@@ -155,15 +155,25 @@ export async function moveComponentAction(
     const reordered = [...all];
     [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
 
-    await db.transaction(async (tx) => {
-      const now = new Date();
-      for (let i = 0; i < reordered.length; i++) {
-        await tx
-          .update(statusComponents)
-          .set({ displayOrder: i, updatedAt: now })
-          .where(eq(statusComponents.id, reordered[i].id));
-      }
-    });
+    const now = new Date();
+    // P3-2: single CASE update instead of one UPDATE per row. `reordered` is
+    // non-empty (bounds-checked above). Behaviour is unchanged - every row's
+    // displayOrder is still normalised to its array index in one statement.
+    const orderCases = reordered.map(
+      (component, i) => sql`when ${statusComponents.id} = ${component.id} then ${i}::int`,
+    );
+    await db
+      .update(statusComponents)
+      .set({
+        displayOrder: sql`case ${sql.join(orderCases, sql` `)} end`,
+        updatedAt: now,
+      })
+      .where(
+        inArray(
+          statusComponents.id,
+          reordered.map((c) => c.id),
+        ),
+      );
 
     revalidateStatusPaths();
     return {};

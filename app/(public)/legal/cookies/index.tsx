@@ -1,5 +1,5 @@
 import { cookiesContent } from "@/data/legalContent";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 
 const CookiesPage = () => {
   const { title, lastUpdated, sections } = cookiesContent;
@@ -7,7 +7,7 @@ const CookiesPage = () => {
     <>
       <section className="border-b border-border bg-card">
         <div className="container py-12 md:py-16">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -19,7 +19,7 @@ const CookiesPage = () => {
             <p className="mt-1.5 text-[13px] text-muted-foreground">
               Last updated: {lastUpdated}
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
       <section className="py-10 md:py-14">

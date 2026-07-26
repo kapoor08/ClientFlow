@@ -1,22 +1,11 @@
-import { BarChart3 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/shared/EmptyState";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  PeriodSelector,
-  PlatformStatsGrid,
-  MrrTrendChart,
-  GrowthChart,
-  PlanDistributionChart,
-  CsvExportButton,
-} from "@/components/admin/analytics";
+import { PeriodSelector } from "@/components/admin/analytics/PeriodSelector";
+import { PlatformStatsGrid } from "@/components/admin/analytics/PlatformStatsGrid";
+import { CsvExportButton } from "@/components/admin/analytics/CsvExportButton";
+import { EngagementPanel } from "@/components/admin/analytics/EngagementPanel";
+import { TopOrgsPanel } from "@/components/admin/analytics/TopOrgsPanel";
 import type {
   getAdminAnalyticsData,
   PlatformStats,
@@ -24,6 +13,26 @@ import type {
   GrowthTrendRow,
   PlanDistributionRow,
 } from "@/server/admin/analytics";
+
+// recharts is heavy; load each chart chunk lazily so the analytics shell isn't
+// blocked on the charting library. (App Router already keeps recharts off the
+// global bundle; this splits it further behind a lazy boundary.)
+const chartLoading = () => <Skeleton className="h-64 w-full" />;
+const MrrTrendChart = dynamic(
+  () => import("@/components/admin/analytics/MrrTrendChart").then((m) => m.MrrTrendChart),
+  { loading: chartLoading },
+);
+const GrowthChart = dynamic(
+  () => import("@/components/admin/analytics/GrowthChart").then((m) => m.GrowthChart),
+  { loading: chartLoading },
+);
+const PlanDistributionChart = dynamic(
+  () =>
+    import("@/components/admin/analytics/PlanDistributionChart").then(
+      (m) => m.PlanDistributionChart,
+    ),
+  { loading: chartLoading },
+);
 
 type Data = Awaited<ReturnType<typeof getAdminAnalyticsData>>;
 
@@ -97,109 +106,11 @@ export default function AdminAnalyticsPage({
         <ChartCard title="Active Subscriptions by Plan">
           <PlanDistributionChart data={planDistribution} />
         </ChartCard>
-
-        {/* Engagement KPIs - last 30 days from org-level metrics */}
-        <div className="rounded-xl border border-border bg-card shadow-cf-1 lg:col-span-2">
-          <div className="border-b border-border px-5 py-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">Engagement - last 30 days</h2>
-            <div className="flex gap-4">
-              {[
-                { label: "Tasks Created", value: totals.tasksCreated },
-                { label: "Completed", value: totals.tasksCompleted },
-                { label: "Active User-Days", value: totals.activeUsers },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-right">
-                  <p className="font-bold text-foreground">{value.toLocaleString()}</p>
-                  <p className="text-[10px] text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {dailyMetrics.length === 0 ? (
-            <EmptyState
-              icon={BarChart3}
-              title="No engagement data yet."
-              className="rounded-none border-0 shadow-none"
-            />
-          ) : (
-            <div className="max-h-64 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Tasks Created</TableHead>
-                    <TableHead className="text-right">Completed</TableHead>
-                    <TableHead className="text-right">Active Users</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dailyMetrics.map((row) => (
-                    <TableRow key={row.date?.toISOString()}>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {row.date
-                          ? new Date(row.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {Number(row.tasksCreated ?? 0)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {Number(row.tasksCompleted ?? 0)}
-                      </TableCell>
-                      <TableCell className="text-right text-xs">
-                        {Number(row.activeUsers ?? 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
+        <EngagementPanel dailyMetrics={dailyMetrics} totals={totals} />
       </div>
 
       {/* Top orgs */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-cf-1">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="text-sm font-semibold text-foreground">Most Active Organizations</h2>
-        </div>
-        {topOrgs.length === 0 ? (
-          <EmptyState
-            icon={BarChart3}
-            title="No data yet."
-            className="rounded-none border-0 shadow-none"
-          />
-        ) : (
-          <div className="divide-y divide-border">
-            {topOrgs.map((org, i) => (
-              <div key={org.id} className="flex items-center gap-3 px-5 py-3">
-                <span className="w-5 shrink-0 text-xs font-bold text-muted-foreground">
-                  #{i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{org.name}</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-bold text-foreground">
-                    {Number(org.totalTasksCreated ?? 0).toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">tasks created</p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-sm font-medium text-foreground">
-                    {Number(org.totalActiveUsers ?? 0).toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">active user-days</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <TopOrgsPanel topOrgs={topOrgs} />
     </div>
   );
 }

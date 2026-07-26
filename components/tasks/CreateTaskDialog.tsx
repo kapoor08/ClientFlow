@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/utils/cn";
+import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
 import {
   Dialog,
   DialogContent,
@@ -148,7 +149,7 @@ export function CreateTaskDialog({
     );
   }
 
-  const columnColor = defaultColumnColor ?? "#3b82f6";
+  const columnColor = defaultColumnColor ?? DEFAULT_COLUMN_COLOR;
   const columnName = defaultColumnName ?? "To Do";
 
   const selectedPriorityOpt = PRIORITY_OPTIONS.find(

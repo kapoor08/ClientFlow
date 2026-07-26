@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { m as Motion, type Variants } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -31,7 +31,7 @@ type KpiCardProps = {
 
 export function KpiCard({ label, value, icon: Icon, description, motionItem }: KpiCardProps) {
   return (
-    <motion.div
+    <Motion.div
       variants={motionItem}
       className="rounded-card border border-border bg-card p-5 shadow-cf-1"
     >
@@ -43,6 +43,6 @@ export function KpiCard({ label, value, icon: Icon, description, motionItem }: K
         {value}
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-    </motion.div>
+    </Motion.div>
   );
 }

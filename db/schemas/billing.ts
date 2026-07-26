@@ -8,6 +8,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { organizations } from "./access";
 import { createdAt, updatedAt } from "./helpers";
 
@@ -78,12 +79,23 @@ export const subscriptions = pgTable(
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
     paymentMethodExpiryNotifiedAt: timestamp("payment_method_expiry_notified_at"),
+    /**
+     * Watermark: `event.created` (seconds→ms) of the most recent Stripe
+     * subscription event applied to this row. Used to reject out-of-order
+     * deliveries so a delayed `customer.subscription.updated` can't revive a
+     * subscription already finalized by `customer.subscription.deleted`.
+     */
+    lastStripeEventAt: timestamp("last_stripe_event_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (table) => [
     index("subscriptions_organization_idx").on(table.organizationId),
-    index("subscriptions_stripe_subscription_idx").on(table.stripeSubscriptionId),
+    // Partial UNIQUE: one row per Stripe subscription (nullable for not-yet-
+    // linked subs). Backstops the reuse-or-upsert guard in event-handlers.
+    uniqueIndex("subscriptions_stripe_subscription_unique")
+      .on(table.stripeSubscriptionId)
+      .where(sql`${table.stripeSubscriptionId} IS NOT NULL`),
   ],
 );
 
@@ -168,7 +180,11 @@ export const invoices = pgTable(
   (table) => [
     index("invoices_organization_idx").on(table.organizationId),
     index("invoices_subscription_idx").on(table.subscriptionId),
-    index("invoices_external_invoice_idx").on(table.externalInvoiceId),
+    // Partial UNIQUE: one row per Stripe invoice (nullable for manual invoices).
+    // Backstops the payment_failed / invoice.paid upserts.
+    uniqueIndex("invoices_external_invoice_unique")
+      .on(table.externalInvoiceId)
+      .where(sql`${table.externalInvoiceId} IS NOT NULL`),
     index("invoices_dunning_idx").on(table.status, table.dunningStage),
   ],
 );
@@ -197,6 +213,14 @@ export const billingWebhookEvents = pgTable(
     payload: jsonb("payload"),
     receivedAt: timestamp("received_at").defaultNow().notNull(),
     processedAt: timestamp("processed_at"),
+    /**
+     * Atomic-claim marker. A worker claims an unprocessed event by setting this
+     * to now() via a conditional UPDATE; concurrent deliveries of the same
+     * event find no claimable row and skip. A claim older than the stale window
+     * (see the webhook route) is reclaimable so a crashed worker doesn't brick
+     * the event.
+     */
+    processingStartedAt: timestamp("processing_started_at"),
     processingError: text("processing_error"),
   },
   (table) => [

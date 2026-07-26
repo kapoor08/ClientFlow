@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { clients, projects, tasks, taskBoardColumns } from "@/db/schema";
 import { writeAuditLog } from "@/server/security/audit";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import { ApiError } from "@/server/api/helpers";
 import {
   enforceClientCap,
@@ -64,11 +64,11 @@ export async function createClientV1(organizationId: string, input: CreateClient
     metadata: { name: input.name, source: "api_v1" },
   }).catch(console.error);
 
-  dispatchWebhookEvent(organizationId, "client.created", {
+  dispatchWebhookEventAfter(organizationId, "client.created", {
     clientId,
     name: input.name,
     status,
-  }).catch(console.error);
+  });
 
   return { clientId };
 }
@@ -126,11 +126,11 @@ export async function createProjectV1(organizationId: string, input: CreateProje
     metadata: { name: input.name, source: "api_v1" },
   }).catch(console.error);
 
-  dispatchWebhookEvent(organizationId, "project.created", {
+  dispatchWebhookEventAfter(organizationId, "project.created", {
     projectId,
     name: input.name,
     clientId: input.clientId,
-  }).catch(console.error);
+  });
 
   return { projectId };
 }
@@ -196,11 +196,11 @@ export async function createTaskV1(organizationId: string, input: CreateTaskV1In
     metadata: { title: input.title, projectId: input.projectId, source: "api_v1" },
   }).catch(console.error);
 
-  dispatchWebhookEvent(organizationId, "task.created", {
+  dispatchWebhookEventAfter(organizationId, "task.created", {
     taskId,
     title: input.title,
     projectId: input.projectId,
-  }).catch(console.error);
+  });
 
   return { taskId };
 }

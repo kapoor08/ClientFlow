@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { session, account, user } from "@/db/auth-schema";
+import { organizationMemberships } from "@/db/schema";
 import {
   getSsoContextBySlug,
   discoverOidcEndpoints,
@@ -97,41 +98,70 @@ export async function GET(request: NextRequest) {
     if (!userInfo.email) return ssoError("no_email");
 
     // ── Find or create user ─────────────────────────────────────────────────
+    //
+    // Security (P0-4): the org whose SSO was used (`storedOrg` →
+    // `ctx.organizationId`) controls the IdP that just asserted this email.
+    // An EXISTING account may therefore be authenticated through this IdP only
+    // if it is already an active member of THIS org. Without that check, a
+    // malicious org admin can point `ssoConfig` at an IdP they control, assert
+    // any victim's email, and have a session minted for the victim
+    // (cross-org account takeover). A NEW account is auto-created only when the
+    // IdP asserts a verified email, and (per existing behavior) lands in its
+    // own bootstrapped workspace rather than joining `storedOrg`.
+    const normalizedEmail = userInfo.email.toLowerCase();
     let [existingUser] = await db
       .select({ id: user.id, name: user.name, email: user.email })
       .from(user)
-      .where(eq(user.email, userInfo.email.toLowerCase()))
+      .where(eq(user.email, normalizedEmail))
       .limit(1);
 
     const isNewUser = !existingUser;
     const userName = userInfo.name ?? userInfo.email.split("@")[0];
 
-    if (!existingUser) {
+    if (existingUser) {
+      const [membership] = await db
+        .select({ id: organizationMemberships.id })
+        .from(organizationMemberships)
+        .where(
+          and(
+            eq(organizationMemberships.organizationId, ctx.organizationId),
+            eq(organizationMemberships.userId, existingUser.id),
+            eq(organizationMemberships.status, "active"),
+          ),
+        )
+        .limit(1);
+
+      if (!membership) return ssoError("not_a_member");
+    } else {
+      if (userInfo.email_verified !== true) return ssoError("email_not_verified");
+
       const userId = crypto.randomUUID();
       await db.insert(user).values({
         id: userId,
         name: userName,
-        email: userInfo.email.toLowerCase(),
-        emailVerified: userInfo.email_verified ?? true,
+        email: normalizedEmail,
+        emailVerified: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
 
-      existingUser = { id: userId, name: userName, email: userInfo.email.toLowerCase() };
+      existingUser = { id: userId, name: userName, email: normalizedEmail };
 
       // Bootstrap workspace for new user (creates org + membership)
       await bootstrapWorkspaceForUser({
         id: userId,
         name: userName,
-        email: userInfo.email.toLowerCase(),
+        email: normalizedEmail,
       });
     }
 
     // ── Upsert SSO account record ───────────────────────────────────────────
+    // Scoped to the `sso` provider so we never overwrite the tokens of the
+    // user's other accounts (e.g. password/credential or Google).
     const [existingAccount] = await db
       .select({ id: account.id })
       .from(account)
-      .where(eq(account.userId, existingUser.id))
+      .where(and(eq(account.userId, existingUser.id), eq(account.providerId, "sso")))
       .limit(1);
 
     if (!existingAccount) {
@@ -153,10 +183,15 @@ export async function GET(request: NextRequest) {
           idToken: tokens.id_token ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(account.userId, existingUser.id));
+        .where(and(eq(account.userId, existingUser.id), eq(account.providerId, "sso")));
     }
 
     // ── Create BetterAuth session ───────────────────────────────────────────
+    // MFA note (P1-12): SSO delegates MFA to the org's IdP (the standard
+    // enterprise model). Combined with the active-membership binding above
+    // (P0-4), only real members of the org whose admin configured the IdP can
+    // authenticate here, so the app's TOTP is intentionally not additionally
+    // enforced on this federated path.
     const sessionToken = randomBytes(32).toString("hex");
     const sessionId = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);

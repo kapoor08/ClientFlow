@@ -21,6 +21,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   callback_failed: "Sign-in failed during the callback. Please try again.",
   no_email: "The identity provider did not return an email address.",
   missing_params: "Invalid SSO response. Please try again.",
+  not_a_member:
+    "This account isn't a member of the organization you're signing in to. Ask an admin to invite you first.",
+  email_not_verified:
+    "Your identity provider hasn't verified this email address, so we can't create an account. Contact your administrator.",
 };
 
 const REASON_MESSAGES: Record<string, string> = {

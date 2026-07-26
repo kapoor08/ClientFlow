@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "@/server/db/client";
 import { organizationMemberships, organizationSettings } from "@/db/schema";
+import { user } from "@/db/auth-schema";
 import { getActiveOrgIdFromCookie } from "@/server/auth/active-org";
 
 function ipToInt(ip: string): number | null {
@@ -136,6 +137,33 @@ async function loadUserActiveOrgIpAllowlist(userId: string): Promise<string[] | 
 export async function assertIpAllowedForUser(userId: string): Promise<void> {
   const allowlist = await loadUserActiveOrgIpAllowlist(userId);
   if (!allowlist) return;
+  const reqHeaders = await headers();
+  const ip = getClientIp(reqHeaders);
+  if (!isIpAllowed(ip, allowlist)) {
+    throw new IpAllowlistError();
+  }
+}
+
+/**
+ * Server-side sign-in guard. Resolves the account by email, loads its active
+ * org's IP allowlist, and throws `IpAllowlistError` when the request IP is not
+ * allowed - called from the auth before-hook so a blocked IP is rejected before
+ * any session or 2FA state is minted (the client-side check was bypassable).
+ * Returns silently for unknown emails (don't leak existence) and orgs with no
+ * allowlist configured.
+ */
+export async function assertIpAllowedForSignInEmail(email: string): Promise<void> {
+  const normalized = email.toLowerCase().trim();
+  const [account] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, normalized))
+    .limit(1);
+  if (!account) return;
+
+  const allowlist = await loadUserActiveOrgIpAllowlist(account.id);
+  if (!allowlist) return;
+
   const reqHeaders = await headers();
   const ip = getClientIp(reqHeaders);
   if (!isIpAllowed(ip, allowlist)) {

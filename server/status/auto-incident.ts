@@ -63,8 +63,8 @@ export async function maybeOpenAutoIncident(
     const startedAt = outageStartedAt;
 
     try {
-      await db.transaction(async (tx) => {
-        await tx.insert(statusIncidents).values({
+      await db.batch([
+        db.insert(statusIncidents).values({
           id,
           slug,
           title: `Outage on ${componentName}`,
@@ -74,19 +74,19 @@ export async function maybeOpenAutoIncident(
           isScheduled: false,
           postedByUserId: null,
           isAutoOpened: true,
-        });
-        await tx.insert(statusIncidentUpdates).values({
+        }),
+        db.insert(statusIncidentUpdates).values({
           id: crypto.randomUUID(),
           incidentId: id,
           body: initialBody,
           stateAtPost: "investigating",
           postedByUserId: null,
-        });
-        await tx.insert(statusIncidentComponents).values({
+        }),
+        db.insert(statusIncidentComponents).values({
           incidentId: id,
           componentId,
-        });
-      });
+        }),
+      ]);
     } catch (err) {
       // Slug-conflict means a parallel probe already opened this exact
       // incident. That's the desired outcome - no work to do.

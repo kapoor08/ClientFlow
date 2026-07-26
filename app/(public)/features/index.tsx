@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useMotionStagger } from "@/hooks/use-home-motion";
 import { features } from "@/config/features";
@@ -22,7 +22,7 @@ const FeaturesPage = () => {
           style={{ background: "var(--cf-hero-gradient)" }}
         />
         <div className="container relative py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -36,13 +36,13 @@ const FeaturesPage = () => {
               Every module is designed for operational speed, role clarity, and
               scalability.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
       <section className="py-12 md:py-16">
         <div className="container">
-          <motion.div
+          <Motion.div
             variants={motionStagger.container}
             initial="hidden"
             whileInView="show"
@@ -50,7 +50,7 @@ const FeaturesPage = () => {
             className="mx-auto grid max-w-5xl gap-4 md:grid-cols-2"
           >
             {features.map((f) => (
-              <motion.div
+              <Motion.div
                 key={f.title}
                 variants={motionStagger.item}
                 className="flex gap-4 rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-cf-2"
@@ -66,9 +66,9 @@ const FeaturesPage = () => {
                     {f.desc}
                   </p>
                 </div>
-              </motion.div>
+              </Motion.div>
             ))}
-          </motion.div>
+          </Motion.div>
           <div className="mt-10 text-center">
             <Button size="lg" asChild>
               <Link href="/auth/sign-up">

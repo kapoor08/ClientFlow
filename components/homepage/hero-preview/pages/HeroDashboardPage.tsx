@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowUpRight, Activity, TrendingUp, AlertCircle } from "lucide-react";
 import { HERO_KPIS, HERO_REVENUE_DATA } from "../data";
 
@@ -52,14 +52,14 @@ export function HeroDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <motion.div
+      <Motion.div
         variants={stagger}
         initial="hidden"
         animate="show"
         className="mb-5 grid grid-cols-4 gap-3"
       >
         {HERO_KPIS.map(({ label, value, change, icon: Icon, trend }) => (
-          <motion.div
+          <Motion.div
             key={label}
             variants={fadeItem}
             className="rounded-lg border border-border bg-card p-3.5 transition-all hover:border-primary/20 hover:shadow-sm"
@@ -74,12 +74,12 @@ export function HeroDashboardPage() {
               {(trend as string) === "warning" && <AlertCircle size={11} className="text-warning" />}
               <span className="truncate text-[10px] text-muted-foreground">{change}</span>
             </div>
-          </motion.div>
+          </Motion.div>
         ))}
-      </motion.div>
+      </Motion.div>
 
       {/* Revenue Trend */}
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.4 }}
@@ -96,7 +96,7 @@ export function HeroDashboardPage() {
               <span className="text-[9px] font-medium text-foreground">
                 {d.label}
               </span>
-              <motion.div
+              <Motion.div
                 custom={i}
                 variants={barVariants}
                 initial="hidden"
@@ -108,7 +108,7 @@ export function HeroDashboardPage() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </Motion.div>
 
       {/* Tasks Due Soon */}
       <div className="mb-5">
@@ -197,7 +197,7 @@ export function HeroDashboardPage() {
           </div>
           <div className="rounded-lg border border-border bg-card px-4 py-1">
             {RECENT_ACTIVITY_LIST.map((a, i) => (
-              <motion.div
+              <Motion.div
                 key={i}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -214,7 +214,7 @@ export function HeroDashboardPage() {
                   </p>
                   <p className="text-[9px] text-muted-foreground">{a.time}</p>
                 </div>
-              </motion.div>
+              </Motion.div>
             ))}
           </div>
         </div>

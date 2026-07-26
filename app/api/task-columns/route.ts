@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth, apiErrorResponse, ApiError } from "@/server/api/helpers";
+import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
 import {
   listBoardColumnsForUser,
   createBoardColumnForUser,
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       throw new ApiError(parsed.error.issues[0]?.message ?? "Invalid column input.", 422);
     }
 
-    const { name, color = "#3b82f6", columnType, description } = parsed.data;
+    const { name, color = DEFAULT_COLUMN_COLOR, columnType, description } = parsed.data;
     const result = await createBoardColumnForUser(userId, {
       name,
       color,

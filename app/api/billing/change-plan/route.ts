@@ -22,6 +22,12 @@ export async function POST(req: Request) {
   if (!context) {
     return NextResponse.json({ error: "No organization found" }, { status: 400 });
   }
+  if (!context.canManageSettings) {
+    return NextResponse.json(
+      { error: "You don't have permission to manage billing for this organization." },
+      { status: 403 },
+    );
+  }
 
   const body = (await req.json().catch(() => null)) as {
     planCode?: string;

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "@/server/auth/session";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { BrandingForm } from "@/components/settings";
+import { DEFAULT_BRAND_COLOR } from "@/constants/colors";
 
 export default async function BrandingPage() {
   const session = await getServerSession();
@@ -23,7 +24,7 @@ export default async function BrandingPage() {
 
       <BrandingForm
         defaultLogoUrl={ctx.logoUrl ?? ""}
-        defaultBrandColor={ctx.brandColor ?? "#6366f1"}
+        defaultBrandColor={ctx.brandColor ?? DEFAULT_BRAND_COLOR}
         canManage={ctx.canManageSettings}
       />
     </div>

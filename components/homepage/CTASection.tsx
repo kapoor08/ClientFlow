@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowRight, Star, Users, Zap } from "lucide-react";
 import Link from "next/link";
 import { useHomeMotion } from "@/hooks/use-home-motion";
@@ -38,7 +37,7 @@ const CTASection = () => {
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
 
       <div className="container relative z-10">
-        <motion.div
+        <Motion.div
           {...motionFx.inView.fadeUp}
           className="mx-auto max-w-3xl text-center"
         >
@@ -95,7 +94,7 @@ const CTASection = () => {
               </div>
             ))}
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
 
       {/* Accent line at bottom */}

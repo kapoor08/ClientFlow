@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Calendar, ChevronDown, Download, Eye, Filter, Search } from "lucide-react";
 import { Pagination } from "../shared";
 
@@ -8,7 +8,7 @@ const ENTITY_STYLES: Record<string, string> = {
   "Time Entry": "bg-success/10 text-success",
   Task: "bg-primary/10 text-primary",
   Client: "bg-info/10 text-info",
-  Invoice: "bg-accent/10 text-accent",
+  Invoice: "bg-accent/10 text-accent-text",
 };
 
 const LOGS = [
@@ -64,7 +64,7 @@ export function HeroActivityLogsPage() {
           </thead>
           <tbody>
             {LOGS.map((l, i) => (
-              <motion.tr
+              <Motion.tr
                 key={i}
                 custom={i}
                 variants={row}
@@ -95,7 +95,7 @@ export function HeroActivityLogsPage() {
                 <td className="px-4 py-2.5">
                   <Eye size={9} className="text-muted-foreground/30" />
                 </td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

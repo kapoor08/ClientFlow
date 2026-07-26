@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { emitNotificationEvent } from "@/server/notifications/stream";
 import {
@@ -73,8 +73,11 @@ export async function listNotificationsForUser(
       .where(where)
       .orderBy(desc(notifications.createdAt))
       .limit(limit),
+    // Aggregate in the DB (COUNT) rather than selecting every unread id and
+    // taking `.length` - this is the polled bell-badge path, and the composite
+    // `notifications_org_user_read_idx` (org, user, is_read, created_at) covers it.
     db
-      .select({ id: notifications.id })
+      .select({ total: count() })
       .from(notifications)
       .where(
         and(
@@ -91,7 +94,7 @@ export async function listNotificationsForUser(
       ...n,
       data: n.data as Record<string, unknown> | null,
     })),
-    unreadCount: unreadRows.length,
+    unreadCount: unreadRows[0]?.total ?? 0,
   };
 }
 

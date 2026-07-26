@@ -1,9 +1,11 @@
 import "server-only";
 
-import { createHash } from "crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { apiKeys } from "@/db/schema";
+import { hashApiKey } from "@/lib/auth/api-key-hash";
+
+export { hashApiKey };
 
 export type ApiKeyAuthResult = {
   organizationId: string;
@@ -17,10 +19,8 @@ export type ApiKeyAuthResult = {
  *
  * Updates `lastUsedAt` fire-and-forget on success.
  */
-export async function validateApiKey(
-  raw: string,
-): Promise<ApiKeyAuthResult | null> {
-  const hash = createHash("sha256").update(raw).digest("hex");
+export async function validateApiKey(raw: string): Promise<ApiKeyAuthResult | null> {
+  const hash = hashApiKey(raw);
   const now = new Date();
 
   const [row] = await db

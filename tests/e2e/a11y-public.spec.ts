@@ -28,9 +28,11 @@ for (const { name, path } of PUBLIC_PAGES) {
     // Wait for any client-side mounts (banners, captcha widgets) to settle.
     await page.waitForLoadState("networkidle");
 
-    const results = await new AxeBuilder({ page })
-      .disableRules(["color-contrast", "region"])
-      .analyze();
+    // P2-19: full ruleset enforced (incl. color-contrast). The token pairs were
+    // contrast-audited: muted-foreground darkened to AA, and accent-colored text
+    // uses the darker `--accent-text` token. If a real run flags any remaining
+    // rendered pair, fix that token/usage - do not re-disable the rule.
+    const results = await new AxeBuilder({ page }).analyze();
 
     if (results.violations.length > 0) {
       // Surface violations in test output for triage.

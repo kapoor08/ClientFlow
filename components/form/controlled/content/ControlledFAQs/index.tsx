@@ -18,13 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import type * as React from "react";
-import {
-  type Control,
-  Controller,
-  type FieldError,
-  useController,
-  useFieldArray,
-} from "react-hook-form";
+import { type Control, type FieldError, useController, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,24 +57,23 @@ const SortableFAQItem: React.FC<SortableFAQItemProps> = ({
   onRemove,
   canRemove,
 }) => {
-  const { field: questionField, fieldState: { error: questionError } } = useController({
+  const {
+    field: questionField,
+    fieldState: { error: questionError },
+  } = useController({
     control,
     name: `${fieldName}.question`,
   });
 
-  const { field: answerField, fieldState: { error: answerError } } = useController({
+  const {
+    field: answerField,
+    fieldState: { error: answerError },
+  } = useController({
     control,
     name: `${fieldName}.answer`,
   });
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
   });
 
@@ -91,23 +84,21 @@ const SortableFAQItem: React.FC<SortableFAQItemProps> = ({
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className="relative py-0 gap-0">
-      <CardHeader className="pb-1 pt-2 px-3">
+    <Card ref={setNodeRef} style={style} className="relative gap-0 py-0">
+      <CardHeader className="px-3 pt-2 pb-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 cursor-grab active:cursor-grabbing"
+              className="h-6 w-6 cursor-grab p-0 active:cursor-grabbing"
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="h-3 w-3 text-muted-foreground" />
+              <GripVertical className="text-muted-foreground h-3 w-3" />
             </Button>
-            <span className="text-xs font-medium text-muted-foreground">
-              FAQ {index + 1}
-            </span>
+            <span className="text-muted-foreground text-xs font-medium">FAQ {index + 1}</span>
           </div>
           {canRemove && (
             <Button
@@ -115,14 +106,14 @@ const SortableFAQItem: React.FC<SortableFAQItemProps> = ({
               variant="ghost"
               size="sm"
               onClick={onRemove}
-              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-6 w-6 p-0"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-0 pb-2 px-3 space-y-2">
+      <CardContent className="space-y-2 px-3 pt-0 pb-2">
         <div className="space-y-1">
           <Label htmlFor={`faq-${fieldName}-question`} className="text-xs">
             Question *
@@ -131,10 +122,10 @@ const SortableFAQItem: React.FC<SortableFAQItemProps> = ({
             id={`faq-${fieldName}-question`}
             {...questionField}
             placeholder="e.g., How does the cashback system work?"
-            className={`h-8 ${questionError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+            className={`h-8 ${questionError ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
           {questionError && (
-            <p className="text-xs text-destructive mt-1">{questionError.message}</p>
+            <p className="text-destructive mt-1 text-xs">{questionError.message}</p>
           )}
         </div>
         <div className="space-y-1">
@@ -146,11 +137,9 @@ const SortableFAQItem: React.FC<SortableFAQItemProps> = ({
             {...answerField}
             placeholder="Provide a detailed answer to this question..."
             rows={3}
-            className={`text-sm resize-none ${answerError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+            className={`resize-none text-sm ${answerError ? "border-destructive focus-visible:ring-destructive" : ""}`}
           />
-          {answerError && (
-            <p className="text-xs text-destructive mt-1">{answerError.message}</p>
-          )}
+          {answerError && <p className="text-destructive mt-1 text-xs">{answerError.message}</p>}
         </div>
       </CardContent>
     </Card>
@@ -205,20 +194,11 @@ export const ControlledFAQs: React.FC<ControlledFAQsProps> = ({
   return (
     <div className={`space-y-2 ${className || ""}`}>
       {label && <Label className="text-sm">{label}</Label>}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-xs">{description}</p>}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-2 gap-0">
-          <SortableContext
-            items={fields.map((f) => f.id)}
-            strategy={verticalListSortingStrategy}
-          >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div className="gap-0 space-y-2">
+          <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
             {fields.map((faq, index) => (
               <SortableFAQItem
                 key={faq.id}
@@ -236,16 +216,16 @@ export const ControlledFAQs: React.FC<ControlledFAQsProps> = ({
             type="button"
             variant="outline"
             onClick={handleAddFAQ}
-            className="w-full h-8"
+            className="h-8 w-full"
             size="sm"
           >
-            <Plus className="h-3 w-3 mr-1" />
+            <Plus className="mr-1 h-3 w-3" />
             Add FAQ
           </Button>
         </div>
       </DndContext>
 
-      {error && <p className="text-sm text-destructive">{error.message}</p>}
+      {error && <p className="text-destructive text-sm">{error.message}</p>}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/server/db/client";
-import { plans } from "@/db/schema";
+import { plans, subscriptions } from "@/db/schema";
 import {
   stripe,
   STRIPE_PRICE_MAP,
@@ -21,6 +21,12 @@ export async function POST(req: Request) {
   const context = await getOrganizationSettingsContextForUser(session.user.id);
   if (!context) {
     return NextResponse.json({ error: "No organization found" }, { status: 400 });
+  }
+  if (!context.canManageSettings) {
+    return NextResponse.json(
+      { error: "You don't have permission to manage billing for this organization." },
+      { status: 403 },
+    );
   }
 
   const body = await req.json();
@@ -46,6 +52,23 @@ export async function POST(req: Request) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
+  // Reuse the org's existing Stripe customer if it has ever subscribed, so a
+  // re-subscriber keeps one `cus_…` (cards, tax ids, invoice history) instead
+  // of getting a duplicate customer per checkout (P2-6). Falls back to
+  // customer_email for a first-time subscriber.
+  const [existingSub] = await db
+    .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.organizationId, context.organizationId),
+        isNotNull(subscriptions.stripeCustomerId),
+      ),
+    )
+    .orderBy(desc(subscriptions.createdAt))
+    .limit(1);
+  const existingCustomerId = existingSub?.stripeCustomerId ?? null;
+
   try {
     const checkoutSession = await withStripeBreaker("checkout.sessions.create", () =>
       stripe.checkout.sessions.create({
@@ -54,7 +77,9 @@ export async function POST(req: Request) {
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${appUrl}/billing/success`,
         cancel_url: `${appUrl}/billing/failed`,
-        customer_email: session.user.email,
+        ...(existingCustomerId
+          ? { customer: existingCustomerId }
+          : { customer_email: session.user.email }),
         metadata: {
           organizationId: context.organizationId,
           planCode,

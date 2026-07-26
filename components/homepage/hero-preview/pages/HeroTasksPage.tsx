@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { LayoutGrid, List, Plus, Search, SlidersHorizontal, Users } from "lucide-react";
 
 const COLUMNS = [
@@ -68,7 +68,7 @@ export function HeroTasksPage() {
       {/* Kanban Board */}
       <div className="grid grid-cols-4 gap-2">
         {COLUMNS.map((col, ci) => (
-          <motion.div
+          <Motion.div
             key={col.key}
             custom={ci}
             variants={colAnim}
@@ -87,7 +87,7 @@ export function HeroTasksPage() {
             <div className="flex-1 space-y-1.5">
               {col.tasks.length > 0 ? (
                 col.tasks.map((task, ti) => (
-                  <motion.div
+                  <Motion.div
                     key={task.ref}
                     custom={ci * 3 + ti}
                     variants={cardAnim}
@@ -114,7 +114,7 @@ export function HeroTasksPage() {
                         {task.attachments > 0 && <span>&#128206;{task.attachments}</span>}
                       </div>
                     </div>
-                  </motion.div>
+                  </Motion.div>
                 ))
               ) : (
                 <div className="rounded-lg border border-dashed border-border/50 py-4 text-center text-[10px] text-muted-foreground/40">
@@ -127,7 +127,7 @@ export function HeroTasksPage() {
                 <Plus size={8} /> Add Task
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         ))}
       </div>
     </div>

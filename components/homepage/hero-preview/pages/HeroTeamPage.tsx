@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
 import { PageHeader } from "../shared";
 
@@ -30,7 +30,7 @@ export function HeroTeamPage() {
           </thead>
           <tbody>
             {MEMBERS.map((m, i) => (
-              <motion.tr
+              <Motion.tr
                 key={m.name}
                 custom={i}
                 variants={row}
@@ -58,7 +58,7 @@ export function HeroTeamPage() {
                 <td className="px-4 py-2.5">
                   <MoreHorizontal size={7} className="text-muted-foreground/30" />
                 </td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

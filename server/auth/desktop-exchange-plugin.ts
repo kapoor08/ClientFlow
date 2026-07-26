@@ -47,6 +47,12 @@ export const desktopExchangePlugin = () => ({
           throw new APIError("UNAUTHORIZED", { message: "User no longer exists." });
         }
 
+        // MFA note (P1-12): the exchange token is minted only after the user
+        // completed Google OAuth in the system browser. Like all federated /
+        // social sign-in, this delegates MFA to the identity provider (Google)
+        // rather than prompting the app's TOTP - app-level 2FA (better-auth
+        // twoFactor) gates password sign-in only. This is an intentional design
+        // decision; see the enterprise-readiness audit P1-12.
         const session = await ctx.context.internalAdapter.createSession(payload.userId);
         await setSessionCookie(ctx, { session, user: userResult });
 

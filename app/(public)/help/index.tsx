@@ -2,10 +2,11 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
-import { Search, ChevronRight } from "lucide-react";
+import { m as Motion } from "framer-motion";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { useMotionStagger } from "@/hooks/use-home-motion";
+import { HelpArticleList } from "@/components/help/HelpArticleList";
 import { KB_ARTICLES, KB_CATEGORY_META, type KbCategory } from "@/config/kb-articles";
 
 const HelpPage = () => {
@@ -45,7 +46,7 @@ const HelpPage = () => {
         <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
         <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
         <div className="relative container py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -71,7 +72,7 @@ const HelpPage = () => {
                 />
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
@@ -96,27 +97,12 @@ const HelpPage = () => {
                   </p>
                 </div>
               ) : (
-                <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                  {matches.map((a) => (
-                    <li key={a.slug}>
-                      <Link
-                        href={`/help/${a.slug}`}
-                        className="hover:bg-secondary/40 flex items-start justify-between gap-4 px-4 py-3 transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground text-sm font-medium">{a.title}</p>
-                          <p className="text-muted-foreground mt-1 text-xs">{a.excerpt}</p>
-                        </div>
-                        <ChevronRight size={16} className="text-muted-foreground mt-1 shrink-0" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                <HelpArticleList articles={matches} />
               )}
             </div>
           ) : (
             // ── Browse-by-category view ─────────────────────────────────
-            <motion.div
+            <Motion.div
               variants={motionStagger.container}
               initial="hidden"
               whileInView="show"
@@ -129,36 +115,18 @@ const HelpPage = () => {
                 if (articles.length === 0) return null;
 
                 return (
-                  <motion.div key={category} variants={motionStagger.item}>
+                  <Motion.div key={category} variants={motionStagger.item}>
                     <div className="mb-3">
                       <h2 className="font-display text-foreground text-base font-semibold">
                         {meta.title}
                       </h2>
                       <p className="text-muted-foreground text-xs">{meta.description}</p>
                     </div>
-                    <ul className="divide-border border-border bg-card divide-y rounded-xl border">
-                      {articles.map((a) => (
-                        <li key={a.slug}>
-                          <Link
-                            href={`/help/${a.slug}`}
-                            className="hover:bg-secondary/40 flex items-start justify-between gap-4 px-4 py-3 transition-colors"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="text-foreground text-sm font-medium">{a.title}</p>
-                              <p className="text-muted-foreground mt-1 text-xs">{a.excerpt}</p>
-                            </div>
-                            <ChevronRight
-                              size={16}
-                              className="text-muted-foreground mt-1 shrink-0"
-                            />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
+                    <HelpArticleList articles={articles} />
+                  </Motion.div>
                 );
               })}
-            </motion.div>
+            </Motion.div>
           )}
         </div>
       </section>

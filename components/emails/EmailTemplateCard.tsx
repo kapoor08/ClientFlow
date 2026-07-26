@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import type { EmailTemplate } from "@/data/emailTemplates";
 import { ChevronDown, Copy, Check, ExternalLink } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as Motion, AnimatePresence } from "framer-motion";
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
   P0: {
@@ -50,7 +50,7 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
     <div
       className={`group rounded-xl border transition-all duration-200 ${
         expanded
-          ? "border-primary/30 bg-card shadow-lg shadow-primary/5"
+          ? "border-primary/30 bg-card shadow-primary/5 shadow-lg"
           : "border-border bg-card hover:border-primary/20 hover:shadow-sm"
       }`}
     >
@@ -78,7 +78,7 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
 
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center gap-2">
-            <p className="truncate font-display text-[13px] font-semibold leading-tight text-foreground">
+            <p className="font-display text-foreground truncate text-[13px] leading-tight font-semibold">
               {template.subject}
             </p>
           </div>
@@ -86,13 +86,9 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
             <button
               type="button"
               onClick={handleCopySlug}
-              className="inline-flex items-center gap-1 rounded-md bg-muted/80 px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="bg-muted/80 text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-[11px] transition-colors"
             >
-              {copied ? (
-                <Check className="h-2.5 w-2.5" />
-              ) : (
-                <Copy className="h-2.5 w-2.5" />
-              )}
+              {copied ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
               {template.slug}
             </button>
           </div>
@@ -113,18 +109,18 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
           </Badge>
         </div>
 
-        <motion.div
+        <Motion.div
           animate={{ rotate: expanded ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="shrink-0 text-muted-foreground"
+          className="text-muted-foreground shrink-0"
         >
           <ChevronDown className="h-4 w-4" />
-        </motion.div>
+        </Motion.div>
       </div>
 
       <AnimatePresence>
         {expanded && (
-          <motion.div
+          <Motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -132,7 +128,7 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
             className="overflow-hidden"
           >
             <div className="px-5 pb-5">
-              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5">
+              <div className="bg-muted/50 mb-4 flex flex-wrap items-center gap-2 rounded-lg px-4 py-2.5">
                 <MetaItem label="Module" value={template.module} />
                 <Divider />
                 <MetaItem label="Audience" value={template.audience} />
@@ -143,72 +139,70 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
                 />
               </div>
 
-              <div className="mb-4 flex items-start gap-2 rounded-lg border border-border bg-background px-4 py-3">
-                <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <div className="border-border bg-background mb-4 flex items-start gap-2 rounded-lg border px-4 py-3">
+                <ExternalLink className="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div>
-                  <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-muted-foreground mb-0.5 text-[10px] font-semibold tracking-wider uppercase">
                     Trigger
                   </p>
-                  <p className="text-xs text-foreground">{template.trigger}</p>
+                  <p className="text-foreground text-xs">{template.trigger}</p>
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-border bg-background shadow-inner">
-                <div className="flex items-center gap-1.5 border-b border-border bg-muted/30 px-4 py-2">
-                  <div className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-warning/40" />
-                  <div className="h-2.5 w-2.5 rounded-full bg-success/40" />
-                  <div className="ml-3 flex-1 truncate rounded-md bg-muted/60 px-3 py-1 text-[10px] text-muted-foreground">
+              <div className="border-border bg-background overflow-hidden rounded-xl border shadow-inner">
+                <div className="border-border bg-muted/30 flex items-center gap-1.5 border-b px-4 py-2">
+                  <div className="bg-destructive/40 h-2.5 w-2.5 rounded-full" />
+                  <div className="bg-warning/40 h-2.5 w-2.5 rounded-full" />
+                  <div className="bg-success/40 h-2.5 w-2.5 rounded-full" />
+                  <div className="bg-muted/60 text-muted-foreground ml-3 flex-1 truncate rounded-md px-3 py-1 text-[10px]">
                     mail.clientflow.io - {template.subject}
                   </div>
                 </div>
 
                 <div className="bg-muted/20 px-6 py-8">
-                  <div className="mx-auto max-w-sm overflow-hidden rounded-2xl border border-border bg-white shadow-md">
+                  <div className="border-border mx-auto max-w-sm overflow-hidden rounded-2xl border bg-white shadow-md">
                     <div className="bg-primary/5 px-8 py-6 text-center">
-                      <span className="font-display text-2xl font-bold text-primary tracking-tight">
+                      <span className="font-display text-primary text-2xl font-bold tracking-tight">
                         ClientFlow
                       </span>
                     </div>
-                    <div className="h-px bg-border" />
+                    <div className="bg-border h-px" />
 
-                    <div className="space-y-4 px-8 py-7 font-body text-[13px] leading-relaxed text-foreground">
-                      {template.previewBody
-                        .split(/\[([^\]]+)\]\(([^)]+)\)/g)
-                        .map((part, index) => {
-                          if (index % 3 === 1) {
-                            return (
-                              <div key={index} className="py-1">
-                                <span className="inline-block rounded-lg bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm">
-                                  {part}
-                                </span>
-                              </div>
-                            );
-                          }
-
-                          if (index % 3 === 2) {
-                            return null;
-                          }
-
+                    <div className="font-body text-foreground space-y-4 px-8 py-7 text-[13px] leading-relaxed">
+                      {template.previewBody.split(/\[([^\]]+)\]\(([^)]+)\)/g).map((part, index) => {
+                        if (index % 3 === 1) {
                           return (
-                            <span key={index} className="whitespace-pre-line">
-                              {part.split(/(\{\{[^}]+\}\})/g).map((chunk, i) =>
-                                chunk.startsWith("{{") && chunk.endsWith("}}") ? (
-                                  <span key={i} className="text-primary font-medium">
-                                    {chunk}
-                                  </span>
-                                ) : (
-                                  chunk
-                                ),
-                              )}
-                            </span>
+                            <div key={index} className="py-1">
+                              <span className="bg-primary text-primary-foreground inline-block rounded-lg px-5 py-2.5 text-xs font-semibold shadow-sm">
+                                {part}
+                              </span>
+                            </div>
                           );
-                        })}
+                        }
+
+                        if (index % 3 === 2) {
+                          return null;
+                        }
+
+                        return (
+                          <span key={index} className="whitespace-pre-line">
+                            {part.split(/(\{\{[^}]+\}\})/g).map((chunk, i) =>
+                              chunk.startsWith("{{") && chunk.endsWith("}}") ? (
+                                <span key={i} className="text-primary font-medium">
+                                  {chunk}
+                                </span>
+                              ) : (
+                                chunk
+                              ),
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
 
-                    <div className="h-px bg-border" />
+                    <div className="bg-border h-px" />
                     <div className="bg-muted/30 px-8 py-4 text-center">
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-muted-foreground text-[11px]">
                         © 2026 ClientFlow - All rights reserved
                       </p>
                     </div>
@@ -217,14 +211,14 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
               </div>
 
               <div className="mt-4">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-wider uppercase">
                   Template Variables
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {template.variables.map((variable) => (
                     <code
                       key={variable}
-                      className="rounded-md border border-border bg-muted/50 px-2 py-1 font-mono text-[11px] text-foreground"
+                      className="border-border bg-muted/50 text-foreground rounded-md border px-2 py-1 font-mono text-[11px]"
                     >
                       {`{{${variable}}}`}
                     </code>
@@ -232,7 +226,7 @@ export function EmailTemplateCard({ template }: { template: EmailTemplate }) {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -243,7 +237,7 @@ function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center gap-1.5 text-xs">
       <span className="text-muted-foreground">{label}:</span>
-      <span className="font-medium text-foreground">{value}</span>
+      <span className="text-foreground font-medium">{value}</span>
     </div>
   );
 }

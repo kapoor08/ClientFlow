@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import {
   ChevronDown,
   ChevronLeft,

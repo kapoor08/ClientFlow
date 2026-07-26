@@ -24,9 +24,9 @@ for (const { name, path } of PROTECTED_PAGES) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
 
-    const results = await new AxeBuilder({ page })
-      .disableRules(["color-contrast", "region"])
-      .analyze();
+    // P2-19: full ruleset enforced (incl. color-contrast). See a11y-public.spec
+    // for the contrast-audit rationale (muted-foreground + --accent-text fixes).
+    const results = await new AxeBuilder({ page }).analyze();
 
     if (results.violations.length > 0) {
       console.error(

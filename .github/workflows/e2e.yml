@@ -1,0 +1,80 @@
+name: E2E
+
+# NOTE (P2-20): Separate from ci.yml and NOT a required check yet - validate it
+# green on a branch before adding it to branch protection.
+#
+# IMPORTANT: this app's DB client is `drizzle-orm/neon-http`, which speaks
+# Neon's SQL-over-HTTP protocol and CANNOT connect to a stock Postgres service
+# container. E2E therefore runs against a real **Neon** database supplied via the
+# `E2E_DATABASE_URL` secret (use a dedicated test database or - better - an
+# ephemeral Neon branch created/destroyed around the run so tests never touch
+# shared data). Playwright's `webServer` is disabled under CI (see
+# playwright.config.ts), so this workflow builds and starts the app itself.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: Playwright + axe
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Skip automatically if the required Neon test DB secret isn't configured,
+    # so the workflow doesn't red every PR before it's been set up.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.E2E_ENABLED == 'true' }}
+
+    env:
+      # Real Neon test DB (the neon-http driver requires Neon, not a stock PG).
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      NEON_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      BETTER_AUTH_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      EMAIL_FROM: ci@example.com
+      RESEND_API_KEY: re_ci_dummy
+      STRIPE_SECRET_KEY: sk_test_ci_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_ci_dummy
+      CRON_SECRET: ci-cron-secret
+      NEXT_TELEMETRY_DISABLED: "1"
+      CI: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Apply migrations (Neon test DB)
+        run: npm run db:migrate
+
+      - name: Build
+        run: npm run build
+
+      # Start the production server in the background, wait for it to accept
+      # connections, then run the specs. global-setup registers + signs in a
+      # test user against the live app before the authenticated specs run.
+      - name: Run E2E (Playwright + axe)
+        run: |
+          npm run start &
+          npx --yes wait-on http://localhost:3000 --timeout 120000
+          npm run test:e2e
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

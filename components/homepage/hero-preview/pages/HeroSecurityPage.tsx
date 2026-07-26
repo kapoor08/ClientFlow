@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Key, LogOut, Monitor, Shield } from "lucide-react";
 
 const SESSIONS = [
@@ -84,7 +84,7 @@ export function HeroSecurityPage() {
       </div>
       <div className="space-y-1">
         {SESSIONS.map((s, i) => (
-          <motion.div
+          <Motion.div
             key={i}
             custom={i}
             variants={fadeIn}
@@ -110,7 +110,7 @@ export function HeroSecurityPage() {
                 <LogOut size={6} /> Revoke
               </div>
             )}
-          </motion.div>
+          </Motion.div>
         ))}
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { MoreHorizontal } from "lucide-react";
 import { PageHeader, SearchFiltersBar, Pagination } from "../shared";
 import { STATUS_STYLES, STATUS_LABELS } from "../data";
@@ -31,7 +31,7 @@ export function HeroInvoicesPage() {
           </thead>
           <tbody>
             {INVOICES.map((inv, i) => (
-              <motion.tr
+              <Motion.tr
                 key={inv.number}
                 custom={i}
                 variants={row}
@@ -62,7 +62,7 @@ export function HeroInvoicesPage() {
                 <td className="px-4 py-2.5">
                   <MoreHorizontal size={10} className="text-muted-foreground/40" />
                 </td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

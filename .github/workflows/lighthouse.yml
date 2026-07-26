@@ -7,15 +7,18 @@ on:
   schedule:
     - cron: "30 2 * * *"
 
-# Non-blocking by design - perf scores are noisy and we don't want flaky
-# Lighthouse runs to block merges. Use the GitHub status check + the assertion
-# results uploaded to LHCI temp public storage to spot regressions trend-wise.
+# Perf/SEO/best-practices budgets stay `warn` (noisy on CI hardware). But
+# accessibility (deterministic, axe-based) and CLS (stable) are now `error`
+# assertions in .lighthouserc.json and this job is no longer `continue-on-error`,
+# so an a11y/CLS regression on the public pages fails the check (P2-19).
+# ⚠️ Validate on a branch first: if the current public pages don't already meet
+# accessibility >= 0.95 / CLS <= 0.1 this will flag real debt to fix (that's the
+# point) - it could not be run in the authoring environment.
 jobs:
   lighthouse:
-    name: Public-page perf budget
+    name: Public-page a11y + perf budget
     runs-on: ubuntu-latest
     timeout-minutes: 12
-    continue-on-error: true
 
     env:
       DATABASE_URL: postgres://ci:ci@localhost:5432/ci

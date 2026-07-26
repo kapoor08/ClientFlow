@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { CheckCircle2, Mail, MoreHorizontal, RefreshCw, TimerOff } from "lucide-react";
 import { PageHeader, SearchFiltersBar, Pagination } from "../shared";
 
@@ -45,7 +45,7 @@ export function HeroInvitationsPage() {
               const si = STATUS_ICON[inv.status];
               const StatusIcon = si?.icon ?? MoreHorizontal;
               return (
-                <motion.tr
+                <Motion.tr
                   key={inv.email}
                   custom={i}
                   variants={row}
@@ -78,7 +78,7 @@ export function HeroInvitationsPage() {
                   </td>
                   <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.sent}</td>
                   <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{inv.expires}</td>
-                </motion.tr>
+                </Motion.tr>
               );
             })}
           </tbody>

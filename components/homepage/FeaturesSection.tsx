@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { ArrowRight, Layers } from "lucide-react";
 import Link from "next/link";
 import { features } from "@/config/features";
@@ -12,7 +12,7 @@ const FeaturesSection = () => {
   return (
     <section className="py-20 border-b-brand" id="features">
       <div className="container">
-        <motion.div
+        <Motion.div
           {...motionFx.inView.fadeUp}
           className="mx-auto max-w-2xl text-center"
         >
@@ -26,15 +26,15 @@ const FeaturesSection = () => {
             From client onboarding to invoice delivery - ClientFlow covers the
             full lifecycle.
           </p>
-        </motion.div>
+        </Motion.div>
 
-        <motion.div
+        <Motion.div
           variants={motionFx.stagger.variants.container}
           {...motionFx.stagger.inViewWithMargin}
           className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
           {features.map((feature) => (
-            <motion.div
+            <Motion.div
               key={feature.title}
               variants={motionFx.stagger.variants.item}
               className="group relative rounded-xl border border-border bg-card p-5 transition-all duration-300 hover:border-primary/20 hover:-translate-y-1"
@@ -50,18 +50,18 @@ const FeaturesSection = () => {
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                 {feature.desc}
               </p>
-            </motion.div>
+            </Motion.div>
           ))}
-        </motion.div>
+        </Motion.div>
 
-        <motion.div {...motionFx.inView.fade} className="mt-12 text-center">
+        <Motion.div {...motionFx.inView.fade} className="mt-12 text-center">
           <Link
             href="/features"
             className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:underline"
           >
             Explore all features <ArrowRight size={14} />
           </Link>
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
   );

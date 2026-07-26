@@ -15,7 +15,7 @@ import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { onUserInvited, onInviteRevoked, onInviteAccepted } from "@/server/email/triggers";
 import { dispatchNotification } from "@/server/notifications/data";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import {
   getAssignableRoleKeys,
   INVITE_EXPIRY_DAYS,
@@ -74,10 +74,7 @@ function generateToken(): { raw: string; hash: string } {
   return { raw, hash: hashToken(raw) };
 }
 
-function resolveStatus(
-  status: string,
-  expiresAt: Date,
-): InvitationStatus {
+function resolveStatus(status: string, expiresAt: Date): InvitationStatus {
   if (status === "pending" && expiresAt < new Date()) return "expired";
   return status as InvitationStatus;
 }
@@ -90,9 +87,7 @@ export async function getInvitationsModuleAccessForUser(
   const context = await getOrganizationSettingsContextForUser(userId);
   if (!context) return null;
   const canWrite =
-    context.roleKey === "owner" ||
-    context.roleKey === "admin" ||
-    context.roleKey === "manager";
+    context.roleKey === "owner" || context.roleKey === "admin" || context.roleKey === "manager";
   return {
     organizationId: context.organizationId,
     organizationName: context.organizationName,
@@ -124,8 +119,16 @@ function resolveInvitationSort(sort: string | undefined, order: "asc" | "desc") 
 function resolveStatusWhereClause(status: string | undefined) {
   if (!status) return undefined;
   const now = new Date();
-  if (status === "pending") return and(eq(organizationInvitations.status, "pending"), gte(organizationInvitations.expiresAt, now));
-  if (status === "expired") return and(eq(organizationInvitations.status, "pending"), lt(organizationInvitations.expiresAt, now));
+  if (status === "pending")
+    return and(
+      eq(organizationInvitations.status, "pending"),
+      gte(organizationInvitations.expiresAt, now),
+    );
+  if (status === "expired")
+    return and(
+      eq(organizationInvitations.status, "pending"),
+      lt(organizationInvitations.expiresAt, now),
+    );
   if (status === "accepted") return eq(organizationInvitations.status, "accepted");
   if (status === "revoked") return eq(organizationInvitations.status, "revoked");
   return undefined;
@@ -258,7 +261,11 @@ export async function sendInvitationForUser(
 
   // Check for existing active invitation
   const existing = await db
-    .select({ id: organizationInvitations.id, status: organizationInvitations.status, expiresAt: organizationInvitations.expiresAt })
+    .select({
+      id: organizationInvitations.id,
+      status: organizationInvitations.status,
+      expiresAt: organizationInvitations.expiresAt,
+    })
     .from(organizationInvitations)
     .where(
       and(
@@ -267,9 +274,7 @@ export async function sendInvitationForUser(
       ),
     );
 
-  const activePending = existing.find(
-    (i) => i.status === "pending" && i.expiresAt > new Date(),
-  );
+  const activePending = existing.find((i) => i.status === "pending" && i.expiresAt > new Date());
   if (activePending) throw new Error("A pending invitation already exists for this email.");
 
   // Check if already a member
@@ -339,10 +344,7 @@ export async function sendInvitationForUser(
 
 // ─── Resend invitation ────────────────────────────────────────────────────────
 
-export async function resendInvitationForUser(
-  userId: string,
-  invitationId: string,
-): Promise<void> {
+export async function resendInvitationForUser(userId: string, invitationId: string): Promise<void> {
   const access = await getInvitationsModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
   if (!access.canWrite) throw new Error("You do not have permission to resend invitations.");
@@ -367,7 +369,10 @@ export async function resendInvitationForUser(
     .limit(1);
 
   if (!invitation) throw new Error("Invitation not found.");
-  if (invitation.status !== "pending" && resolveStatus(invitation.status, invitation.expiresAt) !== "expired") {
+  if (
+    invitation.status !== "pending" &&
+    resolveStatus(invitation.status, invitation.expiresAt) !== "expired"
+  ) {
     throw new Error("Only pending or expired invitations can be resent.");
   }
 
@@ -398,7 +403,11 @@ export async function resendInvitationForUser(
   }).catch(console.error);
 
   onUserInvited({
-    invitee: { id: invitationId, name: invitation.email.split("@")[0] ?? "there", email: invitation.email },
+    invitee: {
+      id: invitationId,
+      name: invitation.email.split("@")[0] ?? "there",
+      email: invitation.email,
+    },
     org: { id: access.organizationId, name: access.organizationName },
     invitedBy: { id: userId, name: inviter?.name ?? "A team member", email: inviter?.email ?? "" },
     role: invitation.roleName ?? "",
@@ -409,10 +418,7 @@ export async function resendInvitationForUser(
 
 // ─── Revoke invitation ────────────────────────────────────────────────────────
 
-export async function revokeInvitationForUser(
-  userId: string,
-  invitationId: string,
-): Promise<void> {
+export async function revokeInvitationForUser(userId: string, invitationId: string): Promise<void> {
   const access = await getInvitationsModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
   if (!access.canWrite) throw new Error("You do not have permission to revoke invitations.");
@@ -459,7 +465,11 @@ export async function revokeInvitationForUser(
   }).catch(console.error);
 
   onInviteRevoked({
-    invitee: { id: invitationId, name: invitation.email.split("@")[0] ?? "there", email: invitation.email },
+    invitee: {
+      id: invitationId,
+      name: invitation.email.split("@")[0] ?? "there",
+      email: invitation.email,
+    },
     org: { id: access.organizationId, name: access.organizationName },
     actor: { id: userId, name: actor?.name ?? "An admin", email: "" },
     supportEmail: process.env.RESEND_FROM_EMAIL ?? "",
@@ -468,9 +478,7 @@ export async function revokeInvitationForUser(
 
 // ─── Accept invitation (public) ───────────────────────────────────────────────
 
-export async function getInvitationByToken(
-  rawToken: string,
-): Promise<InvitationDetail | null> {
+export async function getInvitationByToken(rawToken: string): Promise<InvitationDetail | null> {
   const hash = hashToken(rawToken);
 
   const [row] = await db
@@ -556,6 +564,16 @@ export async function acceptInvitationForUser(
 
   if (existing) throw new Error("You are already a member of this organization.");
 
+  // Re-check the seat cap at acceptance, not just at send. The cap is checked
+  // when an invite is created, but with N seats left an admin can send N+ invites
+  // (all pass the send-time check) and all can accept - blowing past the plan
+  // limit. Enforcing here closes that bypass. `enforceMemberCap` throws a
+  // PlanLimitError (402) which the accept route surfaces as an upgrade prompt.
+  // (Residual: two simultaneous accepts can still race past the count; a hard
+  // guarantee would need a DB-level constraint/trigger, not available on the
+  // neon-http driver's non-interactive transactions.)
+  await enforceMemberCap(invitation.organizationId);
+
   await db.insert(organizationMemberships).values({
     id: crypto.randomUUID(),
     organizationId: invitation.organizationId,
@@ -585,24 +603,44 @@ export async function acceptInvitationForUser(
 
   // Email trigger: notify inviter with full details
   Promise.all([
-    db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, userId)).limit(1),
+    db
+      .select({ name: user.name, email: user.email })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1),
     invitation.invitedByUserId
-      ? db.select({ name: user.name, email: user.email }).from(user).where(eq(user.id, invitation.invitedByUserId)).limit(1)
+      ? db
+          .select({ name: user.name, email: user.email })
+          .from(user)
+          .where(eq(user.id, invitation.invitedByUserId))
+          .limit(1)
       : Promise.resolve([null] as const),
-    db.select({ id: organizations.id, name: organizations.name }).from(organizations).where(eq(organizations.id, invitation.organizationId)).limit(1),
+    db
+      .select({ id: organizations.id, name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.id, invitation.organizationId))
+      .limit(1),
     db.select({ name: roles.name }).from(roles).where(eq(roles.id, invitation.roleId)).limit(1),
-  ]).then(([acceptedRows, inviterRows, orgRows, roleRows]) => {
-    const accepted = acceptedRows[0];
-    const inviter = inviterRows[0];
-    const org = orgRows[0];
-    if (!accepted?.email || !inviter?.email || !org) return;
-    return onInviteAccepted({
-      acceptedUser: { id: userId, name: accepted.name ?? "A new member", email: accepted.email },
-      org: { id: org.id, name: org.name },
-      role: roleRows?.[0]?.name ?? "Member",
-      recipients: [{ id: invitation.invitedByUserId!, name: inviter.name ?? "Team admin", email: inviter.email }],
-    });
-  }).catch(console.error);
+  ])
+    .then(([acceptedRows, inviterRows, orgRows, roleRows]) => {
+      const accepted = acceptedRows[0];
+      const inviter = inviterRows[0];
+      const org = orgRows[0];
+      if (!accepted?.email || !inviter?.email || !org) return;
+      return onInviteAccepted({
+        acceptedUser: { id: userId, name: accepted.name ?? "A new member", email: accepted.email },
+        org: { id: org.id, name: org.name },
+        role: roleRows?.[0]?.name ?? "Member",
+        recipients: [
+          {
+            id: invitation.invitedByUserId!,
+            name: inviter.name ?? "Team admin",
+            email: inviter.email,
+          },
+        ],
+      });
+    })
+    .catch(console.error);
 
   writeAuditLog({
     organizationId: invitation.organizationId,
@@ -612,12 +650,12 @@ export async function acceptInvitationForUser(
     entityId: invitation.id,
   }).catch(console.error);
 
-  dispatchWebhookEvent(invitation.organizationId, "team.member_added", {
+  dispatchWebhookEventAfter(invitation.organizationId, "team.member_added", {
     userId,
     email: invitation.email,
     roleKey: invitation.roleKey ?? null,
     invitationId: invitation.id,
-  }).catch(console.error);
+  });
 
   return { organizationId: invitation.organizationId, roleKey: invitation.roleKey ?? null };
 }

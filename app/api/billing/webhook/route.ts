@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import { stripe } from "@/server/third-party/stripe";
 import { db } from "@/server/db/client";
 import { billingWebhookEvents } from "@/db/schema";
@@ -11,19 +11,21 @@ import { bumpSignal, SIGNAL_KEYS } from "@/server/status/signals";
 /**
  * Stripe webhook receiver.
  *
- * Idempotency is enforced via the unique index on (provider, event_id):
- *   1. Atomically claim the event row with INSERT ... ON CONFLICT DO NOTHING.
- *   2. Read the row back regardless of whether we just inserted it. If
- *      `processedAt` is set, skip - the event was already handled. If null,
- *      a previous attempt either failed or is in-flight; re-dispatch
- *      (handlers are keyed on Stripe IDs, so re-runs are safe).
- *   3. On dispatch success, set `processedAt`. On failure, record
- *      `processingError` and return 500 so Stripe retries with backoff.
- *
- * Without step (2) a single transient failure would permanently brick an
- * event: Stripe's retry would find the row, dedupe on eventId, and never
- * reach the dispatcher again.
+ * Idempotency + concurrency safety:
+ *   1. Ensure the event row exists (INSERT ... ON CONFLICT DO NOTHING on the
+ *      unique (provider, event_id) index).
+ *   2. Atomically CLAIM it with a conditional UPDATE that sets
+ *      `processing_started_at` only when the event is unprocessed and unclaimed
+ *      (or its claim is stale). Only one concurrent delivery wins the claim;
+ *      the rest get no row back and skip, so the dispatcher runs exactly once.
+ *   3. On dispatch success set `processed_at`. On failure clear the claim and
+ *      return 500 so Stripe retries with backoff and the next delivery
+ *      re-claims and re-dispatches (handlers are keyed on Stripe IDs, so
+ *      re-runs are safe). A crashed worker's claim is reclaimed after
+ *      CLAIM_STALE_MS.
  */
+const CLAIM_STALE_MS = 5 * 60 * 1000; // reclaim an in-flight claim after 5 min
+
 export async function POST(req: Request) {
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
@@ -44,8 +46,8 @@ export async function POST(req: Request) {
   // without making outbound calls of its own.
   void bumpSignal(SIGNAL_KEYS.STRIPE_WEBHOOK_RECEIVED, { eventType: event.type });
 
-  // Atomically claim the event row. ON CONFLICT relies on the unique index
-  // on (provider, event_id) to make concurrent deliveries safe.
+  // Ensure the event row exists. The unique index on (provider, event_id)
+  // makes this idempotent across retries and concurrent deliveries.
   await db
     .insert(billingWebhookEvents)
     .values({
@@ -60,27 +62,32 @@ export async function POST(req: Request) {
       target: [billingWebhookEvents.provider, billingWebhookEvents.eventId],
     });
 
-  const [row] = await db
-    .select({
-      id: billingWebhookEvents.id,
-      processedAt: billingWebhookEvents.processedAt,
-    })
-    .from(billingWebhookEvents)
+  // Atomically CLAIM the event: a single conditional UPDATE flips
+  // processing_started_at only if the event is unprocessed AND unclaimed (or
+  // its claim is stale). Concurrent deliveries of the same event get no row
+  // back and skip, so the dispatcher runs exactly once.
+  const staleCutoff = new Date(Date.now() - CLAIM_STALE_MS);
+  const claimed = await db
+    .update(billingWebhookEvents)
+    .set({ processingStartedAt: new Date() })
     .where(
-      and(eq(billingWebhookEvents.provider, "stripe"), eq(billingWebhookEvents.eventId, event.id)),
+      and(
+        eq(billingWebhookEvents.provider, "stripe"),
+        eq(billingWebhookEvents.eventId, event.id),
+        isNull(billingWebhookEvents.processedAt),
+        or(
+          isNull(billingWebhookEvents.processingStartedAt),
+          lt(billingWebhookEvents.processingStartedAt, staleCutoff),
+        ),
+      ),
     )
-    .limit(1);
+    .returning({ id: billingWebhookEvents.id });
 
-  if (!row) {
-    // Should never happen - either the insert succeeded or the conflict
-    // means a row already exists. Log loudly if we hit this.
-    logger.error("webhook.event_row_missing", null, { eventId: event.id });
-    return NextResponse.json({ error: "Event row missing after insert" }, { status: 500 });
-  }
-
-  if (row.processedAt) {
+  if (claimed.length === 0) {
+    // Already processed, or another worker holds a fresh claim.
     return NextResponse.json({ received: true, skipped: true });
   }
+  const rowId = claimed[0].id;
 
   try {
     await dispatchBillingEvent(event);
@@ -88,20 +95,22 @@ export async function POST(req: Request) {
     await db
       .update(billingWebhookEvents)
       .set({ processedAt: new Date(), processingError: null })
-      .where(eq(billingWebhookEvents.id, row.id));
+      .where(eq(billingWebhookEvents.id, rowId));
   } catch (err) {
+    // Release the claim so the next Stripe retry can re-process; record the
+    // error for observability.
     await db
       .update(billingWebhookEvents)
-      .set({ processingError: String(err) })
-      .where(eq(billingWebhookEvents.id, row.id));
+      .set({ processingStartedAt: null, processingError: String(err) })
+      .where(eq(billingWebhookEvents.id, rowId));
 
     logger.error("webhook.processing_failed", err, {
       eventId: event.id,
       eventType: event.type,
     });
-    // 500 → Stripe retries the same event with exponential backoff. Next
-    // delivery re-enters this handler, finds processedAt still null, and
-    // re-dispatches. Recovery from transient failure works.
+    // 500 → Stripe retries the same event with exponential backoff. The next
+    // delivery re-enters this handler, re-claims (processing_started_at was
+    // cleared), and re-dispatches. Recovery from transient failure works.
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 

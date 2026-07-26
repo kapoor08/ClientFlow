@@ -26,14 +26,32 @@ const eslintConfig = defineConfig([
       "react-hooks/static-components": "warn",
       "react-hooks/refs": "warn",
       "react-hooks/immutability": "warn",
-      "react-hooks/rules-of-hooks": "warn",
       "react-hooks/incompatible-library": "warn",
       "react/display-name": "warn",
-      // The form-builder library under components/form/controlled/content
-      // intentionally uses `any` for generic field-array shapes (the consumer
-      // supplies the row type via Controller props). Downgrading this globally
-      // keeps the signal on real `any` regressions elsewhere as a warning.
-      "@typescript-eslint/no-explicit-any": "warn",
+      // rules-of-hooks is the one classic rule that catches genuine bugs (a hook
+      // called conditionally / inside a callback breaks hook ordering). It is a
+      // hard error - CI must fail on it. (The prior demotion masked a real
+      // violation in ControlledFileUpload, now fixed.)
+      "react-hooks/rules-of-hooks": "error",
+      // `any` is a hard error everywhere by default; the deliberate generic-any
+      // in the form-builder library is re-permitted in the scoped block below.
+      "@typescript-eslint/no-explicit-any": "error",
+      // Allow intentionally-unused args/vars when prefixed with `_` (e.g. a
+      // Playwright globalSetup(_config) or a required-but-unused callback arg).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
+    // The form-builder library under components/form/controlled/** intentionally
+    // uses `any` for generic field-array shapes - the consumer supplies the row
+    // type via Controller props, so the library itself can't name it. This is a
+    // deliberate, contained exception; `any` remains a hard error everywhere else.
+    files: ["components/form/controlled/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ]);

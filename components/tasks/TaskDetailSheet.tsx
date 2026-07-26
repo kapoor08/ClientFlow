@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
+import Image from "next/image";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,7 +41,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import {
   useTaskDetail,
   useTaskComments,
@@ -66,15 +67,17 @@ import { http } from "@/core/infrastructure";
 import { formatActivityMessage } from "@/core/task-detail/entity";
 import { PRIORITY_BADGE } from "@/core/tasks/entity";
 import { TASK_PRIORITY_OPTIONS as PRIORITY_OPTIONS, TASK_STATUS_OPTIONS as STATUS_OPTIONS } from "@/constants/task";
-import {
-  formatDateDayMonthYear,
-  formatDateTime,
-  formatTimeAgo,
-} from "@/utils/date";
-import { getFileCategory, type FileCategory } from "@/utils/file";
+import { formatDateDayMonthYear } from "@/utils/date";
 import { getInitials } from "@/utils/user";
 import { TASK_TAG_OPTIONS } from "@/schemas/tasks";
 import { CreateTaskDialog } from "./CreateTaskDialog";
+import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
+import { RelativeTime, EditedBadge } from "./task-detail/TimeBadges";
+import { InlineTitle } from "./task-detail/InlineTitle";
+import { CommentBody } from "./task-detail/CommentBody";
+import { FileTypeThumbnail, FilePreviewModal } from "./task-detail/FilePreview";
+import { TAG_COLORS } from "./task-detail/constants";
+import type { MemberOption, PreviewFile } from "./task-detail/types";
 import { LogTimeDialog } from "@/components/time-tracking/LogTimeDialog";
 import { TimeEntriesList, timeEntriesKeys } from "@/components/time-tracking/TimeEntriesList";
 import {
@@ -92,7 +95,6 @@ import {
   Plus,
   Paperclip,
   Trash2,
-  FileText,
   Upload,
   Tag,
   MoreHorizontal,
@@ -101,625 +103,16 @@ import {
   Download,
   ZoomIn,
   Eye,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileSpreadsheet,
-  FileCode,
   File,
-  Link2,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-type MemberOption = {
-  userId: string;
-  name: string;
-  email: string;
-  roleName?: string;
-};
-
-// ─── Relative time helper ──────────────────────────────────────────────────────
-
-/** Renders a relative timestamp that re-evaluates every 30 s. */
-function RelativeTime({ iso, className }: { iso: string; className?: string }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => tick((n) => n + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  return <span className={className}>{formatTimeAgo(iso)}</span>;
-}
-
-/** "edited" label with a tooltip showing the exact edit time. */
-function EditedBadge({ updatedAt }: { updatedAt: string }) {
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="text-[10px] text-muted-foreground/50 italic leading-none cursor-default">
-            edited
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <span>Edited {formatDateTime(updatedAt)}</span>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
-
-// ─── Inline editable title ────────────────────────────────────────────────────
-
-function InlineTitle({
-  value,
-  onSave,
-}: {
-  value: string;
-  onSave: (v: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
-
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
-  function commit() {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (trimmed && trimmed !== value) onSave(trimmed);
-    else setDraft(value);
-  }
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") {
-            setDraft(value);
-            setEditing(false);
-          }
-        }}
-        className="w-full rounded bg-transparent text-xl font-semibold text-foreground outline-none ring-2 ring-primary/40 px-1 -mx-1"
-      />
-    );
-  }
-
-  return (
-    <h2
-      className="cursor-text text-xl font-semibold text-foreground leading-snug hover:bg-secondary/60 rounded px-1 -mx-1 transition-colors"
-      onClick={() => setEditing(true)}
-      title="Click to edit"
-    >
-      {value}
-    </h2>
-  );
-}
-
-// ─── Comment body with mention hover cards ────────────────────────────────────
-
-function esc(s: string) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function CommentBody({
-  html,
-  members,
-  className,
-}: {
-  html: string;
-  members: MemberOption[];
-  className?: string;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let card: HTMLDivElement | null = null;
-    let closeTimer: ReturnType<typeof setTimeout> | null = null;
-
-    function removeCard() {
-      if (closeTimer) {
-        clearTimeout(closeTimer);
-        closeTimer = null;
-      }
-      if (card) {
-        card.remove();
-        card = null;
-      }
-    }
-
-    function scheduleClose() {
-      if (!closeTimer) closeTimer = setTimeout(removeCard, 150);
-    }
-
-    function cancelClose() {
-      if (closeTimer) {
-        clearTimeout(closeTimer);
-        closeTimer = null;
-      }
-    }
-
-    function showCard(
-      member: MemberOption | null,
-      label: string,
-      rect: DOMRect,
-    ) {
-      removeCard();
-
-      const name = member?.name ?? label;
-      const email = member?.email ?? "";
-      const role = member?.roleName ?? "";
-      const initial = name.charAt(0).toUpperCase();
-
-      card = document.createElement("div");
-      card.setAttribute("data-mention-profile", "");
-      card.style.cssText = [
-        "position:fixed",
-        `z-index:99999`,
-        "width:224px",
-        "border-radius:12px",
-        `border:1px solid hsl(var(--border))`,
-        `background:hsl(var(--card))`,
-        "box-shadow:0 4px 20px rgba(0,0,0,.13)",
-        "overflow:hidden",
-        `top:${rect.top - 8}px`,
-        `left:${rect.left}px`,
-        "transform:translateY(-100%)",
-      ].join(";");
-
-      card.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;padding:14px">
-          <div style="width:40px;height:40px;border-radius:50%;background:hsl(var(--primary)/0.1);color:hsl(var(--primary));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0">${esc(initial)}</div>
-          <div style="min-width:0">
-            <p style="margin:0;font-size:14px;font-weight:600;color:hsl(var(--foreground));overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</p>
-            ${email ? `<p style="margin:2px 0 0;font-size:11px;color:hsl(var(--muted-foreground));overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(email)}</p>` : ""}
-            ${role ? `<span style="display:inline-block;margin-top:5px;border-radius:999px;background:hsl(var(--secondary));padding:2px 8px;font-size:10px;font-weight:500;color:hsl(var(--secondary-foreground))">${esc(role)}</span>` : ""}
-          </div>
-        </div>`;
-
-      card.addEventListener("mouseenter", cancelClose);
-      card.addEventListener("mouseleave", scheduleClose);
-      document.body.appendChild(card);
-    }
-
-    const mentions = container.querySelectorAll<HTMLElement>(".mention");
-    const cleanups: Array<() => void> = [];
-
-    mentions.forEach((el) => {
-      const id = el.getAttribute("data-id");
-      const rawLabel =
-        el.getAttribute("data-label") ??
-        el.textContent?.replace(/^@/, "") ??
-        "";
-      const member = members.find((m) => m.userId === id) ?? null;
-
-      const enter = () => {
-        cancelClose();
-        showCard(member, rawLabel, el.getBoundingClientRect());
-      };
-      const leave = () => scheduleClose();
-
-      el.addEventListener("mouseenter", enter);
-      el.addEventListener("mouseleave", leave);
-      cleanups.push(() => {
-        el.removeEventListener("mouseenter", enter);
-        el.removeEventListener("mouseleave", leave);
-      });
-    });
-
-    return () => {
-      cleanups.forEach((fn) => fn());
-      removeCard();
-    };
-  }, [html, members]);
-
-  return (
-    <div
-      ref={containerRef}
-      className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
-}
-
-// ─── File preview ──────────────────────────────────────────────────────────────
-
-type PreviewFile = {
-  id: string; // attachment DB id - used by the proxy route
-  src: string; // original Cloudinary URL (used for images/video/audio)
-  fileName: string;
-  mimeType: string | null;
-  sizeBytes: number | null;
-};
-
-const FILE_TYPE_META: Record<
-  FileCategory,
-  {
-    icon: React.ComponentType<{ size?: number; className?: string }>;
-    iconCls: string;
-    bg: string;
-  }
-> = {
-  image: {
-    icon: FileImage,
-    iconCls: "text-violet-500",
-    bg: "bg-violet-50 dark:bg-violet-950/30",
-  },
-  pdf: {
-    icon: FileText,
-    iconCls: "text-red-500",
-    bg: "bg-red-50 dark:bg-red-950/30",
-  },
-  video: {
-    icon: FileVideo,
-    iconCls: "text-purple-500",
-    bg: "bg-purple-50 dark:bg-purple-950/30",
-  },
-  audio: {
-    icon: FileAudio,
-    iconCls: "text-orange-500",
-    bg: "bg-orange-50 dark:bg-orange-950/30",
-  },
-  office: {
-    icon: FileSpreadsheet,
-    iconCls: "text-green-600",
-    bg: "bg-green-50 dark:bg-green-950/30",
-  },
-  csv: {
-    icon: FileSpreadsheet,
-    iconCls: "text-emerald-600",
-    bg: "bg-emerald-50 dark:bg-emerald-950/30",
-  },
-  markdown: {
-    icon: FileCode,
-    iconCls: "text-blue-500",
-    bg: "bg-blue-50 dark:bg-blue-950/30",
-  },
-  text: {
-    icon: FileCode,
-    iconCls: "text-slate-500 dark:text-slate-400",
-    bg: "bg-slate-50 dark:bg-slate-900/40",
-  },
-  other: { icon: File, iconCls: "text-muted-foreground", bg: "bg-secondary" },
-};
-
-function getFileIcon(mimeType: string | null, fileName: string, size = 28) {
-  const cat = getFileCategory(mimeType, fileName);
-  const { icon: Icon, iconCls } = FILE_TYPE_META[cat];
-  return <Icon size={size} className={cn("shrink-0", iconCls)} />;
-}
-
-/** Card thumbnail used in the Files tab grid - colored bg + icon + ext label. */
-function FileTypeThumbnail({
-  mimeType,
-  fileName,
-}: {
-  mimeType: string | null;
-  fileName: string;
-}) {
-  const cat = getFileCategory(mimeType, fileName);
-  const { icon: Icon, iconCls, bg } = FILE_TYPE_META[cat];
-  const ext = fileName.split(".").pop()?.toUpperCase() ?? "";
-
-  return (
-    <div
-      className={cn(
-        "flex h-full w-full flex-col items-center justify-center gap-1 cursor-pointer",
-        bg,
-      )}
-    >
-      <Icon size={26} className={iconCls} />
-      {ext && (
-        <span className={cn("text-[9px] font-bold tracking-widest", iconCls)}>
-          {ext}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function parseCSV(text: string): string[][] {
-  return text
-    .trim()
-    .split("\n")
-    .map((row) => {
-      const cols: string[] = [];
-      let cur = "";
-      let inQ = false;
-      for (let i = 0; i < row.length; i++) {
-        const ch = row[i];
-        if (ch === '"') {
-          inQ = !inQ;
-        } else if (ch === "," && !inQ) {
-          cols.push(cur.trim());
-          cur = "";
-        } else {
-          cur += ch;
-        }
-      }
-      cols.push(cur.trim());
-      return cols;
-    });
-}
-
-function FilePreviewModal({
-  file,
-  onClose,
-}: {
-  file: PreviewFile;
-  onClose: () => void;
-}) {
-  const [textContent, setTextContent] = useState<string | null>(null);
-  const [csvRows, setCsvRows] = useState<string[][] | null>(null);
-  const [fetchError, setFetchError] = useState(false);
-
-  const category = getFileCategory(file.mimeType, file.fileName);
-  // Proxy route streams the file server-side, bypassing Cloudinary raw-resource auth (401).
-  // Images/video/audio load fine directly from Cloudinary CDN so they keep using src.
-  const proxyUrl = `/api/tasks/attachments/proxy?id=${encodeURIComponent(file.id)}`;
-  const needsFetch =
-    category === "text" || category === "markdown" || category === "csv";
-  const officeViewerUrl =
-    category === "office"
-      ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file.src)}`
-      : null;
-
-  useEffect(() => {
-    if (!needsFetch) return;
-    setTextContent(null);
-    setCsvRows(null);
-    setFetchError(false);
-    fetch(proxyUrl)
-      .then((r) => r.text())
-      .then((text) => {
-        if (category === "csv") setCsvRows(parseCSV(text));
-        else setTextContent(text);
-      })
-      .catch(() => setFetchError(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file.src]);
-
-  // Nested Radix Dialog so it gets its own portal + overlay outside the parent
-  // dialog's DismissableLayer - prevents Radix from treating clicks inside the
-  // preview as "outside" interactions on the task-detail dialog.
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-    >
-      <DialogContent
-        className="w-[92vw] max-w-7xl! p-0 gap-0 flex flex-col overflow-hidden"
-        style={{ height: "90vh" }}
-        showCloseButton={false}
-      >
-        <DialogTitle className="sr-only">{file.fileName}</DialogTitle>
-
-        {/* Header */}
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0">
-          {getFileIcon(file.mimeType, file.fileName, 15)}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {file.fileName}
-            </p>
-            {file.sizeBytes ? (
-              <p className="text-[10px] text-muted-foreground">
-                {(file.sizeBytes / 1024).toFixed(0)} KB
-              </p>
-            ) : null}
-          </div>
-          <a
-            href={file.src}
-            download={file.fileName}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-            title="Download"
-          >
-            <Download size={13} />
-          </a>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
-            <X size={13} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-hidden bg-secondary/20">
-          {category === "image" && (
-            <div className="flex h-full items-center justify-center p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={file.src}
-                alt={file.fileName}
-                className="max-h-full max-w-full rounded-lg object-contain shadow"
-              />
-            </div>
-          )}
-
-          {category === "pdf" && (
-            <iframe
-              src={proxyUrl}
-              className="h-full w-full"
-              title={file.fileName}
-            />
-          )}
-
-          {category === "video" && (
-            <div className="flex h-full items-center justify-center p-4">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video
-                src={file.src}
-                controls
-                className="max-h-full max-w-full rounded-lg shadow"
-              />
-            </div>
-          )}
-
-          {category === "audio" && (
-            <div className="flex h-full items-center justify-center p-6">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <audio src={file.src} controls className="w-full max-w-md" />
-            </div>
-          )}
-
-          {category === "office" && officeViewerUrl && (
-            <iframe
-              src={officeViewerUrl}
-              className="h-full w-full"
-              title={file.fileName}
-            />
-          )}
-
-          {(category === "markdown" || category === "text") && (
-            <div className="h-full overflow-y-auto p-6">
-              {fetchError ? (
-                <p className="text-sm text-muted-foreground">
-                  Unable to load preview.
-                </p>
-              ) : textContent === null ? (
-                <p className="text-sm text-muted-foreground animate-pulse">
-                  Loading…
-                </p>
-              ) : category === "markdown" ? (
-                <article className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{textContent}</ReactMarkdown>
-                </article>
-              ) : (
-                <pre className="whitespace-pre-wrap wrap-break-words font-mono text-xs text-foreground">
-                  {textContent}
-                </pre>
-              )}
-            </div>
-          )}
-
-          {category === "csv" && (
-            <div className="h-full overflow-auto p-4">
-              {fetchError ? (
-                <p className="text-sm text-muted-foreground">
-                  Unable to load preview.
-                </p>
-              ) : csvRows === null ? (
-                <p className="text-sm text-muted-foreground animate-pulse">
-                  Loading…
-                </p>
-              ) : (
-                <table className="w-full border-collapse text-xs">
-                  <thead>
-                    <tr>
-                      {(csvRows[0] ?? []).map((cell, i) => (
-                        <th
-                          key={i}
-                          className="border border-border bg-secondary px-2 py-1.5 text-left font-semibold text-foreground whitespace-nowrap"
-                        >
-                          {cell}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {csvRows.slice(1).map((row, ri) => (
-                      <tr key={ri} className="even:bg-secondary/30">
-                        {row.map((cell, ci) => (
-                          <td
-                            key={ci}
-                            className="border border-border px-2 py-1 text-foreground/80 whitespace-nowrap"
-                          >
-                            {cell}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
-
-          {category === "other" && (
-            <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-              <File size={48} className="text-muted-foreground/30" />
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Preview not available
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This file type cannot be previewed in the browser
-                </p>
-              </div>
-              <a
-                href={file.src}
-                download={file.fileName}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <Download size={12} />
-                Download file
-              </a>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Property row ──────────────────────────────────────────────────────────────
-
-function PropRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-2">
-      <div className="flex w-24 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-        {icon}
-        <span className="font-medium">{label}</span>
-      </div>
-      <div className="flex-1 min-w-0">{children}</div>
-    </div>
-  );
-}
-
-const TAG_COLORS: Record<string, string> = {
-  bug: "bg-danger/10 text-danger border-danger/20",
-  enhancement: "bg-info/10 text-info border-info/20",
-  feature: "bg-success/10 text-success border-success/20",
-  improvement: "bg-warning/10 text-warning border-warning/20",
-  question: "bg-purple-100 text-purple-700 border-purple-200",
-  documentation: "bg-neutral-100 text-neutral-600 border-neutral-200",
-  design: "bg-pink-100 text-pink-700 border-pink-200",
-  blocked: "bg-danger/20 text-danger border-danger/30",
-};
+// Code-split the rich-text editor (6 tiptap packages): loaded only when a task
+// detail is opened, not shipped in the tasks route bundle. ssr:false because
+// the editor is browser-only (useEditor + portals).
+const TiptapEditor = dynamic(
+  () => import("@/components/ui/tiptap-editor").then((m) => m.TiptapEditor),
+  { ssr: false, loading: () => <Skeleton className="min-h-[80px] w-full rounded-md" /> },
+);
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
@@ -1083,7 +476,7 @@ export function TaskDetailSheet({
                   <span className="text-border">/</span>
                   <span
                     className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-                    style={{ backgroundColor: task.columnColor ?? "#3b82f6" }}
+                    style={{ backgroundColor: task.columnColor ?? DEFAULT_COLUMN_COLOR }}
                   >
                     {task.columnName}
                   </span>
@@ -2036,9 +1429,12 @@ export function TaskDetailSheet({
                                         {editingPendingAttachments.map((file, idx) => (
                                           <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
                                             {editingPendingAttachPreviews[idx] ? (
-                                              <img
+                                              <Image
                                                 src={editingPendingAttachPreviews[idx]!}
                                                 alt={file.name}
+                                                width={24}
+                                                height={24}
+                                                unoptimized
                                                 className="h-6 w-6 rounded object-cover shrink-0"
                                               />
                                             ) : (
@@ -2517,9 +1913,12 @@ export function TaskDetailSheet({
                           {pendingAttachments.map((file, idx) => (
                             <div key={idx} className="relative flex items-center gap-1.5 rounded border border-border bg-background px-2 py-1 pr-6 max-w-[180px]">
                               {pendingAttachPreviews[idx] ? (
-                                <img
+                                <Image
                                   src={pendingAttachPreviews[idx]!}
                                   alt={file.name}
+                                  width={24}
+                                  height={24}
+                                  unoptimized
                                   className="h-6 w-6 rounded object-cover shrink-0"
                                 />
                               ) : (

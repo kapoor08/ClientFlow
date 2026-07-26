@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { AlertCircle, Code2, Key } from "lucide-react";
 
 const API_SECTIONS = [
@@ -34,7 +34,7 @@ export function HeroDeveloperPage() {
     <div className="hero-preview-scrollbar flex-1 overflow-y-auto p-5">
       <div className="flex gap-3">
         {/* API sidebar */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
           className="w-24 shrink-0"
@@ -53,10 +53,10 @@ export function HeroDeveloperPage() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* Content */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -119,7 +119,7 @@ export function HeroDeveloperPage() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </div>
   );

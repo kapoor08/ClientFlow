@@ -78,12 +78,7 @@ export async function listFilesForProject(
   const [project] = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(
-      and(
-        eq(projects.id, projectId),
-        eq(projects.organizationId, access.organizationId),
-      ),
-    )
+    .where(and(eq(projects.id, projectId), eq(projects.organizationId, access.organizationId)))
     .limit(1);
 
   if (!project) return { access, files: [] };
@@ -117,9 +112,7 @@ type FileSortKey = keyof typeof SORTABLE_FILE_COLUMNS;
 function resolveFileSort(sort: string | undefined, order: "asc" | "desc") {
   const col =
     SORTABLE_FILE_COLUMNS[
-      (sort as FileSortKey) in SORTABLE_FILE_COLUMNS
-        ? (sort as FileSortKey)
-        : "createdAt"
+      (sort as FileSortKey) in SORTABLE_FILE_COLUMNS ? (sort as FileSortKey) : "createdAt"
     ];
   return order === "asc" ? asc(col) : desc(col);
 }
@@ -165,10 +158,7 @@ export async function listAllFilesForUser(
     projectId ? eq(projectFiles.projectId, projectId) : undefined,
   );
 
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(projectFiles)
-    .where(whereClause);
+  const [{ total }] = await db.select({ total: count() }).from(projectFiles).where(whereClause);
 
   const rows = await db
     .select({
@@ -211,10 +201,7 @@ export async function saveFileForUser(
     .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(
-      and(
-        eq(projects.id, input.projectId),
-        eq(projects.organizationId, access.organizationId),
-      ),
+      and(eq(projects.id, input.projectId), eq(projects.organizationId, access.organizationId)),
     )
     .limit(1);
 
@@ -261,23 +248,20 @@ export async function saveFileForUser(
   return { fileId };
 }
 
-export async function deleteFileForUser(
-  userId: string,
-  fileId: string,
-): Promise<void> {
+export async function deleteFileForUser(userId: string, fileId: string): Promise<void> {
   const access = await getFilesModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
   if (!access.canWrite) throw new Error("You do not have permission to delete files.");
 
   const [file] = await db
-    .select({ id: projectFiles.id, storageKey: projectFiles.storageKey, mimeType: projectFiles.mimeType, fileName: projectFiles.fileName })
+    .select({
+      id: projectFiles.id,
+      storageKey: projectFiles.storageKey,
+      mimeType: projectFiles.mimeType,
+      fileName: projectFiles.fileName,
+    })
     .from(projectFiles)
-    .where(
-      and(
-        eq(projectFiles.id, fileId),
-        eq(projectFiles.organizationId, access.organizationId),
-      ),
-    )
+    .where(and(eq(projectFiles.id, fileId), eq(projectFiles.organizationId, access.organizationId)))
     .limit(1);
 
   if (!file) throw new Error("File not found.");
@@ -350,6 +334,17 @@ export async function getSignedUploadParamsForFolder(
   const access = await getFilesModuleAccessForUser(userId);
   if (!access) throw new Error("No active organization found.");
   if (!access.canWrite) throw new Error("You do not have permission to upload files.");
+
+  // The folder is namespaced under the org id below, but a `..` or absolute
+  // segment in the caller-supplied name could traverse out of that namespace
+  // into another tenant's path. Restrict to safe segment characters (P2-7).
+  if (
+    !/^[a-zA-Z0-9_\-/]+$/.test(folderName) ||
+    folderName.includes("..") ||
+    folderName.startsWith("/")
+  ) {
+    throw new Error("Invalid folder name.");
+  }
 
   const timestamp = Math.round(Date.now() / 1000);
   const folder = `clientflow/${access.organizationId}/${folderName}`;

@@ -62,7 +62,6 @@ export type DueLabel = { label: string; isOverdue: boolean };
 export function formatDueDate(iso: string | null): DueLabel {
   if (!iso) return { label: "No date", isOverdue: false };
   const d = new Date(iso);
-  const now = new Date();
   // Compare calendar days (ignore time)
   const diffMs = d.setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0);
   const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -99,4 +98,3 @@ const ACTIVITY_LABELS: Record<string, string> = {
 export function formatActivity(action: string): string {
   return ACTIVITY_LABELS[action] ?? action.replace(".", " ");
 }
-

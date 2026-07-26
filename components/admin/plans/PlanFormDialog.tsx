@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ControlledInput, ControlledTextarea, ControlledSelect, FormGrid } from "@/components/form";
 import { toast } from "sonner";
-import { createPlanSchema, planFormSchema, type CreatePlanValues, type PlanFormValues } from "@/schemas/admin/plans";
+import { createPlanSchema, planFormSchema, type CreatePlanValues } from "@/schemas/admin/plans";
 import { createPlanAction, updatePlanAction } from "@/server/actions/admin/plans";
 import type { getAdminPlansWithLimits } from "@/server/admin/plans";
 

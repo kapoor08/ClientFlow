@@ -6,7 +6,6 @@ import { user } from "@/db/auth-schema";
 import { db } from "@/server/db/client";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import {
-  DEFAULT_PAGE_SIZE,
   buildPaginationMeta,
   paginationOffset,
   type PaginationMeta,

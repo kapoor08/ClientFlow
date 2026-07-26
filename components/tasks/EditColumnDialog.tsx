@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { DEFAULT_COLUMN_COLOR } from "@/constants/colors";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,7 @@ export function EditColumnDialog({
   column,
 }: EditColumnDialogProps) {
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#3b82f6");
+  const [color, setColor] = useState(DEFAULT_COLUMN_COLOR);
   const [columnType, setColumnType] = useState<string>("none");
   const [description, setDescription] = useState("");
 
@@ -56,7 +57,7 @@ export function EditColumnDialog({
         setDescription(column.description ?? "");
       } else {
         setName("");
-        setColor("#3b82f6");
+        setColor(DEFAULT_COLUMN_COLOR);
         setColumnType("none");
         setDescription("");
       }

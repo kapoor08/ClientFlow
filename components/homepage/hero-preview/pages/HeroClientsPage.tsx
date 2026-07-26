@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { PageHeader, SearchFiltersBar, ActionIcons, Pagination } from "../shared";
 
 const CLIENTS = [
@@ -36,7 +36,7 @@ export function HeroClientsPage() {
           </thead>
           <tbody>
             {CLIENTS.map((c, i) => (
-              <motion.tr
+              <Motion.tr
                 key={c.name}
                 custom={i}
                 variants={row}
@@ -61,7 +61,7 @@ export function HeroClientsPage() {
                 </td>
                 <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{c.projects}</td>
                 <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{c.updated}</td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

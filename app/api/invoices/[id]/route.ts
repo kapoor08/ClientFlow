@@ -7,6 +7,7 @@ import {
   markInvoiceSentForUser,
   deleteInvoiceForUser,
 } from "@/server/invoices";
+import { invoiceUpdateSchema } from "@/schemas/invoices";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -40,7 +41,15 @@ export async function PATCH(request: Request, { params }: Params) {
       return NextResponse.json({ ok: true });
     }
 
-    await updateInvoiceForUser(userId, id, body);
+    const parsed = invoiceUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid input." },
+        { status: 400 },
+      );
+    }
+
+    await updateInvoiceForUser(userId, id, parsed.data);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return apiErrorResponse(err);

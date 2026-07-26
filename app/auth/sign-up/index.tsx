@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { signUpSchema, type SignUpFormValues } from "@/schemas/auth";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
@@ -17,35 +17,6 @@ import GooogleIcon from "@/components/ui/google-icon";
 import { captureClientEvent } from "@/lib/analytics/client";
 import { FUNNEL_EVENTS } from "@/lib/analytics/events";
 import { safeInternalRedirect } from "@/lib/safe-redirect";
-
-const signUpSchema = z
-  .object({
-    firstName: z.string().min(1, { message: "First name is required." }),
-    lastName: z.string().min(1, { message: "Last name is required." }),
-    email: z.string().email({ message: "Enter a valid email address." }),
-    password: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters." })
-      .refine((v) => /[A-Z]/.test(v), {
-        message: "Password must include at least one uppercase letter.",
-      })
-      .refine((v) => /[a-z]/.test(v), {
-        message: "Password must include at least one lowercase letter.",
-      })
-      .refine((v) => /[0-9]/.test(v), {
-        message: "Password must include at least one number.",
-      })
-      .refine((v) => /[^A-Za-z0-9]/.test(v), {
-        message: "Password must include at least one symbol.",
-      }),
-    confirmPassword: z.string().min(1, { message: "Please confirm your password." }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
-type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const SignUp = () => {
   const router = useRouter();

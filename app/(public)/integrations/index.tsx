@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useMotionStagger } from "@/hooks/use-home-motion";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Puzzle, ArrowRight, Zap } from "lucide-react";
 import { categories } from "@/config/integrations";
 
@@ -19,7 +19,7 @@ const IntegrationsPage = () => {
         <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
         <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
         <div className="relative container py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -36,7 +36,7 @@ const IntegrationsPage = () => {
               We build on best-in-class infrastructure so you don&apos;t have to. Here&apos;s what
               runs under the hood - billing, email, file storage, observability, and more.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
@@ -47,7 +47,7 @@ const IntegrationsPage = () => {
         >
           <div className="container">
             <h2 className="font-display text-foreground text-lg font-bold">{cat.name}</h2>
-            <motion.div
+            <Motion.div
               variants={motionStagger.container}
               initial="hidden"
               whileInView="show"
@@ -55,7 +55,7 @@ const IntegrationsPage = () => {
               className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               {cat.integrations.map((int) => (
-                <motion.div
+                <Motion.div
                   key={int.name}
                   variants={motionStagger.item}
                   className="border-border bg-card hover:border-primary/30 hover:shadow-cf-2 rounded-xl border p-5 transition-all"
@@ -67,9 +67,9 @@ const IntegrationsPage = () => {
                     {int.name}
                   </h3>
                   <p className="text-muted-foreground mt-1.5 text-[13px]">{int.desc}</p>
-                </motion.div>
+                </Motion.div>
               ))}
-            </motion.div>
+            </Motion.div>
           </div>
         </section>
       ))}

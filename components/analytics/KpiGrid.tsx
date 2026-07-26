@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import {
   Users,
   FolderKanban,
@@ -102,7 +102,7 @@ export function KpiGrid({ summary }: { summary: AnalyticsSummary }) {
 
   return (
     <div className="mb-8 space-y-4">
-      <motion.div
+      <Motion.div
         variants={motionStagger.container}
         initial="hidden"
         animate="show"
@@ -118,9 +118,9 @@ export function KpiGrid({ summary }: { summary: AnalyticsSummary }) {
             motionItem={motionStagger.item}
           />
         ))}
-      </motion.div>
+      </Motion.div>
 
-      <motion.div
+      <Motion.div
         variants={motionStagger.container}
         initial="hidden"
         animate="show"
@@ -136,7 +136,7 @@ export function KpiGrid({ summary }: { summary: AnalyticsSummary }) {
             motionItem={motionStagger.item}
           />
         ))}
-      </motion.div>
+      </Motion.div>
     </div>
   );
 }

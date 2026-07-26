@@ -5,25 +5,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { signInSchema, type SignInFormValues } from "@/schemas/auth";
 import AuthNotice from "@/components/auth/AuthNotice";
 import AuthSplitLayout from "@/components/layout/auth/AuthSplitLayout";
 import { ControlledInput } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { TwoFactorPrompt } from "@/components/auth/TwoFactorPrompt";
 import { authRoutes, getAuthErrorMessage, useGoogleSignIn, useSignIn } from "@/core/auth";
 import { useMutation } from "@tanstack/react-query";
 import { verifyTwoFactorCode } from "@/core/auth/repository";
 import { toast } from "sonner";
 import GooogleIcon from "@/components/ui/google-icon";
 import { safeInternalRedirect } from "@/lib/safe-redirect";
-
-const signInSchema = z.object({
-  email: z.string().email({ message: "Enter a valid email address." }),
-  password: z.string().min(1, { message: "Password is required." }),
-});
-
-type SignInFormValues = z.infer<typeof signInSchema>;
 
 const SignIn = () => {
   const router = useRouter();
@@ -85,20 +78,9 @@ const SignIn = () => {
         callbackURL: redirectTo,
       });
 
-      // Check IP allowlist immediately after credentials are verified -
-      // before MFA screen or dashboard redirect - so a blocked IP never
-      // progresses further in the auth flow.
-      const ipCheck = (await fetch(
-        `/api/auth/ip-check?email=${encodeURIComponent(values.email.trim())}`,
-      )
-        .then((r) => r.json())
-        .catch(() => ({ blocked: false }))) as { blocked: boolean };
-
-      if (ipCheck.blocked) {
-        router.push("/ip-blocked");
-        return;
-      }
-
+      // IP allowlist is now enforced server-side in the auth before-hook, so a
+      // blocked IP is rejected before any session/2FA state is minted; it
+      // surfaces as the error handled in catch below.
       if (result && "twoFactorRequired" in result && result.twoFactorRequired) {
         setTwoFactorRequired(true);
         return;
@@ -106,7 +88,14 @@ const SignIn = () => {
       toast.success("Signed in successfully.");
       router.push(redirectTo);
     } catch (err) {
-      setApiError(getAuthErrorMessage(err, "Unable to sign in."));
+      const message = getAuthErrorMessage(err, "Unable to sign in.");
+      // The server rejects blocked IPs with the IpAllowlistError message; route
+      // those to the dedicated page instead of an inline error.
+      if (message.toLowerCase().includes("ip address")) {
+        router.push("/ip-blocked");
+        return;
+      }
+      setApiError(message);
     }
   };
 
@@ -135,51 +124,18 @@ const SignIn = () => {
 
   if (twoFactorRequired) {
     return (
-      <AuthSplitLayout
-        title="Two-factor authentication"
-        description="Enter the 6-digit code from your authenticator app."
-        panelTitle="Welcome back"
-        panelDescription="Sign in to manage clients, projects, billing, and your internal operations from one place."
-      >
-        <div className="mt-6 space-y-4">
-          {apiError && <AuthNotice tone="error" message={apiError} />}
-          <div className="space-y-1.5">
-            <label className="text-foreground text-sm font-medium" htmlFor="totp-code">
-              Verification code
-            </label>
-            <Input
-              id="totp-code"
-              value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              onKeyDown={(e) => e.key === "Enter" && totpCode.length === 6 && verifyTotp.mutate()}
-              placeholder="000000"
-              maxLength={6}
-              className="text-center font-mono text-lg tracking-widest"
-              autoFocus
-            />
-          </div>
-          <Button
-            className="w-full cursor-pointer"
-            onClick={() => verifyTotp.mutate()}
-            disabled={totpCode.length < 6 || verifyTotp.isPending}
-          >
-            {verifyTotp.isPending ? "Verifying..." : "Verify"}
-          </Button>
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-muted-foreground hover:text-foreground text-xs transition-colors"
-              onClick={() => {
-                setTwoFactorRequired(false);
-                setTotpCode("");
-                setApiError(null);
-              }}
-            >
-              Back to sign in
-            </button>
-          </div>
-        </div>
-      </AuthSplitLayout>
+      <TwoFactorPrompt
+        apiError={apiError}
+        code={totpCode}
+        onCodeChange={setTotpCode}
+        onVerify={() => verifyTotp.mutate()}
+        isVerifying={verifyTotp.isPending}
+        onBack={() => {
+          setTwoFactorRequired(false);
+          setTotpCode("");
+          setApiError(null);
+        }}
+      />
     );
   }
 

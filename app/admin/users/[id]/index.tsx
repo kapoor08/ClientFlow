@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { MailCheck, KeyRound, ShieldCheck } from "lucide-react";
 import { UserDetailTabs } from "@/components/admin/users";
@@ -14,8 +15,14 @@ export default function AdminUserDetailPage({ detail }: { detail: Detail }) {
       <div className="border-border bg-card shadow-cf-1 rounded-xl border p-6">
         <div className="mb-4 flex items-center gap-4">
           {u.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={u.image} alt={u.name} className="h-12 w-12 rounded-full object-cover" />
+            <Image
+              src={u.image}
+              alt={u.name}
+              width={48}
+              height={48}
+              unoptimized
+              className="h-12 w-12 rounded-full object-cover"
+            />
           ) : (
             <div className="bg-brand-100 text-primary flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold">
               {u.name.slice(0, 2).toUpperCase()}

@@ -1,12 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { db } from "@/server/db/client";
-import { contactSubmissions, supportTickets } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { contactSubmissions } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { guardAdmin } from "@/server/auth/admin-guard";
-import { getServerSession } from "@/server/auth/session";
 import {
   addTicketMessage,
   assignTicket,
@@ -18,11 +16,6 @@ import {
   processContactSubmissionSchema,
   updateTicketStatusSchema,
 } from "@/schemas/admin/support";
-
-async function getAdminUserId(): Promise<string | null> {
-  const session = await getServerSession();
-  return session?.user?.isPlatformAdmin ? session.user.id : null;
-}
 
 export async function adminReplyAction(
   values: unknown,

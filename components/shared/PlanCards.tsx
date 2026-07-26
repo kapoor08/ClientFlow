@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useHomeMotion } from "@/hooks/use-home-motion";
@@ -38,7 +38,7 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
   }
 
   return (
-    <motion.div
+    <Motion.div
       variants={motionFx.stagger.variants.container}
       {...motionFx.stagger.inView}
       className={`mx-auto grid max-w-7xl items-stretch gap-5 md:grid-cols-${Math.min(plans.length, 3)} ${className}`}
@@ -50,7 +50,7 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
 
         if (isFeatured) {
           return (
-            <motion.div
+            <Motion.div
               key={plan.code}
               variants={motionFx.stagger.variants.item}
               className="relative flex"
@@ -109,12 +109,12 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           );
         }
 
         return (
-          <motion.div
+          <Motion.div
             key={plan.code}
             variants={motionFx.stagger.variants.item}
             className="group flex flex-col rounded-2xl border border-border bg-card p-7 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.08)]"
@@ -166,10 +166,10 @@ const PlanCards = ({ plans, className = "mt-20" }: PlanCardsProps) => {
                 </p>
               )}
             </div>
-          </motion.div>
+          </Motion.div>
         );
       })}
-    </motion.div>
+    </Motion.div>
   );
 };
 

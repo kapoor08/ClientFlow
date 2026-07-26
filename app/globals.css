@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss" source(none);
 @source "../app/**/*.{js,ts,jsx,tsx,mdx}";
 @source "../components/**/*.{js,ts,jsx,tsx,mdx}";
@@ -53,9 +52,14 @@
   --secondary: 220 14% 96%; /* Tailwind slate-100 */
   --secondary-foreground: 217 19% 17%; /* Tailwind slate-900 */
   --muted: 220 14% 96%; /* Tailwind slate-100 */
-  --muted-foreground: 218 8% 46%; /* Tailwind slate-500 */
+  --muted-foreground: 218 8% 45%; /* slate-500 nudged 1% darker for WCAG AA: 46% was 4.46:1 on bg (< 4.5); 45% is ≥4.52:1 on bg/secondary/card (P2-19) */
   --accent: 170 76% 41%; /* Tailwind teal-600 */
   --accent-foreground: 0 0% 100%; /* Tailwind white */
+  /* Darker teal for accent-colored TEXT on light backgrounds (the brand
+     --accent at L41% is only 2.5:1 as text = fails WCAG AA). L27% = ≥4.8:1 on
+     white and on bg-accent/10. Use `text-accent-text` for labels; keep
+     `text-accent` for icons/decoration only. (P2-19) */
+  --accent-text: 170 76% 27%;
   --destructive: 0 63% 42%; /* Tailwind red-700 */
   --destructive-foreground: 0 0% 100%; /* Tailwind white */
   --border: 216 12% 89%; /* Tailwind slate-200 */
@@ -88,9 +92,9 @@
   --cf-radius-modal: 16px;
   --cf-radius-pill: 999px;
 
-  --cf-font-display: "Sora", sans-serif;
-  --cf-font-body: "Source Sans 3", sans-serif;
-  --cf-font-mono: "JetBrains Mono", monospace;
+  --cf-font-display: var(--font-sora), "Sora", sans-serif;
+  --cf-font-body: var(--font-source-sans), "Source Sans 3", sans-serif;
+  --cf-font-mono: var(--font-jetbrains-mono), "JetBrains Mono", monospace;
 
   --cf-shadow-1: 0 1px 2px hsla(220, 26%, 11%, 0.05);
   --cf-shadow-2: 0 4px 12px hsla(220, 26%, 11%, 0.08);
@@ -123,6 +127,7 @@
   --muted-foreground: 218 8% 46%; /* Tailwind slate-500 */
   --accent: 170 76% 41%; /* Tailwind teal-600 */
   --accent-foreground: 220 26% 11%; /* Tailwind slate-950 */
+  --accent-text: 170 70% 62%; /* lighter teal for text on the dark theme's dark bg */
   --destructive: 0 63% 42%; /* Tailwind red-700 */
   --destructive-foreground: 0 0% 100%; /* Tailwind white */
   --cf-error: 0 63% 42%; /* Tailwind red-700 */
@@ -170,6 +175,7 @@
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-text: hsl(var(--accent-text));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-card: hsl(var(--card));

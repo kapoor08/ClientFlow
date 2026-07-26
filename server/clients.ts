@@ -3,7 +3,7 @@ import "server-only";
 import { writeAuditLog } from "@/server/security/audit";
 import { assertSameTenant } from "@/server/auth/tenant-guard";
 import { resolveModulePermissionsForUser } from "@/server/auth/permissions";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lte, or } from "drizzle-orm";
 import { clients, projects } from "@/db/schema";
 import { db } from "@/server/db/client";
@@ -388,11 +388,11 @@ export async function createClientForUser(userId: string, input: ClientFormValue
   }).catch(console.error);
 
   // ─── Webhook dispatch ─────────────────────────────────────────────────────
-  dispatchWebhookEvent(access.organizationId, "client.created", {
+  dispatchWebhookEventAfter(access.organizationId, "client.created", {
     clientId,
     name: values.name,
     status: values.status,
-  }).catch(console.error);
+  });
 
   // Notify all org members about the new client
   const memberIdsForCreate = await getOrgMemberUserIds(access.organizationId);
@@ -481,11 +481,11 @@ export async function updateClientForUser(
     metadata: clientChangedMeta,
   }).catch(console.error);
 
-  dispatchWebhookEvent(access.organizationId, "client.updated", {
+  dispatchWebhookEventAfter(access.organizationId, "client.updated", {
     clientId,
     name: values.name,
     status: values.status,
-  }).catch(console.error);
+  });
 
   // Notify org members about status changes
   const memberIdsForUpdate = await getOrgMemberUserIds(access.organizationId);

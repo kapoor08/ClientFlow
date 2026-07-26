@@ -3,7 +3,6 @@ import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import {
-  organizations,
   supportTicketEvents,
   supportTicketMessages,
   supportTickets,

@@ -17,7 +17,7 @@ import { enforceTaskCreationLimit } from "@/server/subscription/plan-enforcement
 import { dispatchNotification } from "@/server/notifications/data";
 import { onTaskAssigned, onTaskStatusChanged } from "@/server/email/triggers";
 import type { TaskFormValues } from "@/schemas/tasks";
-import { dispatchWebhookEvent } from "@/server/webhooks/dispatch";
+import { dispatchWebhookEventAfter } from "@/server/webhooks/dispatch";
 import { broadcastTaskActivity } from "@/server/integrations/broadcasts";
 
 export type TaskListItem = {
@@ -200,13 +200,13 @@ export async function createTaskForUser(
     .catch(console.error);
 
   // ─── Webhook dispatch ─────────────────────────────────────────────────────
-  dispatchWebhookEvent(context.organizationId, "task.created", {
+  dispatchWebhookEventAfter(context.organizationId, "task.created", {
     taskId,
     title,
     status: input.status,
     priority: input.priority,
     projectId: input.projectId ?? null,
-  }).catch(console.error);
+  });
 
   // ─── Slack broadcast (team activity feed) ──────────────────────────────────
   broadcastTaskActivity({
@@ -624,22 +624,22 @@ export async function updateTaskForUser(
   }).catch(console.error);
 
   // ─── Webhook dispatch ─────────────────────────────────────────────────────
-  dispatchWebhookEvent(context.organizationId, "task.updated", {
+  dispatchWebhookEventAfter(context.organizationId, "task.updated", {
     taskId,
     title: taskTitle,
     status: input.status,
     priority: input.priority,
     projectId: input.projectId,
-  }).catch(console.error);
+  });
 
   // Fire task.completed when the task transitions into "done"
   if (existing.status !== input.status && input.status === "done") {
-    dispatchWebhookEvent(context.organizationId, "task.completed", {
+    dispatchWebhookEventAfter(context.organizationId, "task.completed", {
       taskId,
       title: taskTitle,
       projectId: input.projectId,
       completedAt: new Date().toISOString(),
-    }).catch(console.error);
+    });
   }
 
   return { taskId };

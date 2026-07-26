@@ -65,14 +65,79 @@ const AUTH_API_PREFIXES = [
   "/api/auth/reset-password",
   "/api/auth/send-verification-email",
   "/api/auth/verify-email",
+  // 2FA challenge endpoints (verify-totp / verify-backup-code). Without this
+  // they fall to the general 120/60s bucket = ~120 guesses/min against a
+  // 6-digit code; the strict auth bucket (10/10s) throttles brute force.
+  "/api/auth/two-factor",
 ];
 
+/**
+ * Content-Security-Policy (P2-2). Built per-request so `script-src` carries a
+ * fresh nonce instead of `'unsafe-inline'`. `'strict-dynamic'` trusts scripts
+ * loaded by the nonced entrypoints (e.g. Stripe.js pulled in by the bundle), so
+ * the host allowlist is a CSP2 fallback. Production only - dev uses inline
+ * `eval` for HMR/Fast Refresh. Ships Report-Only by default; set CSP_ENFORCE=1
+ * once verified in-browser (zero violations across all routes) to enforce.
+ */
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://va.vercel-scripts.com https://vercel.live`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
 function getClientIp(request: NextRequest): string {
+  // Prefer Vercel's platform-injected header: the edge derives it from the real
+  // connection and strips any client-supplied `x-vercel-*`, so it cannot be
+  // forged (unlike the leftmost `x-forwarded-for` entry, which a client
+  // controls). Fall back to x-real-ip / XFF for local dev and non-Vercel hosts.
   return (
+    request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown"
   );
+}
+
+type LimitResult = Awaited<ReturnType<typeof authRatelimit.limit>>;
+
+const RATE_LIMIT_TIMEOUT_MS = 2000;
+
+/**
+ * Runs an Upstash limiter without ever letting a Redis outage take the whole
+ * site down. The middleware matcher covers every page and API route, so an
+ * un-guarded `.limit()` rejection (or hang) becomes a 500 on *everything*,
+ * including `/api/health` and every auth flow - a hard outage that fails
+ * closed. We instead fail **open**: on any limiter error or a >2s stall we log
+ * a warning and return `null`, and the caller lets the request through.
+ */
+async function safeLimit(limiter: typeof authRatelimit, ip: string): Promise<LimitResult | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), RATE_LIMIT_TIMEOUT_MS);
+    });
+    const result = await Promise.race([limiter.limit(ip), timeout]);
+    if (result === null) {
+      console.warn("[middleware] rate limiter timed out; failing open");
+    }
+    return result;
+  } catch (err) {
+    console.warn("[middleware] rate limiter unavailable; failing open:", err);
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 /**
@@ -100,8 +165,30 @@ export async function middleware(request: NextRequest) {
   const ip = getClientIp(request);
   const { id: requestId, headers: forwardedHeaders } = ensureRequestId(request);
 
+  // Per-request CSP nonce (production only). Setting the nonce + CSP on the
+  // *request* headers is what makes Next auto-nonce its own inline/hydration
+  // scripts; the same policy is echoed on every response below (P2-2).
+  const cspEnabled = process.env.NODE_ENV === "production";
+  const nonce = cspEnabled ? btoa(crypto.randomUUID()) : "";
+  const csp = cspEnabled ? buildCsp(nonce) : "";
+  if (cspEnabled) {
+    forwardedHeaders.set("x-nonce", nonce);
+    // Next reads the nonce from this exact request header (always the enforcing
+    // key; report-only is a response-side concept applied below).
+    forwardedHeaders.set("Content-Security-Policy", csp);
+  }
+
   const withRequestId = (res: NextResponse) => {
     res.headers.set("x-request-id", requestId);
+    if (cspEnabled) {
+      // Report-Only by default during rollout so a missed inline script can't
+      // break prod; flip to enforcing with CSP_ENFORCE=1 after verification.
+      const key =
+        process.env.CSP_ENFORCE === "1"
+          ? "Content-Security-Policy"
+          : "Content-Security-Policy-Report-Only";
+      res.headers.set(key, csp);
+    }
     return res;
   };
   const passThrough = () =>
@@ -136,8 +223,9 @@ export async function middleware(request: NextRequest) {
 
   // Rate limit auth endpoints (stricter)
   if (AUTH_API_PREFIXES.some((p) => pathname.startsWith(p))) {
-    const { success, limit, remaining, reset } = await authRatelimit.limit(ip);
-    if (!success) {
+    const result = await safeLimit(authRatelimit, ip);
+    if (result && !result.success) {
+      const { limit, remaining, reset } = result;
       return withRequestId(
         new NextResponse(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
@@ -159,8 +247,9 @@ export async function middleware(request: NextRequest) {
   // a single IP stay well under the 120/60s bucket, and any runaway caller
   // shouldn't bypass the limit just because the endpoint is cheap.
   if (pathname.startsWith("/api/")) {
-    const { success, limit, remaining, reset } = await apiRatelimit.limit(ip);
-    if (!success) {
+    const result = await safeLimit(apiRatelimit, ip);
+    if (result && !result.success) {
+      const { limit, remaining, reset } = result;
       return withRequestId(
         new NextResponse(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,

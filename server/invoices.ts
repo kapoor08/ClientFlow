@@ -7,6 +7,7 @@ import { getOrganizationSettingsContextForUser } from "@/server/organization-set
 import type { InvoiceLineItem } from "@/db/schemas/billing";
 import { writeAuditLog } from "@/server/security/audit";
 import { assertSameTenant } from "@/server/auth/tenant-guard";
+import { calculateInvoiceAmountDue } from "@/lib/billing/invoice-totals";
 import {
   DEFAULT_PAGE_SIZE,
   buildPaginationMeta,
@@ -47,7 +48,7 @@ export type InvoiceFormValues = {
 };
 
 function calcAmountDue(items: InvoiceLineItem[]): number {
-  return items.reduce((sum, li) => sum + li.quantity * li.unitPriceCents, 0);
+  return calculateInvoiceAmountDue(items);
 }
 
 // ─── List ─────────────────────────────────────────────────────────────────────
@@ -264,7 +265,7 @@ export async function createInvoiceForUser(
 export async function updateInvoiceForUser(
   userId: string,
   invoiceId: string,
-  input: Partial<InvoiceFormValues & { status: string }>,
+  input: Partial<InvoiceFormValues>,
 ): Promise<void> {
   const ctx = await getOrganizationSettingsContextForUser(userId);
   if (!ctx) throw new Error("No active organization found.");
@@ -279,8 +280,25 @@ export async function updateInvoiceForUser(
   if (!existing) throw new Error("Invoice not found.");
   if (!existing.isManual) throw new Error("Stripe invoices cannot be edited here.");
 
+  // Verify a re-pointed clientId actually belongs to this org - otherwise a
+  // crafted PATCH could reference another tenant's client (P2-7).
+  if (input.clientId !== undefined) {
+    const [client] = await db
+      .select({ organizationId: clients.organizationId })
+      .from(clients)
+      .where(eq(clients.id, input.clientId))
+      .limit(1);
+    if (!client) throw new Error("Client not found.");
+    assertSameTenant(client.organizationId, ctx.organizationId, {
+      entity: "client",
+      entityId: input.clientId,
+    });
+  }
+
   const amountDueCents = input.lineItems ? calcAmountDue(input.lineItems) : undefined;
 
+  // NB: `status` is intentionally not settable here - transitions go through
+  // the mark_paid / mark_sent actions. See schemas/invoices.ts (P2-7).
   await db
     .update(invoices)
     .set({
@@ -289,7 +307,6 @@ export async function updateInvoiceForUser(
       ...(input.lineItems !== undefined && { lineItems: input.lineItems, amountDueCents }),
       ...(input.notes !== undefined && { notes: input.notes?.trim() || null }),
       ...(input.dueAt !== undefined && { dueAt: input.dueAt ? new Date(input.dueAt) : null }),
-      ...(input.status !== undefined && { status: input.status }),
       updatedAt: new Date(),
     })
     .where(eq(invoices.id, invoiceId));

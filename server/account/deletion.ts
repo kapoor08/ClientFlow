@@ -168,39 +168,41 @@ export async function cancelDeletion(userId: string): Promise<void> {
  * for retry on the next cron tick.
  */
 export async function anonymizeUser(userId: string): Promise<void> {
-  await db.transaction(async (tx) => {
+  // Atomic multi-write via db.batch(): the neon-http driver has no interactive
+  // transaction support (db.transaction() throws at runtime). Every statement
+  // here is known upfront - there is no read-then-branch inside the unit - so a
+  // single batch gives the same all-or-nothing guarantee: a partial failure
+  // leaves the account untouched for retry on the next cron tick.
+  await db.batch([
     // 1. Cascade-safe: deleting these children removes rows outright.
-    await tx.delete(session).where(eq(session.userId, userId));
-    await tx.delete(account).where(eq(account.userId, userId));
-    await tx.delete(notifications).where(eq(notifications.userId, userId));
-    await tx.delete(notificationPreferences).where(eq(notificationPreferences.userId, userId));
-    await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+    db.delete(session).where(eq(session.userId, userId)),
+    db.delete(account).where(eq(account.userId, userId)),
+    db.delete(notifications).where(eq(notifications.userId, userId)),
+    db.delete(notificationPreferences).where(eq(notificationPreferences.userId, userId)),
+    db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId)),
 
     // 2. NULL-out references on tables that retain the row but shouldn't
     //    continue pointing at a user who no longer exists as a person.
-    await tx
-      .update(apiKeys)
-      .set({ createdByUserId: null })
-      .where(eq(apiKeys.createdByUserId, userId));
-    await tx
+    db.update(apiKeys).set({ createdByUserId: null }).where(eq(apiKeys.createdByUserId, userId)),
+    db
       .update(outboundWebhooks)
       .set({ createdByUserId: null })
-      .where(eq(outboundWebhooks.createdByUserId, userId));
-    await tx.update(auditLogs).set({ actorUserId: null }).where(eq(auditLogs.actorUserId, userId));
-    await tx
+      .where(eq(outboundWebhooks.createdByUserId, userId)),
+    db.update(auditLogs).set({ actorUserId: null }).where(eq(auditLogs.actorUserId, userId)),
+    db
       .update(organizationMemberships)
       .set({ invitedByUserId: null })
-      .where(eq(organizationMemberships.invitedByUserId, userId));
-    await tx
+      .where(eq(organizationMemberships.invitedByUserId, userId)),
+    db
       .update(organizations)
       .set({ suspendedByAdminUserId: null })
-      .where(eq(organizations.suspendedByAdminUserId, userId));
+      .where(eq(organizations.suspendedByAdminUserId, userId)),
 
     // 3. Anonymize the user row itself. Preserving the row keeps remaining
     //    FK references (memberships, task authorship, time entries) valid.
     //    The email is rewritten to a unique sentinel so it can be reused by
     //    a new signup later.
-    await tx
+    db
       .update(user)
       .set({
         email: `deleted-${userId}@deleted.clientflow.local`,
@@ -210,8 +212,8 @@ export async function anonymizeUser(userId: string): Promise<void> {
         isSuspended: true,
         deletedAt: new Date(),
       })
-      .where(eq(user.id, userId));
-  });
+      .where(eq(user.id, userId)),
+  ]);
 }
 
 /**

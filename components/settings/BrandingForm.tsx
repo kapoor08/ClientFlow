@@ -4,6 +4,7 @@ import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Palette, Upload, X, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
+import { DEFAULT_BRAND_COLOR } from "@/constants/colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,15 +30,11 @@ type Props = {
   canManage: boolean;
 };
 
-export default function BrandingForm({
-  defaultLogoUrl,
-  defaultBrandColor,
-  canManage,
-}: Props) {
+export default function BrandingForm({ defaultLogoUrl, defaultBrandColor, canManage }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [logoUrl, setLogoUrl] = useState(defaultLogoUrl);
-  const [brandColor, setBrandColor] = useState(defaultBrandColor || "#6366f1");
+  const [brandColor, setBrandColor] = useState(defaultBrandColor || DEFAULT_BRAND_COLOR);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -65,8 +62,7 @@ export default function BrandingForm({
         body: JSON.stringify({ folder: "org-logos", resourceType: "image" }),
       });
       if (!signRes.ok) throw new Error("Failed to get upload signature.");
-      const { signature, timestamp, apiKey, cloudName, folder } =
-        await signRes.json();
+      const { signature, timestamp, apiKey, cloudName, folder } = await signRes.json();
 
       const form = new FormData();
       form.append("file", file);
@@ -75,10 +71,10 @@ export default function BrandingForm({
       form.append("signature", signature);
       form.append("folder", folder);
 
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: form },
-      );
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: form,
+      });
       if (!uploadRes.ok) throw new Error("Upload failed.");
       const uploadData = await uploadRes.json();
       setLogoUrl(uploadData.secure_url as string);
@@ -101,7 +97,7 @@ export default function BrandingForm({
       });
       // Confirm state from what the server actually persisted
       setLogoUrl(saved.logoUrl ?? "");
-      setBrandColor(saved.brandColor ?? "#6366f1");
+      setBrandColor(saved.brandColor ?? DEFAULT_BRAND_COLOR);
       setSaved(true);
       toast.success("Branding settings saved.");
       // Router cache was already invalidated by the server action (revalidatePath).
@@ -119,23 +115,21 @@ export default function BrandingForm({
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-card border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="rounded-card border-danger/20 bg-danger/5 text-danger border px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
       {/* Logo */}
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
+      <div className="rounded-card border-border bg-card shadow-cf-1 border p-6">
         <div className="mb-4 flex items-center gap-2">
           <Upload size={16} className="text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">
-            Organization Logo
-          </h2>
+          <h2 className="text-foreground text-sm font-semibold">Organization Logo</h2>
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           {/* Preview */}
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-secondary">
+          <div className="border-border bg-secondary flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -174,7 +168,7 @@ export default function BrandingForm({
 
             {canManage && (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">or</span>
+                <span className="text-muted-foreground text-xs">or</span>
                 <input
                   ref={fileRef}
                   type="file"
@@ -191,8 +185,7 @@ export default function BrandingForm({
                 >
                   {uploading ? (
                     <>
-                      <Loader2 size={13} className="mr-1.5 animate-spin" />{" "}
-                      Uploading…
+                      <Loader2 size={13} className="mr-1.5 animate-spin" /> Uploading…
                     </>
                   ) : (
                     <>
@@ -200,9 +193,7 @@ export default function BrandingForm({
                     </>
                   )}
                 </Button>
-                <span className="text-[11px] text-muted-foreground">
-                  PNG, JPG, SVG · max 2 MB
-                </span>
+                <span className="text-muted-foreground text-[11px]">PNG, JPG, SVG · max 2 MB</span>
               </div>
             )}
           </div>
@@ -210,10 +201,10 @@ export default function BrandingForm({
       </div>
 
       {/* Brand color */}
-      <div className="rounded-card border border-border bg-card p-6 shadow-cf-1">
+      <div className="rounded-card border-border bg-card shadow-cf-1 border p-6">
         <div className="mb-4 flex items-center gap-2">
           <Palette size={16} className="text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Brand Color</h2>
+          <h2 className="text-foreground text-sm font-semibold">Brand Color</h2>
         </div>
 
         <div className="space-y-4">
@@ -224,7 +215,7 @@ export default function BrandingForm({
                 type="button"
                 onClick={() => canManage && setBrandColor(color)}
                 disabled={!canManage}
-                className="relative h-8 w-8 rounded-full transition-transform enabled:hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 cursor-pointer"
+                className="relative h-8 w-8 cursor-pointer rounded-full transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 enabled:hover:scale-110 disabled:opacity-50"
                 style={{ backgroundColor: color }}
                 title={color}
               >
@@ -239,21 +230,13 @@ export default function BrandingForm({
             ))}
           </div>
 
-          <ColorPicker
-            value={brandColor}
-            onChange={setBrandColor}
-            disabled={!canManage}
-          />
+          <ColorPicker value={brandColor} onChange={setBrandColor} disabled={!canManage} />
         </div>
       </div>
 
       {/* Save */}
       {canManage && (
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full sm:w-auto cursor-pointer"
-        >
+        <Button onClick={handleSave} disabled={saving} className="w-full cursor-pointer sm:w-auto">
           {saving ? (
             <>
               <Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…

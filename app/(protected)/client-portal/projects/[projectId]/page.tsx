@@ -1,31 +1,15 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { ChevronLeft, Clock } from "lucide-react";
 import { getServerSession } from "@/server/auth/session";
 import { getOrganizationSettingsContextForUser } from "@/server/organization-settings";
 import { getPortalProjectDetailForUser } from "@/server/client-portal";
+import { PortalTasksPanel } from "@/components/client-portal/project-detail/PortalTasksPanel";
+import { PortalFilesPanel } from "@/components/client-portal/project-detail/PortalFilesPanel";
 import {
-  ChevronLeft,
-  Clock,
-  FileText,
-  CheckSquare,
-  ExternalLink,
-} from "lucide-react";
-import Link from "next/link";
-import { formatBytes } from "@/utils/file";
-import { PROJECT_STATUS_LABELS, PROJECT_STATUS_STYLES } from "@/core/projects/entity";
-import { TASK_STATUS_LABELS, STATUS_BADGE as TASK_STATUS_STYLES } from "@/core/tasks/entity";
-
-// Union of project + task statuses (this page renders both), plus legacy "active" alias
-const STATUS_STYLES: Record<string, string> = {
-  ...PROJECT_STATUS_STYLES,
-  ...TASK_STATUS_STYLES,
-  active: "bg-info/10 text-info",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ...PROJECT_STATUS_LABELS,
-  ...TASK_STATUS_LABELS,
-  active: "Active",
-};
+  STATUS_STYLES,
+  STATUS_LABELS,
+} from "@/components/client-portal/project-detail/status-config";
 
 export default async function ClientPortalProjectDetailPage({
   params,
@@ -44,15 +28,13 @@ export default async function ClientPortalProjectDetailPage({
   if (!detail) notFound();
 
   const { project, tasks, files } = detail;
-  const openTasks = tasks.filter((t) => !["done", "completed"].includes(t.status));
-  const doneTasks = tasks.filter((t) => ["done", "completed"].includes(t.status));
 
   return (
     <div>
       {/* Back */}
       <Link
         href="/client-portal/projects"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="text-muted-foreground hover:text-foreground mb-5 inline-flex items-center gap-1.5 text-sm transition-colors"
       >
         <ChevronLeft size={14} />
         Back to Projects
@@ -61,24 +43,20 @@ export default async function ClientPortalProjectDetailPage({
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground">
-            {project.name}
-          </h1>
+          <h1 className="font-display text-foreground text-2xl font-semibold">{project.name}</h1>
           {project.description && (
-            <p className="mt-1.5 text-sm text-muted-foreground max-w-2xl">
-              {project.description}
-            </p>
+            <p className="text-muted-foreground mt-1.5 max-w-2xl text-sm">{project.description}</p>
           )}
         </div>
         <span
-          className={`shrink-0 mt-1 inline-flex items-center rounded-pill px-3 py-1 text-sm font-medium ${STATUS_STYLES[project.status] ?? "bg-secondary text-muted-foreground"}`}
+          className={`rounded-pill mt-1 inline-flex shrink-0 items-center px-3 py-1 text-sm font-medium ${STATUS_STYLES[project.status] ?? "bg-secondary text-muted-foreground"}`}
         >
           {STATUS_LABELS[project.status] ?? project.status}
         </span>
       </div>
 
       {/* Meta */}
-      <div className="mb-8 flex flex-wrap gap-4 text-sm text-muted-foreground">
+      <div className="text-muted-foreground mb-8 flex flex-wrap gap-4 text-sm">
         {project.dueDate && (
           <div className="flex items-center gap-1.5">
             <Clock size={14} />
@@ -93,133 +71,15 @@ export default async function ClientPortalProjectDetailPage({
           </div>
         )}
         {project.clientName && (
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="font-medium text-foreground">{project.clientName}</span>
+          <div className="text-muted-foreground flex items-center gap-1.5">
+            <span className="text-foreground font-medium">{project.clientName}</span>
           </div>
         )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        {/* Tasks */}
-        <div className="lg:col-span-3">
-          <div className="mb-4 flex items-center gap-2">
-            <CheckSquare size={16} className="text-muted-foreground" />
-            <h2 className="font-display text-base font-semibold text-foreground">
-              Tasks
-            </h2>
-            <span className="ml-auto text-xs text-muted-foreground">
-              {openTasks.length} open · {doneTasks.length} done
-            </span>
-          </div>
-
-          <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
-            {tasks.length === 0 ? (
-              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                No tasks yet.
-              </p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
-                      Task
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="hidden px-4 py-3 text-left text-xs font-semibold text-muted-foreground md:table-cell">
-                      Due
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasks.map((task) => (
-                    <tr
-                      key={task.id}
-                      className="border-b border-border last:border-0 hover:bg-secondary/30"
-                    >
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {task.title}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[task.status] ?? "bg-secondary text-muted-foreground"}`}
-                        >
-                          {STATUS_LABELS[task.status] ?? task.status}
-                        </span>
-                      </td>
-                      <td className="hidden px-4 py-3 md:table-cell">
-                        {task.dueDate ? (
-                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock size={11} />
-                            {new Date(task.dueDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* Files */}
-        <div className="lg:col-span-2">
-          <div className="mb-4 flex items-center gap-2">
-            <FileText size={16} className="text-muted-foreground" />
-            <h2 className="font-display text-base font-semibold text-foreground">
-              Files
-            </h2>
-            <span className="ml-auto text-xs text-muted-foreground">
-              {files.length}
-            </span>
-          </div>
-
-          <div className="overflow-hidden rounded-card border border-border bg-card shadow-cf-1">
-            {files.length === 0 ? (
-              <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                No files yet.
-              </p>
-            ) : (
-              <div className="divide-y divide-border">
-                {files.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-secondary/30"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {file.fileName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatBytes(file.sizeBytes)}
-                        {file.sizeBytes ? " · " : ""}
-                        {new Date(file.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </p>
-                    </div>
-                    <a
-                      href={file.storageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <PortalTasksPanel tasks={tasks} />
+        <PortalFilesPanel files={files} />
       </div>
     </div>
   );

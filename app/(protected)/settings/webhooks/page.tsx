@@ -3,16 +3,7 @@
 import { useState } from "react";
 import { Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteDialog } from "@/components/common/ConfirmDeleteDialog";
 import { toast } from "sonner";
 import { WebhookCard, CreateWebhookDialog } from "@/components/settings";
 import { EmptyState } from "@/components/shared";
@@ -157,31 +148,20 @@ export default function WebhooksPage() {
       />
 
       {/* Delete confirm */}
-      <AlertDialog
+      <ConfirmDeleteDialog
         open={!!deleteTarget}
         onOpenChange={(v) => {
           if (!v) setDeleteTarget(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete webhook?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>{deleteTarget?.name}</strong> will be permanently deleted
-              and stop receiving events.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-danger text-white hover:bg-danger/90 cursor-pointer"
-              onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Delete webhook?"
+        description={
+          <>
+            <strong>{deleteTarget?.name}</strong> will be permanently deleted and stop receiving
+            events.
+          </>
+        }
+        onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+      />
     </div>
   );
 }

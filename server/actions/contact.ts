@@ -7,6 +7,7 @@ import { contactSubmissions } from "@/db/schema";
 import { sendContactEmailViaEmailJs } from "@/server/third-party/emailjs";
 import { onContactFormSubmitted } from "@/server/email/triggers";
 import { verifyTurnstileToken } from "@/server/security/turnstile";
+import { checkActionRateLimit } from "@/server/rate-limit";
 
 export type ContactActionState = {
   status: "idle" | "success" | "error";
@@ -62,7 +63,20 @@ export async function submitContactFormAction(
   // Bot challenge - soft-skipped if TURNSTILE_SECRET_KEY isn't configured.
   const reqHeaders = await headers();
   const remoteIp =
-    reqHeaders.get("x-real-ip") ?? reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    reqHeaders.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
+    reqHeaders.get("x-real-ip") ??
+    reqHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    null;
+
+  // Throttle per IP - this action is public and sends email, so it's a spam
+  // vector even with the captcha (P2-3).
+  if (remoteIp && !(await checkActionRateLimit("contact", remoteIp))) {
+    return {
+      status: "error",
+      message: "Too many messages sent. Please wait a minute and try again.",
+    };
+  }
+
   const captcha = await verifyTurnstileToken(getField(formData, "cf-turnstile-response"), remoteIp);
   if (!captcha.ok) {
     return {

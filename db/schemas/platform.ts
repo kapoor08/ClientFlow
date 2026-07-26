@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   numeric,
@@ -12,23 +13,35 @@ import { user } from "../auth-schema";
 import { organizations } from "./access";
 import { createdAt, updatedAt } from "./helpers";
 
-export const notifications = pgTable("notifications", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id")
-    .notNull()
-    .references(() => organizations.id, { onDelete: "cascade" }),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
-  title: text("title").notNull(),
-  body: text("body"),
-  actionUrl: text("action_url"),
-  data: jsonb("data"),
-  isRead: boolean("is_read").default(false).notNull(),
-  readAt: timestamp("read_at"),
-  createdAt: createdAt(),
-});
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    actionUrl: text("action_url"),
+    data: jsonb("data"),
+    isRead: boolean("is_read").default(false).notNull(),
+    readAt: timestamp("read_at"),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    // Bell path: WHERE org AND user [AND is_read=false] ORDER BY created_at DESC.
+    index("notifications_org_user_read_idx").on(
+      table.organizationId,
+      table.userId,
+      table.isRead,
+      table.createdAt,
+    ),
+  ],
+);
 
 export const notificationPreferences = pgTable(
   "notification_preferences",
@@ -164,18 +177,27 @@ export const analyticsMonthlyOrgMetrics = pgTable(
   ],
 );
 
-export const auditLogs = pgTable("audit_logs", {
-  id: text("id").primaryKey(),
-  organizationId: text("organization_id").references(() => organizations.id),
-  actorUserId: text("actor_user_id").references(() => user.id),
-  action: text("action").notNull(),
-  entityType: text("entity_type").notNull(),
-  entityId: text("entity_id"),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  metadata: jsonb("metadata"),
-  createdAt: createdAt(),
-});
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: text("id").primaryKey(),
+    // Nullable is intentional: some audit events are platform-level (no org).
+    organizationId: text("organization_id").references(() => organizations.id),
+    actorUserId: text("actor_user_id").references(() => user.id),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    metadata: jsonb("metadata"),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    // Org-scoped audit trail / compliance export filters by org and orders by
+    // time; without this the admin audit queries seq-scan the whole table.
+    index("audit_logs_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);
 
 // ── Feature flags ────────────────────────────────────────────────────────────
 
@@ -245,22 +267,29 @@ export const impersonationSessions = pgTable("impersonation_sessions", {
   createdAt: createdAt(),
 });
 
-export const platformAdminActions = pgTable("platform_admin_actions", {
-  id: text("id").primaryKey(),
-  platformAdminUserId: text("platform_admin_user_id")
-    .notNull()
-    .references(() => user.id),
-  impersonatedAsUserId: text("impersonated_as_user_id").references(() => user.id),
-  action: text("action").notNull(),
-  entityType: text("entity_type").notNull(),
-  entityId: text("entity_id"),
-  organizationId: text("organization_id").references(() => organizations.id),
-  beforeSnapshot: jsonb("before_snapshot"),
-  afterSnapshot: jsonb("after_snapshot"),
-  reason: text("reason"),
-  ipAddress: text("ip_address"),
-  createdAt: createdAt(),
-});
+export const platformAdminActions = pgTable(
+  "platform_admin_actions",
+  {
+    id: text("id").primaryKey(),
+    platformAdminUserId: text("platform_admin_user_id")
+      .notNull()
+      .references(() => user.id),
+    impersonatedAsUserId: text("impersonated_as_user_id").references(() => user.id),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    // Nullable is intentional: some platform actions aren't org-scoped.
+    organizationId: text("organization_id").references(() => organizations.id),
+    beforeSnapshot: jsonb("before_snapshot"),
+    afterSnapshot: jsonb("after_snapshot"),
+    reason: text("reason"),
+    ipAddress: text("ip_address"),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("platform_admin_actions_org_created_idx").on(table.organizationId, table.createdAt),
+  ],
+);
 
 // ── Platform-wide analytics tables ───────────────────────────────────────────
 

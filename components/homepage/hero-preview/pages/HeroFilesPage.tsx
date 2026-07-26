@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { FileText } from "lucide-react";
 import { PageHeader, SearchFiltersBar, ActionIcons, Pagination } from "../shared";
 
@@ -31,7 +31,7 @@ export function HeroFilesPage() {
           </thead>
           <tbody>
             {FILES.map((f, i) => (
-              <motion.tr
+              <Motion.tr
                 key={f.name}
                 custom={i}
                 variants={row}
@@ -52,7 +52,7 @@ export function HeroFilesPage() {
                 <td className="px-4 py-2.5 text-[11px] text-muted-foreground">{f.client}</td>
                 <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{f.size}</td>
                 <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{f.uploaded}</td>
-              </motion.tr>
+              </Motion.tr>
             ))}
           </tbody>
         </table>

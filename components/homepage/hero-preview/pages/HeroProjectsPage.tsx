@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { LayoutTemplate } from "lucide-react";
 import { SearchFiltersBar, ActionIcons, Pagination } from "../shared";
 import { STATUS_STYLES, STATUS_LABELS, PRIORITY_STYLES } from "../data";
@@ -49,7 +49,7 @@ export function HeroProjectsPage() {
             {PROJECTS.map((p, i) => {
               const ps = PRIORITY_STYLES[p.priority];
               return (
-                <motion.tr
+                <Motion.tr
                   key={p.name}
                   custom={i}
                   variants={row}
@@ -76,7 +76,7 @@ export function HeroProjectsPage() {
                   <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{p.startDate}</td>
                   <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{p.dueDate}</td>
                   <td className="px-4 py-2.5 text-[10px] text-muted-foreground">{p.updated}</td>
-                </motion.tr>
+                </Motion.tr>
               );
             })}
           </tbody>

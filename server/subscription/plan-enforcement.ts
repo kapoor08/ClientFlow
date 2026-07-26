@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import {
   clients,
@@ -37,13 +37,29 @@ export class PlanLimitError extends Error {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Subscription statuses that grant paid-plan entitlements. Stripe keeps a
+ * subscription in `past_due` during dunning (the card-retry grace window), so
+ * we keep access through that period and only fall back to the free plan once
+ * the subscription is `canceled`/`unpaid`/`incomplete`. Without this filter a
+ * canceled org keeps full paid limits, because `handleSubscriptionDeleted`
+ * marks the subscription `canceled` but never repoints
+ * `organizationCurrentSubscriptions`.
+ */
+const ENTITLED_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"];
+
 async function getOrgPlanCode(organizationId: string): Promise<string> {
   const [row] = await db
     .select({ code: plans.code })
     .from(organizationCurrentSubscriptions)
     .innerJoin(subscriptions, eq(organizationCurrentSubscriptions.subscriptionId, subscriptions.id))
     .innerJoin(plans, eq(subscriptions.planId, plans.id))
-    .where(eq(organizationCurrentSubscriptions.organizationId, organizationId))
+    .where(
+      and(
+        eq(organizationCurrentSubscriptions.organizationId, organizationId),
+        inArray(subscriptions.status, ENTITLED_SUBSCRIPTION_STATUSES),
+      ),
+    )
     .limit(1);
 
   return row?.code ?? "free";

@@ -1,7 +1,9 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-const redis = new Redis({
+// Exported so the health probe can PING it (P2-9) without standing up a second
+// client. The rate limiters below share this instance.
+export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
@@ -46,6 +48,35 @@ export const signInLockout = new Ratelimit({
 
 export function lockoutKey(email: string): string {
   return email.trim().toLowerCase();
+}
+
+/**
+ * Server actions POST to the page path with a `Next-Action` header and never
+ * match the `/api/*` middleware limiter, so they are otherwise completely
+ * unthrottled (P2-3). This bucket backs a shared helper actions call at entry,
+ * keyed on userId (authed) or IP (public). 20 per minute is generous for
+ * interactive form submits while stopping floods.
+ */
+export const actionRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, "60 s"),
+  prefix: "rl:action",
+  analytics: false,
+});
+
+/**
+ * Fail-open rate-limit check for a server action. `key` is the userId for authed
+ * actions or the client IP for public ones. Returns `true` when the request may
+ * proceed. Mirrors the middleware's fail-open stance: a Redis outage must not
+ * block legitimate submits.
+ */
+export async function checkActionRateLimit(action: string, key: string): Promise<boolean> {
+  try {
+    const { success } = await actionRatelimit.limit(`${action}:${key}`);
+    return success;
+  } catch {
+    return true;
+  }
 }
 
 /**

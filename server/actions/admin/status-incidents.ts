@@ -63,8 +63,8 @@ export async function createIncidentAction(
     const slug = slugify(data.title);
     const now = new Date();
 
-    await db.transaction(async (tx) => {
-      await tx.insert(statusIncidents).values({
+    await db.batch([
+      db.insert(statusIncidents).values({
         id,
         slug,
         title: data.title,
@@ -76,21 +76,23 @@ export async function createIncidentAction(
         scheduledUntil: data.scheduledUntil ?? null,
         postedByUserId: userId,
         isAutoOpened: false,
-      });
-      await tx.insert(statusIncidentUpdates).values({
+      }),
+      db.insert(statusIncidentUpdates).values({
         id: crypto.randomUUID(),
         incidentId: id,
         body: data.initialBody,
         stateAtPost: data.initialState,
         postedByUserId: userId,
-      });
-      for (const componentId of data.componentIds) {
-        await tx.insert(statusIncidentComponents).values({
-          incidentId: id,
-          componentId,
-        });
-      }
-    });
+      }),
+      // P3-2: single multi-row insert instead of one statement per component.
+      ...(data.componentIds.length > 0
+        ? [
+            db
+              .insert(statusIncidentComponents)
+              .values(data.componentIds.map((componentId) => ({ incidentId: id, componentId }))),
+          ]
+        : []),
+    ]);
 
     revalidateAll(slug);
     void dispatchIncidentEmails({
@@ -128,19 +130,19 @@ export async function addIncidentUpdateAction(
       return { error: "Incident is already resolved" };
     }
 
-    await db.transaction(async (tx) => {
-      await tx.insert(statusIncidentUpdates).values({
+    await db.batch([
+      db.insert(statusIncidentUpdates).values({
         id: crypto.randomUUID(),
         incidentId,
         body: parsed.data.body,
         stateAtPost: parsed.data.stateAtPost,
         postedByUserId: userId,
-      });
-      await tx
+      }),
+      db
         .update(statusIncidents)
         .set({ currentState: parsed.data.stateAtPost, updatedAt: now })
-        .where(eq(statusIncidents.id, incidentId));
-    });
+        .where(eq(statusIncidents.id, incidentId)),
+    ]);
 
     revalidateAll(incident.slug);
     void dispatchIncidentEmails({
@@ -180,19 +182,19 @@ export async function resolveIncidentAction(
     if (incident.resolvedAt) return { error: "Already resolved" };
 
     const now = new Date();
-    await db.transaction(async (tx) => {
-      await tx.insert(statusIncidentUpdates).values({
+    await db.batch([
+      db.insert(statusIncidentUpdates).values({
         id: crypto.randomUUID(),
         incidentId,
         body,
         stateAtPost: "resolved",
         postedByUserId: userId,
-      });
-      await tx
+      }),
+      db
         .update(statusIncidents)
         .set({ currentState: "resolved", resolvedAt: now, updatedAt: now })
-        .where(eq(statusIncidents.id, incidentId));
-    });
+        .where(eq(statusIncidents.id, incidentId)),
+    ]);
 
     revalidateAll(incident.slug);
     void dispatchIncidentEmails({
@@ -225,25 +227,27 @@ export async function updateIncidentMetaAction(
       .limit(1);
     if (!incident) return { error: "Incident not found" };
 
-    await db.transaction(async (tx) => {
-      await tx
+    await db.batch([
+      db
         .update(statusIncidents)
         .set({
           title: parsed.data.title,
           impact: parsed.data.impact,
           updatedAt: new Date(),
         })
-        .where(eq(statusIncidents.id, incidentId));
-      await tx
+        .where(eq(statusIncidents.id, incidentId)),
+      db
         .delete(statusIncidentComponents)
-        .where(eq(statusIncidentComponents.incidentId, incidentId));
-      for (const componentId of parsed.data.componentIds) {
-        await tx.insert(statusIncidentComponents).values({
-          incidentId,
-          componentId,
-        });
-      }
-    });
+        .where(eq(statusIncidentComponents.incidentId, incidentId)),
+      // P3-2: single multi-row insert instead of one statement per component.
+      ...(parsed.data.componentIds.length > 0
+        ? [
+            db
+              .insert(statusIncidentComponents)
+              .values(parsed.data.componentIds.map((componentId) => ({ incidentId, componentId }))),
+          ]
+        : []),
+    ]);
 
     revalidateAll(incident.slug);
     return {};

@@ -14,45 +14,12 @@ const withBundleAnalyzer = bundleAnalyzer({
 const isProduction = process.env.NODE_ENV === "production";
 
 /**
- * Content-Security-Policy.
- *
- * Defaults to *enforcing* in production. The browser blocks resources that
- * fall outside the directive list below. To roll back to Report-Only without
- * a redeploy of new code, set `CSP_REPORT_ONLY=1` in the environment - the
- * header key flips from `Content-Security-Policy` to
- * `Content-Security-Policy-Report-Only` on the next request.
- *
- * Why an env flag rather than a code change: if a legitimate resource starts
- * being blocked in production, an env edit + Vercel redeploy is faster (and
- * leaves a clearer audit trail) than reverting code under pressure.
- *
- * Sources included:
- *   - `'self'` for first-party everything
- *   - `'unsafe-inline'` on script/style: needed by Next.js streaming hydration
- *     and Tailwind. A later iteration can move scripts to nonces via middleware.
- *   - Stripe: Elements (`js.stripe.com`), API (`api.stripe.com`), hosted-checkout
- *     iframes (`hooks.stripe.com`).
- *   - Sentry ingest: the SDK tunnels through `/monitoring` (same-origin), but
- *     the raw ingest domains are also allowed in case the tunnel is disabled.
- *   - Vercel scripts: Web Analytics + Speed Insights if/when they are added.
- *   - `data: blob: https:` on img-src covers user-uploaded avatars and
- *     branding logos that may come from any HTTPS origin.
+ * The Content-Security-Policy is set per-request in `middleware.ts` (P2-2) so
+ * `script-src` can carry a fresh nonce (`'nonce-…' 'strict-dynamic'`) instead of
+ * `'unsafe-inline'` - a static `headers()` value can't. Ships Report-Only by
+ * default; `CSP_ENFORCE=1` flips it to enforcing. The other security headers
+ * below stay static.
  */
-const cspReportOnly = process.env.CSP_REPORT_ONLY === "1";
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://va.vercel-scripts.com https://vercel.live",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
-  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join("; ");
 
 /**
  * Security headers applied to every response.
@@ -78,12 +45,7 @@ const securityHeaders = [
           key: "Strict-Transport-Security",
           value: "max-age=63072000; includeSubDomains; preload",
         },
-        {
-          // Enforcing by default. Set CSP_REPORT_ONLY=1 to roll back without
-          // a code change - the header key flips to the Report-Only variant.
-          key: cspReportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy",
-          value: csp,
-        },
+        // CSP is set per-request (nonce-based) in middleware.ts - not here.
       ]
     : []),
 ];

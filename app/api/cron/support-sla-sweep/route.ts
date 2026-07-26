@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, isNull, lt, ne, sql } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { supportTickets, supportTicketEvents } from "@/db/schema";
 import { assertCronAuth } from "@/server/cron/guard";

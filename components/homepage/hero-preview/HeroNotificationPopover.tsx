@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m as Motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
   Check,
@@ -30,7 +30,7 @@ export function HeroNotificationPopover({ open, onClose }: HeroNotificationPopov
       {open && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -40,7 +40,7 @@ export function HeroNotificationPopover({ open, onClose }: HeroNotificationPopov
           />
 
           {/* Popover - positioned below bell icon on right side */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -4, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.95 }}
@@ -67,7 +67,7 @@ export function HeroNotificationPopover({ open, onClose }: HeroNotificationPopov
               {HERO_NOTIFICATIONS.map((n, i) => {
                 const Icon = typeIcon[n.type] ?? Bell;
                 return (
-                  <motion.div
+                  <Motion.div
                     key={n.title}
                     initial={{ opacity: 0, x: -4 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -87,7 +87,7 @@ export function HeroNotificationPopover({ open, onClose }: HeroNotificationPopov
                     {n.unread && (
                       <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
                     )}
-                  </motion.div>
+                  </Motion.div>
                 );
               })}
             </div>
@@ -96,7 +96,7 @@ export function HeroNotificationPopover({ open, onClose }: HeroNotificationPopov
             <div className="border-t border-border px-4 py-2.5">
               <span className="text-xs text-primary">View all notifications</span>
             </div>
-          </motion.div>
+          </Motion.div>
         </>
       )}
     </AnimatePresence>

@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { useMotionStagger } from "@/hooks/use-home-motion";
 import { stats, values } from "@/config/about";
 
@@ -19,7 +19,7 @@ const AboutPage = () => {
           style={{ background: "var(--cf-hero-gradient)" }}
         />
         <div className="container relative py-14 md:py-20">
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
@@ -34,7 +34,7 @@ const AboutPage = () => {
               project management, billing, and client communication across five
               different tools. There had to be a better way.
             </p>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
 
@@ -89,7 +89,7 @@ const AboutPage = () => {
           <h2 className="font-display text-xl font-bold text-foreground text-center">
             Our Values
           </h2>
-          <motion.div
+          <Motion.div
             variants={motionStagger.container}
             initial="hidden"
             whileInView="show"
@@ -97,7 +97,7 @@ const AboutPage = () => {
             className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
             {values.map((v) => (
-              <motion.div
+              <Motion.div
                 key={v.title}
                 variants={motionStagger.item}
                 className="rounded-xl border border-border bg-background p-5 transition-all hover:border-primary/30 hover:shadow-cf-2"
@@ -111,9 +111,9 @@ const AboutPage = () => {
                 <p className="mt-1.5 text-[13px] text-muted-foreground">
                   {v.desc}
                 </p>
-              </motion.div>
+              </Motion.div>
             ))}
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
     </>

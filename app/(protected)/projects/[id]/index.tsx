@@ -15,14 +15,11 @@ import {
 import { ListPageLayout } from "@/components/layout/templates/ListPageLayout";
 import { FileUploader } from "@/components/files/FileUploader";
 import { ProjectTasksSection, ProjectTimesheetSection } from "@/components/projects";
+import { StatCard } from "@/components/projects/detail/StatCard";
+import { ProjectBadges } from "@/components/projects/detail/ProjectBadges";
 import { getProjectDetailForUser } from "@/server/projects";
 import { getServerSession } from "@/server/auth/session";
-import {
-  BUDGET_TYPE_OPTIONS,
-  type ProjectStatus,
-  type ProjectPriority,
-  type ProjectBudgetType,
-} from "@/schemas/projects";
+import { BUDGET_TYPE_OPTIONS, type ProjectBudgetType } from "@/schemas/projects";
 import { formatDate } from "@/utils/date";
 import { formatCurrency } from "@/utils/currency";
 
@@ -30,52 +27,9 @@ type ProjectDetailPageProps = {
   params: Promise<{ id: string }>;
 };
 
-const statusStyles: Record<ProjectStatus, string> = {
-  planning: "bg-neutral-200/70 text-neutral-700",
-  in_progress: "bg-primary/10 text-primary",
-  on_hold: "bg-warning/10 text-warning",
-  completed: "bg-success/10 text-success",
-  cancelled: "bg-neutral-200/70 text-neutral-500",
-};
-
-const priorityStyles: Record<ProjectPriority, string> = {
-  low: "bg-neutral-200/70 text-neutral-600",
-  medium: "bg-info/10 text-info",
-  high: "bg-warning/10 text-warning",
-  urgent: "bg-danger/10 text-danger",
-};
-
-const priorityDot: Record<ProjectPriority, string> = {
-  low: "bg-neutral-400",
-  medium: "bg-info",
-  high: "bg-warning",
-  urgent: "bg-danger",
-};
-
 function getBudgetTypeLabel(type: ProjectBudgetType | null): string {
   if (!type) return "-";
   return BUDGET_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
-}
-
-type StatCardProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  valueClassName?: string;
-};
-
-function StatCard({ icon, label, value, valueClassName }: StatCardProps) {
-  return (
-    <div className="rounded-card border-border bg-card shadow-cf-1 border p-5">
-      <div className="text-muted-foreground flex items-center gap-2">
-        {icon}
-        <span className="text-[10px] font-semibold tracking-wider uppercase">{label}</span>
-      </div>
-      <div className={`mt-2.5 text-sm font-semibold ${valueClassName ?? "text-foreground"}`}>
-        {value}
-      </div>
-    </div>
-  );
 }
 
 export async function generateMetadata({ params }: ProjectDetailPageProps): Promise<Metadata> {
@@ -111,19 +65,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
         title={
           <span className="flex flex-wrap items-center gap-2">
             {project.name}
-            <span
-              className={`rounded-pill px-2.5 py-0.5 text-xs font-medium capitalize ${statusStyles[project.status]}`}
-            >
-              {project.status.replaceAll("_", " ")}
-            </span>
-            {project.priority && (
-              <span
-                className={`rounded-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium capitalize ${priorityStyles[project.priority]}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${priorityDot[project.priority]}`} />
-                {project.priority}
-              </span>
-            )}
+            <ProjectBadges status={project.status} priority={project.priority} />
           </span>
         }
         description={

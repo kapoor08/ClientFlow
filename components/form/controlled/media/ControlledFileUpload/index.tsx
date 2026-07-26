@@ -11,7 +11,7 @@ import type {
   Merge,
   Path,
 } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,10 +31,7 @@ export interface FileItem {
 // Type for array field errors
 type ArrayFieldError =
   | FieldError
-  | Merge<
-      FieldError,
-      (FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined)[]
-    >;
+  | Merge<FieldError, (FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined)[]>;
 
 export interface ControlledFileUploadProps<T extends FieldValues> {
   name: Path<T>;
@@ -145,6 +142,24 @@ export const ControlledFileUpload = <T extends FieldValues>({
     }
   }, [existingFiles, initialFiles, files.length]);
 
+  // Mirror the form value into internal state when it changes externally (e.g.
+  // reset() or a programmatic setValue). This watch runs at the component top
+  // level; the equivalent effect must NOT live inside the Controller render
+  // callback below (that would call a hook inside a callback - rules-of-hooks).
+  const watchedValue = useWatch({ control, name }) as FileItem[] | undefined;
+  useEffect(() => {
+    if (watchedValue && Array.isArray(watchedValue) && watchedValue.length > 0) {
+      setFiles(watchedValue);
+    } else if (!watchedValue || (Array.isArray(watchedValue) && watchedValue.length === 0)) {
+      // Don't clear files if they have existing attachments
+      const hasExistingFiles = files.some((f) => f.isExisting);
+      if (!hasExistingFiles) {
+        setFiles([]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValue]);
+
   // Update form value when files change
   const updateFormValue = useCallback(
     (newFiles: FileItem[], onChange: (value: FileItem[]) => void) => {
@@ -156,10 +171,7 @@ export const ControlledFileUpload = <T extends FieldValues>({
   );
 
   // Process files (shared logic for both file input and drag-drop)
-  const processFiles = (
-    selectedFiles: File[],
-    onChange: (value: FileItem[]) => void,
-  ) => {
+  const processFiles = (selectedFiles: File[], onChange: (value: FileItem[]) => void) => {
     if (selectedFiles.length === 0) return;
 
     const maxSizeBytes = maxSize * 1024 * 1024;
@@ -185,9 +197,7 @@ export const ControlledFileUpload = <T extends FieldValues>({
         const formatNames = acceptedFormats
           .map((f) => f.split("/")[1]?.toUpperCase() || f)
           .join(", ");
-        toast.error(
-          `${file.name}: Invalid file type. Accepted: ${formatNames}`,
-        );
+        toast.error(`${file.name}: Invalid file type. Accepted: ${formatNames}`);
         continue;
       }
 
@@ -216,9 +226,7 @@ export const ControlledFileUpload = <T extends FieldValues>({
     }
 
     if (newFileItems.length > 0) {
-      const updatedFiles = multiple
-        ? [...files, ...newFileItems]
-        : newFileItems;
+      const updatedFiles = multiple ? [...files, ...newFileItems] : newFileItems;
       updateFormValue(updatedFiles, onChange);
     }
 
@@ -272,16 +280,9 @@ export const ControlledFileUpload = <T extends FieldValues>({
   };
 
   // Remove a file
-  const handleRemoveFile = (
-    fileId: string,
-    onChange: (value: FileItem[]) => void,
-  ) => {
+  const handleRemoveFile = (fileId: string, onChange: (value: FileItem[]) => void) => {
     const fileToRemove = files.find((f) => f.id === fileId);
-    if (
-      fileToRemove &&
-      !fileToRemove.isExisting &&
-      fileToRemove.preview.startsWith("blob:")
-    ) {
+    if (fileToRemove && !fileToRemove.isExisting && fileToRemove.preview.startsWith("blob:")) {
       URL.revokeObjectURL(fileToRemove.preview);
     }
 
@@ -307,226 +308,198 @@ export const ControlledFileUpload = <T extends FieldValues>({
     <Controller
       name={name}
       control={control}
-      render={({ field: { onChange, value } }) => {
-        // Sync internal state with form value when it changes externally
-        useEffect(() => {
-          if (value && Array.isArray(value) && value.length > 0) {
-            setFiles(value);
-          } else if (!value || (Array.isArray(value) && value.length === 0)) {
-            // Don't clear files if they have existing attachments
-            const hasExistingFiles = files.some(f => f.isExisting);
-            if (!hasExistingFiles) {
-              setFiles([]);
-            }
-          }
-        }, [value]);
-
+      render={({ field: { onChange } }) => {
         return (
-        <div className={`grid gap-2 ${className || ""}`}>
-          {label && <Label>{label}</Label>}
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
+          <div className={`grid gap-2 ${className || ""}`}>
+            {label && <Label>{label}</Label>}
+            {description && <p className="text-muted-foreground text-sm">{description}</p>}
 
-          {/* Upload Area */}
-          {canAddMore && (
-            <div
-              className="relative"
-              onDragOver={handleDragOver}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, onChange)}
-            >
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept={acceptString}
-                multiple={multiple}
-                onChange={(e) => handleFileSelect(e, onChange)}
-                className="hidden"
-                id={`${name}-upload`}
-              />
-              <label
-                htmlFor={`${name}-upload`}
-                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                  isDragging
-                    ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/25 bg-muted/10 hover:bg-muted/20"
-                }`}
+            {/* Upload Area */}
+            {canAddMore && (
+              <div
+                className="relative"
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, onChange)}
               >
-                <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-semibold">Click to upload</span> or drag
-                  and drop
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {multiple
-                    ? files.length > 0
-                      ? `${files.length} of ${effectiveMaxFiles} files uploaded`
-                      : `Up to ${effectiveMaxFiles} files`
-                    : files.length > 0
-                      ? "Replace current file"
-                      : "Select a file"}
-                </p>
-              </label>
-            </div>
-          )}
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={acceptString}
+                  multiple={multiple}
+                  onChange={(e) => handleFileSelect(e, onChange)}
+                  className="hidden"
+                  id={`${name}-upload`}
+                />
+                <label
+                  htmlFor={`${name}-upload`}
+                  className={`flex h-32 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                    isDragging
+                      ? "border-primary bg-primary/10"
+                      : "border-muted-foreground/25 bg-muted/10 hover:bg-muted/20"
+                  }`}
+                >
+                  <Upload className="text-muted-foreground mb-2 h-8 w-8" />
+                  <p className="text-muted-foreground text-sm">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {multiple
+                      ? files.length > 0
+                        ? `${files.length} of ${effectiveMaxFiles} files uploaded`
+                        : `Up to ${effectiveMaxFiles} files`
+                      : files.length > 0
+                        ? "Replace current file"
+                        : "Select a file"}
+                  </p>
+                </label>
+              </div>
+            )}
 
-          {/* Files List */}
-          {files.length > 0 && (
-            <div className={multiple ? "flex flex-wrap gap-3 mt-2" : "mt-2"}>
-              {files.map((fileItem) => {
-                const fileName =
-                  fileItem.fileName ||
-                  fileItem.file?.name ||
-                  (fileItem.preview.startsWith("pdf:")
-                    ? fileItem.preview.replace("pdf:", "")
-                    : "File");
-                const isImage = isImageFile(fileItem.file, fileItem.preview, fileName);
-                const isPdf = isPdfFile(fileItem.file, fileItem.preview);
-                const fileSize = fileItem.fileSize || fileItem.file?.size;
+            {/* Files List */}
+            {files.length > 0 && (
+              <div className={multiple ? "mt-2 flex flex-wrap gap-3" : "mt-2"}>
+                {files.map((fileItem) => {
+                  const fileName =
+                    fileItem.fileName ||
+                    fileItem.file?.name ||
+                    (fileItem.preview.startsWith("pdf:")
+                      ? fileItem.preview.replace("pdf:", "")
+                      : "File");
+                  const isImage = isImageFile(fileItem.file, fileItem.preview, fileName);
+                  const isPdf = isPdfFile(fileItem.file, fileItem.preview);
+                  const fileSize = fileItem.fileSize || fileItem.file?.size;
 
-                // Single file - larger preview
-                if (!multiple) {
+                  // Single file - larger preview
+                  if (!multiple) {
+                    return (
+                      <div
+                        key={fileItem.id}
+                        className="bg-muted/10 relative overflow-hidden rounded-lg border"
+                      >
+                        {isImage && !fileItem.preview.startsWith("pdf:") ? (
+                          <div className="relative h-48 w-full">
+                            <Image
+                              src={fileItem.preview}
+                              alt={fileName}
+                              fill
+                              unoptimized
+                              className="object-contain"
+                            />
+                          </div>
+                        ) : isPdf || fileItem.preview.startsWith("pdf:") ? (
+                          <div className="flex h-32 w-full items-center justify-center bg-red-50 dark:bg-red-900/20">
+                            <FileText className="h-12 w-12 text-red-600 dark:text-red-400" />
+                          </div>
+                        ) : (
+                          <div className="bg-muted flex h-32 w-full items-center justify-center">
+                            <File className="text-muted-foreground h-12 w-12" />
+                          </div>
+                        )}
+                        <div className="border-t p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{fileName}</p>
+                              <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                                {fileSize && <span>{formatFileSize(fileSize)}</span>}
+                                {fileSize && <span>•</span>}
+                                <span>{getFileExtension(fileName)}</span>
+                                {fileItem.isExisting && fileItem.url && (
+                                  <>
+                                    <span>•</span>
+                                    <a
+                                      href={fileItem.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary inline-flex items-center gap-1 hover:underline"
+                                    >
+                                      View <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveFile(fileItem.id, onChange)}
+                              className="h-8 w-8 shrink-0 cursor-pointer"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Multiple files - compact cards in flex row
                   return (
                     <div
                       key={fileItem.id}
-                      className="relative border rounded-lg bg-muted/10 overflow-hidden"
+                      className="bg-muted/10 relative flex w-36 shrink-0 flex-col overflow-hidden rounded-lg border"
                     >
+                      {/* Remove Button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveFile(fileItem.id, onChange)}
+                        className="bg-background/80 hover:bg-background absolute top-1 right-1 z-10 h-6 w-6 cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+
+                      {/* Preview/Icon */}
                       {isImage && !fileItem.preview.startsWith("pdf:") ? (
-                        <div className="relative w-full h-48">
+                        <div className="bg-muted relative h-24 w-full">
                           <Image
                             src={fileItem.preview}
                             alt={fileName}
                             fill
                             unoptimized
-                            className="object-contain"
+                            className="object-cover"
                           />
                         </div>
                       ) : isPdf || fileItem.preview.startsWith("pdf:") ? (
-                        <div className="flex items-center justify-center w-full h-32 bg-red-50 dark:bg-red-900/20">
-                          <FileText className="h-12 w-12 text-red-600 dark:text-red-400" />
+                        <div className="flex h-24 w-full items-center justify-center bg-red-50 dark:bg-red-900/20">
+                          <FileText className="h-8 w-8 text-red-600 dark:text-red-400" />
                         </div>
                       ) : (
-                        <div className="flex items-center justify-center w-full h-32 bg-muted">
-                          <File className="h-12 w-12 text-muted-foreground" />
+                        <div className="bg-muted flex h-24 w-full items-center justify-center">
+                          <File className="text-muted-foreground h-8 w-8" />
                         </div>
                       )}
-                      <div className="p-3 border-t">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate">
-                              {fileName}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              {fileSize && (
-                                <span>{formatFileSize(fileSize)}</span>
-                              )}
-                              {fileSize && <span>•</span>}
-                              <span>{getFileExtension(fileName)}</span>
-                              {fileItem.isExisting && fileItem.url && (
-                                <>
-                                  <span>•</span>
-                                  <a
-                                    href={fileItem.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline inline-flex items-center gap-1"
-                                  >
-                                    View <ExternalLink className="h-3 w-3" />
-                                  </a>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              handleRemoveFile(fileItem.id, onChange)
-                            }
-                            className="h-8 w-8 shrink-0 cursor-pointer"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+
+                      {/* File Info */}
+                      <div className="border-t p-2">
+                        <p className="truncate text-xs font-medium" title={fileName}>
+                          {fileName}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {fileSize ? formatFileSize(fileSize) : getFileExtension(fileName)}
+                        </p>
                       </div>
                     </div>
                   );
-                }
+                })}
+              </div>
+            )}
 
-                // Multiple files - compact cards in flex row
-                return (
-                  <div
-                    key={fileItem.id}
-                    className="relative flex flex-col border rounded-lg bg-muted/10 overflow-hidden w-36 shrink-0"
-                  >
-                    {/* Remove Button */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveFile(fileItem.id, onChange)}
-                      className="absolute top-1 right-1 h-6 w-6 bg-background/80 hover:bg-background cursor-pointer z-10"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+            {/* Max files info */}
+            {multiple && files.length >= effectiveMaxFiles && (
+              <p className="text-muted-foreground py-2 text-center text-sm">
+                Maximum {effectiveMaxFiles} files reached. Remove a file to add more.
+              </p>
+            )}
 
-                    {/* Preview/Icon */}
-                    {isImage && !fileItem.preview.startsWith("pdf:") ? (
-                      <div className="relative w-full h-24 bg-muted">
-                        <Image
-                          src={fileItem.preview}
-                          alt={fileName}
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : isPdf || fileItem.preview.startsWith("pdf:") ? (
-                      <div className="flex items-center justify-center w-full h-24 bg-red-50 dark:bg-red-900/20">
-                        <FileText className="h-8 w-8 text-red-600 dark:text-red-400" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center w-full h-24 bg-muted">
-                        <File className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-
-                    {/* File Info */}
-                    <div className="p-2 border-t">
-                      <p
-                        className="text-xs font-medium truncate"
-                        title={fileName}
-                      >
-                        {fileName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {fileSize
-                          ? formatFileSize(fileSize)
-                          : getFileExtension(fileName)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Max files info */}
-          {multiple && files.length >= effectiveMaxFiles && (
-            <p className="text-sm text-muted-foreground text-center py-2">
-              Maximum {effectiveMaxFiles} files reached. Remove a file to add
-              more.
-            </p>
-          )}
-
-          {/* Error */}
-          {error && "message" in error && error.message && (
-            <p className="text-sm text-destructive">{error.message}</p>
-          )}
-        </div>
+            {/* Error */}
+            {error && "message" in error && error.message && (
+              <p className="text-destructive text-sm">{error.message}</p>
+            )}
+          </div>
         );
       }}
     />

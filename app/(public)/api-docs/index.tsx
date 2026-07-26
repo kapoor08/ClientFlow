@@ -1,6 +1,6 @@
 "use client";
 import { endpoints, features } from "@/config/api-docs";
-import { motion } from "framer-motion";
+import { m as Motion } from "framer-motion";
 import { Code } from "lucide-react";
 
 const methodColors: Record<string, string> = {
@@ -16,7 +16,7 @@ const ApiDocsPage = () => (
       <div className="dot-grid dot-grid-fade absolute inset-0 opacity-40" />
       <div className="absolute inset-0" style={{ background: "var(--cf-hero-gradient)" }} />
       <div className="relative container py-14 md:py-20">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -36,7 +36,7 @@ const ApiDocsPage = () => (
           <div className="bg-card border-border text-foreground shadow-cf-1 mt-4 inline-block rounded-lg border px-4 py-2 font-mono text-sm">
             Base URL: https://www.client-flow.in
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
 
