@@ -29,4 +29,22 @@ export const inngest = new Inngest({
   schemas: new EventSchemas().fromRecord<Events>(),
 });
 
-export const isInngestConfigured = !!process.env.INNGEST_EVENT_KEY;
+/**
+ * Whether outbound work should be dispatched through Inngest.
+ *
+ * Requires BOTH:
+ *   - `INNGEST_EVENT_KEY` present, and
+ *   - a production runtime (`NODE_ENV === "production"`).
+ *
+ * The `NODE_ENV` guard matters: with only the key check, setting
+ * `INNGEST_EVENT_KEY` in a local `.env` routed every email into Inngest, but
+ * `next dev` puts the SDK in inferred *dev* mode where `send()` targets the
+ * local Inngest Dev Server (localhost:8288). With no dev server running, the
+ * send throws and the email is never delivered - and the documented
+ * synchronous fallback never kicks in. Gating on `NODE_ENV` aligns our routing
+ * with the SDK's own dev/cloud inference: dev + non-prod -> synchronous send
+ * (works with no extra infra); prod -> async queue (Inngest can reach the
+ * public /api/inngest serve URL). Production behavior is unchanged.
+ */
+export const isInngestConfigured =
+  process.env.NODE_ENV === "production" && !!process.env.INNGEST_EVENT_KEY;
