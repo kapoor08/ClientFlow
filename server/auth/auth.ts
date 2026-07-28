@@ -154,9 +154,9 @@ export const auth = betterAuth({
     /**
      * Before-hook chain.
      *
-     *  1. /sign-up/email & /reset-password - enforce password complexity policy
-     *     (lib/password-policy). Throwing APIError here aborts the request with
-     *     a 422 + the readable rule message.
+     *  1. /sign-up/email, /reset-password & /change-password - enforce password
+     *     complexity policy (lib/password-policy). Throwing APIError here aborts
+     *     the request with a 422 + the readable rule message.
      *
      *  2. /sign-in/email - per-email lockout. Five failed attempts in any
      *     15-minute window blocks further attempts on that account regardless
@@ -166,8 +166,13 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       const path = ctx.path;
 
-      if (path === "/sign-up/email" || path === "/reset-password") {
-        const pwd = (ctx.body as { password?: unknown } | undefined)?.password;
+      if (path === "/sign-up/email" || path === "/reset-password" || path === "/change-password") {
+        // Field name differs by endpoint: /sign-up/email sends `password`,
+        // while /reset-password and /change-password send `newPassword`.
+        // Reading only `password` made reset/change always validate `undefined`
+        // -> "Password is required." (422). All three enforce the same policy.
+        const body = ctx.body as { password?: unknown; newPassword?: unknown } | undefined;
+        const pwd = path === "/sign-up/email" ? body?.password : body?.newPassword;
         const err = validatePassword(pwd);
         if (err) {
           throw new APIError("UNPROCESSABLE_ENTITY", { message: err });
