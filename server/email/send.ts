@@ -114,10 +114,13 @@ function appendUnsubscribeFooterText(text: string, unsubUrl: string): string {
  * different point. Tests and existing call sites don't change.
  */
 async function sendEmail(input: SendEmailInput) {
+  const moduleTag = input.tags?.find((t) => t.name === "module")?.value;
   if (isInngestConfigured) {
+    logger.info("email.route", { to: input.to, module: moduleTag, path: "inngest" });
     await inngest.send({ name: "email/send.requested", data: input });
     return;
   }
+  logger.info("email.route", { to: input.to, module: moduleTag, path: "sync" });
   return sendEmailNow(input);
 }
 
@@ -126,10 +129,27 @@ async function sendEmail(input: SendEmailInput) {
  * provider with retry. Exported so the Inngest worker can call it.
  */
 export async function sendEmailNow(input: SendEmailInput) {
+  const moduleTag = input.tags?.find((t) => t.name === "module")?.value;
+  const provider = process.env.EMAILJS_PUBLIC_KEY ? "emailjs" : "resend";
+
   // Suppression check - skip non-critical sends to unsubscribed / bounced /
   // complained addresses. Critical modules (auth, billing, security) bypass.
   const critical = isCritical(input.tags);
+
+  logger.info("email.send.start", {
+    to: input.to,
+    subject: input.subject,
+    module: moduleTag,
+    critical,
+    provider,
+  });
+
   if (!critical && (await isSuppressed(input.to))) {
+    logger.warn("email.send.skipped", {
+      to: input.to,
+      module: moduleTag,
+      reason: "suppressed",
+    });
     return;
   }
 
@@ -137,9 +157,14 @@ export async function sendEmailNow(input: SendEmailInput) {
   // per-category preferences (product/billing/marketing) are coarser than
   // the per-event notificationPreferences table and apply at the email layer.
   if (!critical) {
-    const moduleTag = input.tags?.find((t) => t.name === "module")?.value;
     const category = categoryForModule(moduleTag);
     if (!(await isCategoryAllowed(input.to, category))) {
+      logger.warn("email.send.skipped", {
+        to: input.to,
+        module: moduleTag,
+        reason: "category-opt-out",
+        category,
+      });
       return;
     }
   }
@@ -166,6 +191,23 @@ export async function sendEmailNow(input: SendEmailInput) {
         }),
       { to: input.to, tags: input.tags },
     );
+    // The EmailJS wrapper does NOT throw when it's unconfigured - it returns
+    // { delivered: false, reason: "missing-config" }. Surface that here so a
+    // silently-skipped send is visible instead of looking like a success.
+    if (result && !result.delivered) {
+      logger.warn("email.send.not_delivered", {
+        to: input.to,
+        module: moduleTag,
+        provider: "emailjs",
+        reason: result.reason,
+      });
+      return result;
+    }
+    logger.info("email.send.delivered", {
+      to: input.to,
+      module: moduleTag,
+      provider: "emailjs",
+    });
     // Best-effort heartbeat. Status page reads `email_send_success` to
     // derive the email-delivery component state without making test sends.
     void bumpSignal(SIGNAL_KEYS.EMAIL_SEND_SUCCESS, { provider: "emailjs" });
@@ -180,6 +222,11 @@ export async function sendEmailNow(input: SendEmailInput) {
       }),
     { to: input.to, tags: input.tags },
   );
+  logger.info("email.send.delivered", {
+    to: input.to,
+    module: moduleTag,
+    provider: "resend",
+  });
   void bumpSignal(SIGNAL_KEYS.EMAIL_SEND_SUCCESS, { provider: "resend" });
   return result;
 }

@@ -12,14 +12,17 @@ import { sendEmailNow } from "@/server/email/send";
  * the common case of a transient Resend hiccup within seconds, and the
  * Inngest retry covers longer outages where Resend is down for minutes.
  *
- * `concurrency` is conservative (10 concurrent sends per worker instance) so
- * one batch of notifications doesn't burn the Resend rate limit.
+ * `concurrency` is conservative (5 concurrent sends) so one batch of
+ * notifications doesn't burn the Resend rate limit. Capped at 5 to stay within
+ * the Inngest free-plan account concurrency limit - a function requesting more
+ * than the plan allows makes Inngest reject the entire app sync, which silently
+ * unregisters every function and black-holes all queued events.
  */
 export const sendEmailFn = inngest.createFunction(
   {
     id: "send-email",
     name: "Send transactional email",
-    concurrency: { limit: 10 },
+    concurrency: { limit: 5 },
     retries: 3,
   },
   { event: "email/send.requested" },
