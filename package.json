@@ -138,7 +138,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "axe-core": "^4.10.2",
     "cross-env": "^7.0.3",
-    "electron": "^36.0.0",
+    "electron": "^43.4.0",
     "electron-builder": "^26.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
